@@ -7,3 +7,12 @@
 __pycache__/
 *.pyc
 *.pyo
+
+# Work ledger (runtime state, never commit)
+work_ledger.json
+
+# Verification reports (generated artifacts)
+*-verification.md
+
+# Decomposition manifests (generated artifacts)
+*-decomposition.json

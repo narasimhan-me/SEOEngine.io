@@ -2,12 +2,15 @@
 
 This document defines the canonical locations and naming conventions for artifacts produced by the EngineO Autonomous Execution Engine.
 
+**PATCH BATCH: AUTONOMOUS-AGENT-RESUME-STATE-MACHINE-RECONCILE-1 FIXUP-1**
+
 ## Canonical Directories
 
 | Directory | Purpose |
 |-----------|---------|
 | `scripts/autonomous-agent/logs/` | Engine logs |
-| `scripts/autonomous-agent/reports/` | Verification reports and Claude output artifacts |
+| `reports/` (repo root) | Verification reports and decomposition manifests |
+| `scripts/autonomous-agent/reports/` | Claude output attempt artifacts |
 | `.engineo/` | Runtime-only state (never committed) |
 
 ## Engine Log
@@ -22,57 +25,73 @@ This document defines the canonical locations and naming conventions for artifac
 
 ## Verification Reports
 
-### Default Canonical Path
+### Canonical Path (REQUIRED)
 
-**Canonical Location:** `scripts/autonomous-agent/reports/`
+**Canonical Location:** `reports/{ISSUE_KEY}-verification.md` (repo root)
 
-**Preferred Filename:** `{ISSUE_KEY}-{RUN_ID}-verification.md`
+**Example:** `reports/KAN-17-verification.md`
 
-**Legacy Alias:** `{ISSUE_KEY}-verification.md` (also written for backward compatibility)
+**CRITICAL CONTRACT:**
+- This is the ONLY path accepted by the Supervisor for verification
+- Timestamped paths (e.g., `KAN-17-20260127-143047Z-verification.md`) are NOT accepted
+- Title-prefixed paths (e.g., `AUTONOMOUS-AGENT-...-verification.md`) are NOT accepted
+- "Near-matches" are only used for remediation messaging, NOT acceptance
 
-This default is used when no `## VERIFICATION REQUIRED` section is present in the story description.
+### Supervisor Lookup
 
-### Custom Path via VERIFICATION REQUIRED
+The Supervisor performs a single lookup:
 
-Stories can specify a custom verification report path in their description using either format:
-
-```markdown
-VERIFICATION REQUIRED:
-- reports/{ISSUE_KEY}-custom-verification.md
-```
-
-Or markdown header style:
-
-```markdown
-## VERIFICATION REQUIRED
-- reports/{ISSUE_KEY}-custom-verification.md
-```
-
-The engine parses this section and uses the first matching path as the expected location.
-
-### Naming Patterns
-
-| Pattern | Status | Example |
-|---------|--------|---------|
-| `{ISSUE_KEY}-{RUN_ID}-verification.md` | **Preferred** | `KAN-16-20260127-143047Z-verification.md` |
-| `{ISSUE_KEY}-verification.md` | **Legacy alias** | `KAN-16-verification.md` |
-| `TITLE-PREFIX-...-verification.md` | **Invalid** | Ignored by Supervisor |
+1. Check `reports/{ISSUE_KEY}-verification.md` exists
+   - If exists: proceed to content validation
+   - If missing: FAIL with remediation message showing expected path + near-matches
 
 ### Report Requirements
 
-Verification reports **MUST** contain a `## Checklist` section to be considered valid. Reports without this header will be rejected by the Supervisor.
+Verification reports **MUST** contain:
+- `## Checklist` section header
+- All checklist items checked (`- [x]`)
+- Any unchecked items (`- [ ]`) cause verification to FAIL
 
-### Supervisor Lookup Order
+### Remediation Messaging
 
-1. `scripts/autonomous-agent/reports/` (PREFERRED - canonical location)
-2. `reports/` at repo root (fallback for backward compatibility only)
+When canonical report is missing, the Supervisor comments:
+```
+Verification report missing.
 
-### Important Notes
+Expected path: reports/{ISSUE_KEY}-verification.md
 
-- Title-prefixed verification reports (e.g., `AUTONOMOUS-AGENT-...-verification.md`) are **invalid** and will be **ignored** by the Supervisor during verification.
-- If Claude produces a title-prefixed report, the engine may copy it to a canonical issue-key-prefixed filename only if it can safely associate it with the issue.
-- When multiple verification reports exist for an issue, the **newest by timestamp** is selected.
-- The engine writes both the preferred timestamped filename AND the legacy alias for backward compatibility.
+Near-matches found (not accepted as canonical):
+  - scripts/autonomous-agent/reports/KAN-17-20260127-143047Z-verification.md
+  - ...
+
+Please ensure the verification report is written to the canonical path.
+```
+
+## Decomposition Manifests
+
+**Canonical Location:** `reports/{EPIC_KEY}-decomposition.json` (repo root)
+
+**Example:** `reports/KAN-10-decomposition.json`
+
+**Purpose:** Enables idempotent Epic decomposition (no duplicate Stories on repeated runs).
+
+### Manifest Structure
+
+```json
+{
+  "epicKey": "KAN-10",
+  "fingerprint": "sha256hash",
+  "children": [
+    {
+      "intent_id": "abc123def456",
+      "summary": "Implement: Add login feature",
+      "key": "KAN-17"
+    }
+  ],
+  "created_at": "2026-01-27T12:00:00Z",
+  "updated_at": "2026-01-27T12:00:00Z"
+}
+```
 
 ## Claude Output Artifacts
 
@@ -86,50 +105,51 @@ Verification reports **MUST** contain a `## Checklist` section to be considered 
 
 **IMPORTANT:** All output written to these artifact files is **automatically redacted** to prevent secret leakage. Sensitive values (API tokens, credentials, Authorization headers) are replaced with `[REDACTED]` before being written to disk.
 
-## Guardrails Ledger
+## Work Ledger
 
-**Location:** `.engineo/state.json`
+**Location:** `work_ledger.json` (repo root)
 
-**Purpose:** Tracks commit eligibility for Step 4 verification.
+**Purpose:** Persistent execution state for resumption across runs.
 
 ### Structure
 
 ```json
 {
   "version": 1,
-  "kan_story_runs": {
-    "KAN-16": {
-      "issueKey": "KAN-16",
-      "runId": "20260127-143047Z",
-      "baseSha": "abc123...",
-      "changedFiles": ["file1.py", "file2.py"],
-      "guardrailsPassed": true,
-      "status": "verified",
-      "verificationReportPath": "scripts/autonomous-agent/reports/KAN-16-20260127-143047Z-verification.md",
-      "updatedAt": "2026-01-27T14:30:47.123456+00:00"
+  "entries": {
+    "KAN-17": {
+      "issueKey": "KAN-17",
+      "issueType": "Story",
+      "parentKey": "KAN-10",
+      "status_last_observed": "In Progress",
+      "last_step": "IMPLEMENTER",
+      "last_step_result": "success",
+      "children": [],
+      "decomposition_fingerprint": "",
+      "last_commit_sha": "abc123def456",
+      "verification_report_path": "reports/KAN-17-verification.md",
+      "last_error_fingerprint": null,
+      "last_error_at": null
     }
   }
 }
 ```
 
-### Required Fields (per issue entry)
+### Terminal Step Results
 
-| Field | Description |
-|-------|-------------|
-| `issueKey` | The Jira issue key (e.g., "KAN-16") |
-| `runId` | The engine run ID that processed this issue |
-| `status` | Current status: "implemented", "verified", or "failed" |
-| `updatedAt` | ISO 8601 UTC timestamp of last update |
+The `last_step_result` field tracks outcome:
+- `success` - Step completed successfully
+- `failed` - Step failed (error/nonzero/exception)
+- `timed_out` - Step exceeded timeout
+- `cancelled` - Step was cancelled (lock/user interrupt)
 
-### Optional Fields
+## Guardrails Ledger (Legacy)
 
-| Field | Description |
-|-------|-------------|
-| `baseSha` | Git HEAD SHA at time of implementation |
-| `changedFiles` | List of files modified during implementation |
-| `guardrailsPassed` | Boolean indicating commit eligibility |
-| `verificationReportPath` | Repo-relative path to verification report |
-| `attemptArtifacts` | List of Claude output artifact paths |
+**Location:** `.engineo/state.json`
+
+**Purpose:** Legacy commit eligibility tracking. Being phased out in favor of Work Ledger.
+
+**Note:** This file is never committed to version control.
 
 ## Escalation Queue
 
@@ -142,15 +162,20 @@ Verification reports **MUST** contain a `## Checklist` section to be considered 
 ## Summary
 
 ```
+work_ledger.json                    # Work ledger (repo root, never commit)
+
+reports/
+├── {ISSUE_KEY}-verification.md     # Canonical verification report (ONLY accepted path)
+└── {EPIC_KEY}-decomposition.json   # Decomposition manifest
+
 .engineo/
-├── state.json              # Guardrails ledger (runtime-only)
-└── escalations.json        # Escalation queue (runtime-only)
+├── state.json                      # Guardrails ledger (runtime-only)
+└── escalations.json                # Escalation queue (runtime-only)
 
 scripts/autonomous-agent/
 ├── logs/
 │   └── engine-<RUN_ID>.log
 └── reports/
-    ├── <ISSUE_KEY>-<RUN_ID>-verification.md
-    ├── <ISSUE_KEY>-verification.md (legacy)
+    ├── ENGINE-RUN-ARTIFACTS.md     # This documentation (committed)
     └── <ISSUE_KEY>-<RUN_ID>-claude-output-attempt<N>.txt
 ```

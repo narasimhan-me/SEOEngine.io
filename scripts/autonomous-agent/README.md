@@ -3,8 +3,8 @@
 Autonomous execution engine that coordinates three personas to process Jira issues:
 
 1. **UEP (Unified Executive Persona)** - Reads Ideas, creates Epics (Opus model)
-2. **Supervisor** - Decomposes Epics into Stories with PATCH BATCH specs (Opus model)
-3. **Developer** - Applies patches, writes code, commits (Sonnet model via Claude Code CLI)
+2. **SUPERVISOR** - Decomposes Epics into Stories with PATCH BATCH specs (Opus model)
+3. **IMPLEMENTER** - Applies patches, writes code, commits (Sonnet model via Claude Code CLI)
 
 ## Prerequisites
 
@@ -67,24 +67,29 @@ Autonomous execution engine that coordinates three personas to process Jira issu
 ## Output & Logging
 
 ### Console Output
-Real-time streaming with role prefixes:
+Real-time streaming with role prefixes (UEP, SUPERVISOR, IMPLEMENTER):
 ```
-[2026-01-26T15:58:52Z] [SYSTEM] Run ID: 20260126-155852Z
-[2026-01-26T15:58:52Z] [DEVELOPER] Claude attempt 1/3...
-[2026-01-26T15:58:53Z] [CLAUDE] [init] model=sonnet
-[2026-01-26T15:58:54Z] [CLAUDE] [tool_use: Read]
-[2026-01-26T15:58:55Z] [CLAUDE] [tool_result: ok]
+[2026-01-26T15:58:52Z] [SUPERVISOR] Run ID: 20260126-155852Z
+[2026-01-26T15:58:52Z] [IMPLEMENTER] (model=sonnet, tool=claude-code-cli) Claude attempt 1/3...
+[2026-01-26T15:58:53Z] [IMPLEMENTER] (model=sonnet, tool=claude-code-cli) [init]
+[2026-01-26T15:58:54Z] [IMPLEMENTER] (model=sonnet, tool=claude-code-cli) [tool_use: Read]
+[2026-01-26T15:58:55Z] [IMPLEMENTER] (model=sonnet, tool=claude-code-cli) [tool_result: ok]
 ```
 
 ### Log Files
-- **Location**: `<repo-root>/logs/engine-<run_id>.log`
+- **Location**: `scripts/autonomous-agent/logs/engine-<RUN_ID>.log`
 - **Rotation**: Logs older than 2 days are auto-deleted at startup
 - **Content**: Same as console output (tee'd)
 
 ### Artifacts
-- **Location**: `<repo-root>/reports/`
-- **Naming**: `<ISSUE-KEY>-<run_id>-claude-output-attempt<N>.txt`
-- **Content**: Full Claude output (secrets redacted)
+
+| Artifact | Location | Notes |
+|----------|----------|-------|
+| Engine logs | `scripts/autonomous-agent/logs/engine-<RUN_ID>.log` | Per-run log file |
+| Claude attempt artifacts | `scripts/autonomous-agent/reports/{ISSUE_KEY}-{RUN_ID}-claude-output-attempt{N}.txt` | Full Claude output (secrets redacted) |
+| Verification reports | `reports/{ISSUE_KEY}-verification.md` (repo root) | Canonical path only |
+| Decomposition manifests | `reports/{EPIC_KEY}-decomposition.json` (repo root) | Idempotent decomposition state |
+| Work ledger | `work_ledger.json` (repo root) | Runtime state (git-ignored) |
 
 ## Security
 
@@ -102,13 +107,34 @@ python -m pytest tests/ -v
 ## Directory Structure
 
 ```
-scripts/autonomous-agent/
-├── engine.py           # Main engine
-├── run.sh              # Runner script
-├── .env.example        # Environment template
-├── escalations.json    # Pending escalations
-├── tests/              # Unit tests
-├── reports/            # Verification artifacts
-├── guardrails/         # Guardrail configs
-└── verification/       # Verification templates
+<repo-root>/
+├── work_ledger.json                 # Runtime state (git-ignored)
+├── reports/
+│   ├── {ISSUE_KEY}-verification.md  # Canonical verification reports
+│   └── {EPIC_KEY}-decomposition.json # Decomposition manifests
+└── scripts/autonomous-agent/
+    ├── engine.py                    # Main engine
+    ├── work_ledger.py               # Work ledger module
+    ├── decomposition_manifest.py    # Decomposition manifest module
+    ├── run.sh                       # Runner script
+    ├── .env.example                 # Environment template
+    ├── escalations.json             # Pending escalations
+    ├── tests/                       # Unit tests
+    ├── logs/                        # Engine run logs (git-ignored)
+    │   └── engine-{RUN_ID}.log
+    ├── reports/                     # Claude attempt artifacts (git-ignored)
+    │   └── {ISSUE_KEY}-{RUN_ID}-claude-output-attempt{N}.txt
+    └── guardrails/                  # Guardrail configs
 ```
+
+### Roles
+
+The engine uses three standardized roles:
+
+| Role | Description |
+|------|-------------|
+| **UEP** | Unified Executive Persona - reads Ideas, creates Epics |
+| **SUPERVISOR** | Coordinates flow, decomposes Epics, verifies work |
+| **IMPLEMENTER** | Applies code changes via Claude Code CLI |
+
+Note: Legacy role labels (`SYSTEM`, `CLAUDE`, `DEVELOPER`) are no longer used.

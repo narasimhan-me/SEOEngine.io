@@ -1,145 +1,187 @@
 """
-Unit tests for verification report path resolution.
+Unit tests for Canonical Verification Report Contract.
 
-AUTONOMOUS-AGENT-CLAUDE-STREAMING-AND-TIMESTAMPED-REPORTS-1 PATCH 5.
-FIXUP-1: Tests use pure helper directly (no filesystem IO).
+PATCH BATCH: AUTONOMOUS-AGENT-RESUME-STATE-MACHINE-RECONCILE-1 - PATCH 4
+
+Tests:
+- Canonical path builder returns reports/KAN-17-verification.md
+- Verifier only looks for canonical path
+- Fail-fast with remediation when missing
 """
 
 import unittest
+import tempfile
 from pathlib import Path
-
-# Import the pure selection helper
 import sys
+
+# Import the engine module
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from engine import _select_newest_verification_report, CLAUDE_OUTPUT_DIRNAME
+
+from engine import (
+    _canonical_verification_report_relpath,
+    _expected_verification_report_path,
+    _resolve_verification_report,
+    _verify_canonical_report_or_fail_fast,
+    _find_near_match_reports,
+)
 
 
-class TestReportPathResolution(unittest.TestCase):
-    """Test verification report selection logic (pure, no filesystem)."""
+class TestCanonicalPathBuilder(unittest.TestCase):
+    """Test canonical path builder."""
 
-    def test_no_reports_returns_none(self):
-        """When no verification reports exist, return None."""
-        result = _select_newest_verification_report("KAN-99", [])
-        self.assertIsNone(result)
+    def test_returns_correct_format(self):
+        """Canonical path is reports/{ISSUE_KEY}-verification.md."""
+        path = _canonical_verification_report_relpath("KAN-17")
+        self.assertEqual(path, "reports/KAN-17-verification.md")
 
-    def test_legacy_report_selected(self):
-        """When only legacy report exists, it is selected."""
-        relpaths = [f"{CLAUDE_OUTPUT_DIRNAME}/KAN-17-verification.md"]
-        mtimes = {relpaths[0]: 1706300000.0}
+    def test_different_issue_keys(self):
+        """Works with different issue key formats."""
+        self.assertEqual(
+            _canonical_verification_report_relpath("KAN-17"),
+            "reports/KAN-17-verification.md"
+        )
+        self.assertEqual(
+            _canonical_verification_report_relpath("EA-19"),
+            "reports/EA-19-verification.md"
+        )
+        self.assertEqual(
+            _canonical_verification_report_relpath("PROJ-123"),
+            "reports/PROJ-123-verification.md"
+        )
 
-        result = _select_newest_verification_report("KAN-17", relpaths, mtimes)
-        self.assertIsNotNone(result)
-        self.assertEqual(result, f"{CLAUDE_OUTPUT_DIRNAME}/KAN-17-verification.md")
 
-    def test_timestamped_report_selected(self):
-        """When only timestamped report exists, it is selected."""
-        relpaths = [f"{CLAUDE_OUTPUT_DIRNAME}/KAN-17-20260126-143047Z-verification.md"]
+class TestExpectedVerificationReportPath(unittest.TestCase):
+    """Test expected verification report path function."""
 
-        result = _select_newest_verification_report("KAN-17", relpaths)
-        self.assertIsNotNone(result)
-        self.assertIn("20260126-143047Z", result)
+    def test_returns_canonical_path(self):
+        """Always returns canonical path regardless of parameters."""
+        # Basic call
+        path = _expected_verification_report_path("KAN-17")
+        self.assertEqual(path, "reports/KAN-17-verification.md")
 
-    def test_newest_timestamped_wins(self):
-        """When multiple timestamped reports exist, newest by timestamp wins."""
-        relpaths = [
-            f"{CLAUDE_OUTPUT_DIRNAME}/KAN-17-20260125-100000Z-verification.md",
-            f"{CLAUDE_OUTPUT_DIRNAME}/KAN-17-20260126-150000Z-verification.md",
-        ]
+        # With description (ignored in PATCH 4)
+        path = _expected_verification_report_path("KAN-17", "Some description")
+        self.assertEqual(path, "reports/KAN-17-verification.md")
 
-        result = _select_newest_verification_report("KAN-17", relpaths)
-        self.assertIsNotNone(result)
-        self.assertIn("20260126-150000Z", result)
+        # With run_id (ignored in PATCH 4)
+        path = _expected_verification_report_path("KAN-17", "", "20260127-120000Z")
+        self.assertEqual(path, "reports/KAN-17-verification.md")
 
-    def test_timestamped_beats_legacy_when_newer(self):
-        """Timestamped report is selected over legacy when timestamps indicate newer."""
-        relpaths = [
-            f"{CLAUDE_OUTPUT_DIRNAME}/KAN-17-verification.md",
-            f"{CLAUDE_OUTPUT_DIRNAME}/KAN-17-20260126-143047Z-verification.md",
-        ]
-        # Legacy has older mtime (2026-01-20)
-        mtimes = {
-            relpaths[0]: 1705795200.0,  # 2024-01-20 (old)
-        }
 
-        result = _select_newest_verification_report("KAN-17", relpaths, mtimes)
-        self.assertIsNotNone(result)
-        # Timestamped (2026-01-26) should win over legacy (2024-01-20 mtime)
-        self.assertIn("20260126-143047Z", result)
+class TestResolveVerificationReport(unittest.TestCase):
+    """Test verification report resolution."""
 
-    def test_different_issue_key_not_matched(self):
-        """Reports for different issue keys are not matched."""
-        relpaths = [
-            f"{CLAUDE_OUTPUT_DIRNAME}/KAN-18-20260126-143047Z-verification.md",
-        ]
+    def test_finds_canonical_path(self):
+        """Finds report at canonical path."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create canonical report
+            reports_dir = Path(tmpdir) / "reports"
+            reports_dir.mkdir()
+            (reports_dir / "KAN-17-verification.md").write_text("# Report")
 
-        result = _select_newest_verification_report("KAN-17", relpaths)
-        self.assertIsNone(result)
+            path = _resolve_verification_report(tmpdir, "KAN-17")
+            self.assertEqual(path, "reports/KAN-17-verification.md")
 
-    def test_three_timestamped_newest_wins(self):
-        """With three timestamped reports, the newest by parsed timestamp wins."""
-        relpaths = [
-            f"{CLAUDE_OUTPUT_DIRNAME}/KAN-17-20260124-080000Z-verification.md",
-            f"{CLAUDE_OUTPUT_DIRNAME}/KAN-17-20260125-120000Z-verification.md",
-            f"{CLAUDE_OUTPUT_DIRNAME}/KAN-17-20260126-160000Z-verification.md",
-        ]
+    def test_returns_none_when_missing(self):
+        """Returns None when report not at canonical path."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = _resolve_verification_report(tmpdir, "KAN-17")
+            self.assertIsNone(path)
 
-        result = _select_newest_verification_report("KAN-17", relpaths)
-        self.assertIsNotNone(result)
-        self.assertIn("20260126-160000Z", result)
+    def test_ignores_non_canonical_paths(self):
+        """Ignores reports at non-canonical paths."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create report at legacy path (not canonical)
+            legacy_dir = Path(tmpdir) / "scripts" / "autonomous-agent" / "reports"
+            legacy_dir.mkdir(parents=True)
+            (legacy_dir / "KAN-17-verification.md").write_text("# Report")
 
-    # PATCH 6: Tests for title-prefixed report filtering (KAN-16)
+            # Should not find it (only canonical path accepted)
+            path = _resolve_verification_report(tmpdir, "KAN-17")
+            self.assertIsNone(path)
 
-    def test_title_prefixed_report_ignored(self):
-        """Title-prefixed reports should be ignored by the pure helper."""
-        # The pure helper _select_newest_verification_report only considers
-        # paths that start with the issue key prefix
-        relpaths = [
-            f"{CLAUDE_OUTPUT_DIRNAME}/AUTONOMOUS-AGENT-STEP4-VERIFICATION-RESTORE-1-20260127-003423Z-verification.md",
-        ]
+    def test_ignores_timestamped_variants(self):
+        """Ignores timestamped variants (only canonical accepted)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            reports_dir = Path(tmpdir) / "reports"
+            reports_dir.mkdir()
+            # Create timestamped variant (not canonical)
+            (reports_dir / "KAN-17-20260127-120000Z-verification.md").write_text("# Wrong")
 
-        result = _select_newest_verification_report("KAN-16", relpaths)
-        self.assertIsNone(result)
+            path = _resolve_verification_report(tmpdir, "KAN-17")
+            self.assertIsNone(path)
 
-    def test_issue_key_prefixed_selected_over_title_prefixed(self):
-        """Issue-key-prefixed reports are selected; title-prefixed are ignored."""
-        relpaths = [
-            f"{CLAUDE_OUTPUT_DIRNAME}/AUTONOMOUS-AGENT-STEP4-VERIFICATION-RESTORE-1-20260127-003423Z-verification.md",
-            f"{CLAUDE_OUTPUT_DIRNAME}/KAN-16-20260127-003423Z-verification.md",
-        ]
 
-        result = _select_newest_verification_report("KAN-16", relpaths)
-        self.assertIsNotNone(result)
-        self.assertIn("KAN-16-20260127-003423Z", result)
+class TestVerifyCanonicalReportOrFailFast(unittest.TestCase):
+    """Test fail-fast verification."""
 
-    def test_kan16_legacy_report_selected(self):
-        """KAN-16 legacy format is correctly selected."""
-        relpaths = [f"{CLAUDE_OUTPUT_DIRNAME}/KAN-16-verification.md"]
-        mtimes = {relpaths[0]: 1706400000.0}
+    def test_success_when_exists(self):
+        """Returns success when canonical report exists."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            reports_dir = Path(tmpdir) / "reports"
+            reports_dir.mkdir()
+            (reports_dir / "KAN-17-verification.md").write_text("# Report")
 
-        result = _select_newest_verification_report("KAN-16", relpaths, mtimes)
-        self.assertIsNotNone(result)
-        self.assertEqual(result, f"{CLAUDE_OUTPUT_DIRNAME}/KAN-16-verification.md")
+            exists, path, remediation = _verify_canonical_report_or_fail_fast(tmpdir, "KAN-17")
 
-    def test_kan16_newest_timestamped_wins(self):
-        """KAN-16: newest timestamped report wins over older ones."""
-        relpaths = [
-            f"{CLAUDE_OUTPUT_DIRNAME}/KAN-16-20260127-003423Z-verification.md",
-            f"{CLAUDE_OUTPUT_DIRNAME}/KAN-16-20260127-000000Z-verification.md",
-        ]
+            self.assertTrue(exists)
+            self.assertEqual(path, "reports/KAN-17-verification.md")
+            self.assertIsNone(remediation)
 
-        result = _select_newest_verification_report("KAN-16", relpaths)
-        self.assertIsNotNone(result)
-        self.assertIn("20260127-003423Z", result)
+    def test_fail_fast_when_missing(self):
+        """Returns fail-fast with remediation when missing."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            exists, path, remediation = _verify_canonical_report_or_fail_fast(tmpdir, "KAN-17")
 
-    def test_only_title_prefixed_returns_none(self):
-        """When only title-prefixed reports exist for an issue, return None."""
-        relpaths = [
-            f"{CLAUDE_OUTPUT_DIRNAME}/AUTONOMOUS-AGENT-LEDGER-RESTORE-1-20260127-003423Z-verification.md",
-            f"{CLAUDE_OUTPUT_DIRNAME}/AUTONOMOUS-AGENT-STEP4-VERIFICATION-1-20260126-120000Z-verification.md",
-        ]
+            self.assertFalse(exists)
+            self.assertIsNone(path)
+            self.assertIsNotNone(remediation)
+            self.assertIn("Expected path:", remediation)
+            self.assertIn("reports/KAN-17-verification.md", remediation)
 
-        result = _select_newest_verification_report("KAN-16", relpaths)
-        self.assertIsNone(result)
+    def test_includes_near_matches_in_remediation(self):
+        """Remediation includes near-match files."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create near-match files (not at canonical path)
+            reports_dir = Path(tmpdir) / "reports"
+            reports_dir.mkdir()
+            (reports_dir / "KAN-17-20260127-120000Z-verification.md").write_text("# Wrong path")
+
+            legacy_dir = Path(tmpdir) / "scripts" / "autonomous-agent" / "reports"
+            legacy_dir.mkdir(parents=True)
+            (legacy_dir / "KAN-17-verification.md").write_text("# Legacy")
+
+            exists, path, remediation = _verify_canonical_report_or_fail_fast(tmpdir, "KAN-17")
+
+            self.assertFalse(exists)
+            self.assertIn("Near-matches found", remediation)
+
+
+class TestFindNearMatchReports(unittest.TestCase):
+    """Test near-match report finder."""
+
+    def test_finds_matches_in_both_directories(self):
+        """Finds near-matches in reports/ and scripts/autonomous-agent/reports/."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create files in repo root reports/
+            reports_dir = Path(tmpdir) / "reports"
+            reports_dir.mkdir()
+            (reports_dir / "KAN-17-20260127-verification.md").write_text("# Match 1")
+
+            # Create files in legacy location
+            legacy_dir = Path(tmpdir) / "scripts" / "autonomous-agent" / "reports"
+            legacy_dir.mkdir(parents=True)
+            (legacy_dir / "KAN-17-verification.md").write_text("# Match 2")
+
+            matches = _find_near_match_reports(tmpdir, "KAN-17")
+
+            self.assertEqual(len(matches), 2)
+
+    def test_returns_empty_when_no_matches(self):
+        """Returns empty list when no matches."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            matches = _find_near_match_reports(tmpdir, "KAN-99")
+            self.assertEqual(matches, [])
 
 
 if __name__ == '__main__':

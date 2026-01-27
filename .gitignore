@@ -69,3 +69,12 @@ scripts/autonomous-agent/reports/*-claude-output-attempt*.txt
 scripts/autonomous-agent/reports/*-verification.md
 # Keep documentation files
 !scripts/autonomous-agent/reports/ENGINE-RUN-ARTIFACTS.md
+
+# Work ledger (runtime state, repo-root level)
+work_ledger.json
+
+# Verification reports (generated artifacts, repo-root reports/ directory)
+reports/*-verification.md
+
+# Decomposition manifests (generated artifacts)
+reports/*-decomposition.json

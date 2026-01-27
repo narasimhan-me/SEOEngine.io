@@ -51,9 +51,32 @@ import re
 import difflib
 import select
 import pty
+import hashlib
 
 # Script directory for relative paths (logs, reports)
 SCRIPT_DIR = Path(__file__).parent.resolve()
+
+# Import work ledger module (PATCH 1: Persistent Work Ledger)
+from work_ledger import (
+    WorkLedger,
+    WorkLedgerEntry,
+    LastStep,
+    StepResult,  # FIXUP-1 PATCH 5: Terminal outcome recording
+    compute_error_fingerprint,
+    compute_decomposition_fingerprint,
+    canonical_verification_report_path,
+    WORK_LEDGER_FILENAME,
+)
+
+# Import decomposition manifest module (PATCH 3: Idempotent Epic Decomposition)
+from decomposition_manifest import (
+    DecompositionManifest,
+    DecompositionManifestStore,
+    StoryIntent,
+    compute_fingerprint as compute_decomp_fingerprint,
+    compute_intent_id,
+    should_decompose,
+)
 
 # Claude Code CLI is used for all personas (no API key required)
 # Model configuration per persona:
@@ -89,26 +112,49 @@ LEDGER_VERSION = 1
 ESCALATIONS_REL_PATH = ".engineo/escalations.json"
 
 # Runtime paths that must NEVER be staged/committed
-RUNTIME_IGNORED_PATHS = {LEDGER_REL_PATH, CLAUDE_LOCK_REL_PATH, ESCALATIONS_REL_PATH}
+RUNTIME_IGNORED_PATHS = {LEDGER_REL_PATH, CLAUDE_LOCK_REL_PATH, ESCALATIONS_REL_PATH, WORK_LEDGER_FILENAME}
 
 # Secret env vars to redact from output (values only, not names)
 CLAUDE_SECRET_ENV_VARS = ["JIRA_TOKEN", "JIRA_API_TOKEN", "GITHUB_TOKEN"]
 
 
-def _canonical_verification_report_relpath(issue_key: str, run_id: str) -> str:
+def _canonical_verification_report_relpath(issue_key: str) -> str:
     """Get canonical verification report repo-relative path.
 
-    Returns: scripts/autonomous-agent/reports/{ISSUE_KEY}-{RUN_ID}-verification.md
+    PATCH 4: Single canonical path only (no run_id variants).
+
+    Returns: reports/{ISSUE_KEY}-verification.md (repo root level)
     """
-    return f"scripts/autonomous-agent/{CLAUDE_OUTPUT_DIRNAME}/{issue_key}-{run_id}-verification.md"
+    return f"reports/{issue_key}-verification.md"
 
 
 def _legacy_verification_report_relpath(issue_key: str) -> str:
-    """Get legacy verification report repo-relative path.
+    """Get legacy verification report repo-relative path (for backward compat search).
 
     Returns: scripts/autonomous-agent/reports/{ISSUE_KEY}-verification.md
     """
     return f"scripts/autonomous-agent/{CLAUDE_OUTPUT_DIRNAME}/{issue_key}-verification.md"
+
+
+def _find_near_match_reports(repo_path: str, issue_key: str) -> List[str]:
+    """Search for near-match verification reports for fail-fast remediation.
+
+    PATCH 4: Searches both repo root reports/ and scripts/autonomous-agent/reports/.
+
+    Returns: List of found paths matching the issue key pattern.
+    """
+    near_matches = []
+    search_dirs = [
+        Path(repo_path) / "reports",
+        Path(repo_path) / "scripts" / "autonomous-agent" / "reports",
+    ]
+
+    for search_dir in search_dirs:
+        if search_dir.exists():
+            for path in search_dir.glob(f"*{issue_key}*verification*.md"):
+                near_matches.append(str(path.relative_to(repo_path)))
+
+    return near_matches
 
 
 def _claude_output_relpath(issue_key: str, run_id: str, attempt: int) -> str:
@@ -400,33 +446,58 @@ def _parse_verification_required_paths(description: str) -> List[str]:
     return paths
 
 
-def _expected_verification_report_path(issue_key: str, description: str, run_id: Optional[str] = None) -> str:
-    """Get expected verification report path based on description or default.
+def _expected_verification_report_path(issue_key: str, description: str = "", run_id: Optional[str] = None) -> str:
+    """Get expected verification report path.
 
-    PATCH 3-B: If VERIFICATION REQUIRED section exists with matching paths,
-    returns the first path containing the issue key and ending with -verification.md.
-    Otherwise returns the canonical default under scripts/autonomous-agent/reports/.
+    PATCH 4: Returns canonical path only: reports/{ISSUE_KEY}-verification.md
+    No run_id variants, no timestamped filenames.
 
     Args:
         issue_key: The issue key (e.g., "KAN-16").
-        description: Story/bug description text.
-        run_id: Optional run ID for timestamped filename (preferred).
+        description: Story/bug description text (ignored in PATCH 4).
+        run_id: Ignored in PATCH 4 (kept for backward compat signature).
 
     Returns:
-        Repo-relative path to expected verification report.
+        Canonical repo-relative path: reports/{ISSUE_KEY}-verification.md
     """
-    paths = _parse_verification_required_paths(description)
+    # PATCH 4: Single canonical path only
+    return _canonical_verification_report_relpath(issue_key)
 
-    # Find first path containing issue key and ending with -verification.md
-    for path in paths:
-        if issue_key in path and path.endswith('-verification.md'):
-            return path
 
-    # Default: scripts/autonomous-agent/reports/{ISSUE_KEY}-{RUN_ID}-verification.md (preferred)
-    # Or legacy: scripts/autonomous-agent/reports/{ISSUE_KEY}-verification.md
-    if run_id:
-        return f"scripts/autonomous-agent/reports/{issue_key}-{run_id}-verification.md"
-    return f"scripts/autonomous-agent/reports/{issue_key}-verification.md"
+def _format_log_line(
+    role: str,
+    message: str,
+    model: Optional[str] = None,
+    tool: Optional[str] = None
+) -> str:
+    """Format a log line with role, model, and tool fields.
+
+    PATCH 7: Pure helper for unit testing log format.
+
+    Args:
+        role: Role name (UEP, SUPERVISOR, IMPLEMENTER)
+        message: Log message text
+        model: Optional model name
+        tool: Optional tool name
+
+    Returns:
+        Formatted log line string.
+    """
+    timestamp = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+    # Build role suffix with model/tool
+    suffix_parts = []
+    if model:
+        suffix_parts.append(f"model={model}")
+    if tool:
+        suffix_parts.append(f"tool={tool}")
+
+    if suffix_parts:
+        role_part = f"[{role}] ({', '.join(suffix_parts)})"
+    else:
+        role_part = f"[{role}]"
+
+    return f"[{timestamp}] {role_part} {message}"
 
 
 def _is_fatal_claude_output(text: str) -> bool:
@@ -450,6 +521,40 @@ def _is_fatal_claude_output(text: str) -> bool:
         "cli.js:",
     ]
     return any(pattern in text_lower for pattern in fatal_patterns)
+
+
+def _classify_implementer_terminal_result(output_text: str) -> str:
+    """Classify terminal result for IMPLEMENTER step failures.
+
+    FIXUP-2 PATCH 1: Deterministic classification for Work Ledger recording.
+
+    Args:
+        output_text: The output/error text from _invoke_claude_code.
+
+    Returns:
+        StepResult value: "timed_out", "cancelled", or "failed".
+    """
+    if not output_text:
+        return StepResult.FAILED.value
+
+    text_lower = output_text.lower()
+
+    # Timeout detection (matches _invoke_claude_code return string)
+    if "timed out" in text_lower or "claude code timed out" in text_lower:
+        return StepResult.TIMED_OUT.value
+
+    # Lock/cannot start detection (session lock or concurrent execution)
+    lock_patterns = [
+        "lock acquisition failed",
+        "session already running",
+        "another claude session",
+        "could not acquire lock",
+    ]
+    if any(pattern in text_lower for pattern in lock_patterns):
+        return StepResult.CANCELLED.value
+
+    # Default to failed for all other cases
+    return StepResult.FAILED.value
 
 
 def _select_newest_verification_report(issue_key: str, relpaths: List[str], mtimes: Optional[Dict[str, float]] = None) -> Optional[str]:
@@ -513,89 +618,64 @@ def _select_newest_verification_report(issue_key: str, relpaths: List[str], mtim
 
 
 def _resolve_verification_report(repo_path: str, issue_key: str) -> Optional[str]:
-    """Resolve the most recent verification report for an issue.
+    """Resolve the canonical verification report for an issue.
 
-    PATCH 3-C: Search precedence:
-    1. scripts/autonomous-agent/reports/ (PREFERRED - canonical location)
-    2. repo-root reports/ (fallback for backward compatibility)
+    PATCH 4: Only looks for canonical path: reports/{ISSUE_KEY}-verification.md
 
-    IMPORTANT: Only considers issue-key-prefixed reports:
-    - {ISSUE_KEY}-verification.md (legacy)
-    - {ISSUE_KEY}-{RUN_ID}-verification.md (timestamped)
-
-    Title-prefixed reports (e.g., AUTONOMOUS-AGENT-...-verification.md) are IGNORED.
-
-    Selection rules:
-    - Newest by timestamp wins
-    - Break ties in favor of scripts/autonomous-agent/reports/
-
-    Returns: Repo-relative path to the newest verification report, or None if not found.
+    Returns: Canonical repo-relative path if exists, None otherwise.
     """
-    import glob
+    canonical_path = _canonical_verification_report_relpath(issue_key)
+    full_path = Path(repo_path) / canonical_path
 
-    prefix = f"{issue_key}-"
-    suffix = "-verification.md"
-    legacy_suffix = f"{issue_key}-verification.md"
+    if full_path.exists():
+        return canonical_path
+    return None
 
-    # List of (timestamp, repo_relative_path, is_preferred_dir)
-    candidates = []
-    mtimes = {}
 
-    def add_candidates_from_dir(dir_path: Path, rel_prefix: str, is_preferred: bool):
-        """Helper to add candidates from a directory."""
-        if not dir_path.exists():
-            return
+def _verify_canonical_report_or_fail_fast(
+    repo_path: str,
+    issue_key: str,
+    log_func=None
+) -> tuple:
+    """Verify canonical report exists or generate fail-fast remediation.
 
-        # Search for timestamped reports
-        pattern = str(dir_path / f"{issue_key}-*-verification.md")
-        for match in glob.glob(pattern):
-            path = Path(match)
-            filename = path.name
+    PATCH 4: Verifier must ONLY look for canonical path.
+    If missing, returns remediation with expected path + near-matches.
 
-            # ONLY consider issue-key-prefixed files
-            if not filename.startswith(prefix):
-                continue
+    Args:
+        repo_path: Path to repository root.
+        issue_key: The issue key.
+        log_func: Optional logging function.
 
-            rel_path = f"{rel_prefix}{filename}"
+    Returns:
+        Tuple of (exists: bool, report_path: Optional[str], remediation_msg: Optional[str])
+    """
+    canonical_path = _canonical_verification_report_relpath(issue_key)
+    full_path = Path(repo_path) / canonical_path
 
-            if filename == legacy_suffix:
-                mtime = path.stat().st_mtime
-                mtimes[rel_path] = mtime
-                candidates.append((datetime.fromtimestamp(mtime), rel_path, is_preferred))
-            elif filename.endswith(suffix):
-                run_id = filename[len(prefix):-len(suffix)]
-                try:
-                    ts = datetime.strptime(run_id, "%Y%m%d-%H%M%SZ")
-                    candidates.append((ts, rel_path, is_preferred))
-                except ValueError:
-                    mtime = path.stat().st_mtime
-                    mtimes[rel_path] = mtime
-                    candidates.append((datetime.fromtimestamp(mtime), rel_path, is_preferred))
+    if full_path.exists():
+        return (True, canonical_path, None)
 
-        # Also check for legacy file
-        legacy_path = dir_path / legacy_suffix
-        if legacy_path.exists():
-            rel_path = f"{rel_prefix}{legacy_suffix}"
-            if rel_path not in [c[1] for c in candidates]:
-                mtime = legacy_path.stat().st_mtime
-                mtimes[rel_path] = mtime
-                candidates.append((datetime.fromtimestamp(mtime), rel_path, is_preferred))
+    # Report missing - generate remediation
+    near_matches = _find_near_match_reports(repo_path, issue_key)
 
-    # PATCH 3-C: Search location 1: scripts/autonomous-agent/reports/ (PREFERRED)
-    script_reports_dir = SCRIPT_DIR / CLAUDE_OUTPUT_DIRNAME
-    add_candidates_from_dir(script_reports_dir, f"scripts/autonomous-agent/{CLAUDE_OUTPUT_DIRNAME}/", is_preferred=True)
+    remediation = f"""Verification report missing.
 
-    # Search location 2: repo-root reports/ (fallback for backward compatibility)
-    repo_reports_dir = Path(repo_path) / "reports"
-    add_candidates_from_dir(repo_reports_dir, "reports/", is_preferred=False)
+Expected path: {canonical_path}
 
-    if not candidates:
-        return None
+"""
+    if near_matches:
+        remediation += f"Near-matches found (not accepted as canonical):\n"
+        for match in near_matches[:5]:
+            remediation += f"  - {match}\n"
+        remediation += "\nPlease ensure the verification report is written to the canonical path."
+    else:
+        remediation += "No near-matches found. Implementer must write verification report."
 
-    # Sort by: timestamp desc, then preferred dir (True > False)
-    # is_preferred=True should come first when timestamps are equal
-    candidates.sort(key=lambda x: (x[0], x[2]), reverse=True)
-    return candidates[0][1]
+    if log_func:
+        log_func(f"[{issue_key}] Canonical report missing: {canonical_path}")
+
+    return (False, None, remediation)
 
 
 def _is_transient_claude_failure(text: str) -> bool:
@@ -867,9 +947,9 @@ class JiraClient:
         """Test Jira connection"""
         result = self._request('GET', '/rest/api/3/myself')
         if 'error' not in result and 'accountId' in result:
-            print(f"[SYSTEM] Connected to Jira as: {result.get('displayName', 'Unknown')}")
+            print(f"[JIRA] Connected to Jira as: {result.get('displayName', 'Unknown')}")
             return True
-        print(f"[SYSTEM] Jira connection failed: {result}")
+        print(f"[JIRA] Jira connection failed: {result}")
         return False
 
     def search_issues(self, jql: str, fields: List[str] = None, max_results: int = 50) -> List[dict]:
@@ -939,6 +1019,52 @@ class JiraClient:
         """
         jql = f'project = {self.config.software_project} AND issuetype = Story AND (parent = {epic_key} OR "Epic Link" = {epic_key}) AND summary ~ "Implement:" ORDER BY created ASC'
         return self.search_issues(jql, ['summary', 'status', 'description', 'parent'])
+
+    # -------------------------------------------------------------------------
+    # PATCH 2: Dispatcher JQL helpers for priority state machine
+    # -------------------------------------------------------------------------
+
+    def get_stories_for_verify_close(self) -> List[dict]:
+        """Get Stories eligible for Verify/Close queue.
+
+        PATCH 2: statusCategory 'In Progress' OR status = 'BLOCKED'
+        Includes BLOCKED explicitly per spec.
+        """
+        jql = f"project = {self.config.software_project} AND issuetype = Story AND (statusCategory = 'In Progress' OR status = 'BLOCKED') ORDER BY created ASC"
+        return self.search_issues(jql, ['summary', 'status', 'statusCategory', 'description', 'parent', 'issuetype'])
+
+    def get_epics_for_decomposition(self) -> List[dict]:
+        """Get Epics eligible for decomposition queue.
+
+        PATCH 2: status = 'To Do' OR statusCategory = 'In Progress'
+        Decomposition eligibility also requires no existing children (checked separately).
+        """
+        jql = f"project = {self.config.software_project} AND issuetype = Epic AND (status = 'To Do' OR statusCategory = 'In Progress') ORDER BY created ASC"
+        return self.search_issues(jql, ['summary', 'status', 'statusCategory', 'description', 'parent'])
+
+    def get_ideas_in_progress(self) -> List[dict]:
+        """Get Ideas with 'In Progress' status (for recovery/reconciliation).
+
+        PATCH 2: Enables EA-19 style Ideas to be recovered.
+        """
+        jql = f"project = {self.config.product_discovery_project} AND status = 'In Progress' ORDER BY created ASC"
+        return self.search_issues(jql, ['summary', 'status', 'description', 'issuetype'])
+
+    def get_children_for_epic(self, epic_key: str) -> List[dict]:
+        """Get all child Stories for an Epic (for reconciliation).
+
+        PATCH 2: Used to check if all children are resolved.
+        """
+        jql = f'project = {self.config.software_project} AND issuetype = Story AND (parent = {epic_key} OR "Epic Link" = {epic_key}) ORDER BY created ASC'
+        return self.search_issues(jql, ['summary', 'status', 'statusCategory', 'issuetype'])
+
+    def get_epics_for_idea(self, idea_key: str) -> List[dict]:
+        """Get Epics associated with an Idea (by summary prefix).
+
+        PATCH 2: Used to check if all Epics under an Idea are resolved.
+        """
+        jql = f'project = {self.config.software_project} AND issuetype = Epic AND summary ~ "[{idea_key}]" ORDER BY created ASC'
+        return self.search_issues(jql, ['summary', 'status', 'statusCategory', 'issuetype'])
 
     def get_available_transition_names(self, issue_key: str) -> List[str]:
         """Get available transition names for an issue.
@@ -1178,6 +1304,26 @@ class GitClient:
         success, output = self._run('diff', '--cached', '--name-only')
         if success:
             return [f.strip() for f in output.strip().split('\n') if f.strip()]
+        return []
+
+    def find_commits_referencing(self, issue_key: str, max_count: int = 5) -> List[str]:
+        """Find commits referencing an issue key.
+
+        FIXUP-1 PATCH 4: Git-based commit evidence for verification.
+        Searches commit messages for references to the issue key.
+
+        Args:
+            issue_key: The issue key to search for (e.g., "KAN-17").
+            max_count: Maximum number of commits to return.
+
+        Returns:
+            List of commit SHAs (short form) that reference the issue key.
+        """
+        success, output = self._run(
+            'log', '--oneline', f'--grep={issue_key}', f'-{max_count}', '--format=%h'
+        )
+        if success and output.strip():
+            return [sha.strip() for sha in output.strip().split('\n') if sha.strip()]
         return []
 
     def unstage_file(self, filepath: str) -> bool:
@@ -1547,16 +1693,16 @@ class ExecutionEngine:
         self.engine_log_path = self.logs_dir / f"engine-{self.run_id}.log"
 
         # Now we can log (after engine_log_path is set)
-        self.log("SYSTEM", f"Run ID: {self.run_id}")
+        self.log("SUPERVISOR", f"Run ID: {self.run_id}")
 
         # Log rotation: delete logs older than 2 days (PATCH 3)
         deleted_count = rotate_logs(self.logs_dir, max_age_days=2)
-        self.log("SYSTEM", f"Log rotation: deleted {deleted_count} old logs (>2 days)")
+        self.log("SUPERVISOR", f"Log rotation: deleted {deleted_count} old logs (>2 days)")
 
         # PATCH 5: Compute effective Claude timeout (CLI > env > default)
         # Precedence: --claude-timeout-secs > CLAUDE_TIMEOUT_SECS > ENGINEO_CLAUDE_TIMEOUT_SECONDS > CLAUDE_TIMEOUT_SECONDS > default
         self.claude_timeout_seconds = CLAUDE_TIMEOUT_SECONDS
-        timeout_source = "default"
+        self.timeout_source = "default"  # FIXUP-1 PATCH 5: Store as instance var for tests
 
         # Check env vars (lowest precedence of overrides)
         for env_name in ["CLAUDE_TIMEOUT_SECONDS", "ENGINEO_CLAUDE_TIMEOUT_SECONDS", "CLAUDE_TIMEOUT_SECS"]:
@@ -1566,24 +1712,42 @@ class ExecutionEngine:
                     parsed = int(env_val)
                     if parsed > 0:
                         self.claude_timeout_seconds = parsed
-                        timeout_source = f"env:{env_name}"
+                        self.timeout_source = f"env:{env_name}"
                 except ValueError:
                     pass
 
         # CLI flag has highest precedence
         if self._cli_timeout_secs is not None and self._cli_timeout_secs > 0:
             self.claude_timeout_seconds = self._cli_timeout_secs
-            timeout_source = "cli:--claude-timeout-secs"
+            self.timeout_source = "cli_flag"  # FIXUP-1 PATCH 5: Simplified name
 
         timeout_hours = round(self.claude_timeout_seconds / 3600, 2)
-        self.log("SYSTEM", f"Claude timeout configured: {self.claude_timeout_seconds}s ({timeout_hours}h) [source: {timeout_source}]")
+        self.log("SUPERVISOR", f"Claude timeout configured: {self.claude_timeout_seconds}s ({timeout_hours}h) [source: {self.timeout_source}]")
+
+        # FIXUP-1 PATCH 5: Emit required override log line when non-default
+        if self.timeout_source != "default":
+            self.log("SUPERVISOR", f"timeout override: {self.claude_timeout_seconds}s (reason: {self.timeout_source})")
 
         # Verify Claude Code CLI is available
         self.claude_code_available = self._verify_claude_code()
         if self.claude_code_available:
-            self.log("SYSTEM", "Claude Code CLI enabled for all personas (no API key required)")
+            self.log("SUPERVISOR", "Claude Code CLI enabled for all personas (no API key required)")
         else:
-            self.log("WARNING", "Claude Code CLI not found - install with: npm install -g @anthropic-ai/claude-code")
+            self.log("SUPERVISOR", "Claude Code CLI not found - install with: npm install -g @anthropic-ai/claude-code")
+
+        # PATCH 1: Initialize work ledger for state persistence across runs
+        self.work_ledger = WorkLedger(config.repo_path)
+        if self.work_ledger.load():
+            self.log("SUPERVISOR", f"Work ledger loaded: {len(self.work_ledger.all_entries())} entries")
+            # Print resumable entries summary on startup
+            resumable = self.work_ledger.get_resumable_entries(self._canonical_report_exists)
+            if resumable:
+                self.log("SUPERVISOR", f"Resumable entries: {len(resumable)}")
+                for entry in resumable[:3]:  # Show first 3
+                    reason = "error" if entry.last_error_fingerprint else "missing artifact"
+                    self.log("SUPERVISOR", f"  - {entry.issueKey}: {reason}")
+        else:
+            self.log("SUPERVISOR", "Work ledger not found, will create on first update")
 
     def _utc_ts(self) -> str:
         """Generate UTC timestamp string for artifact naming."""
@@ -1600,11 +1764,95 @@ class ExecutionEngine:
             )
             if result.returncode == 0:
                 version = result.stdout.strip() or result.stderr.strip()
-                self.log("SYSTEM", f"Claude Code CLI: {version[:50]}")
+                self.log("SUPERVISOR", f"Claude Code CLI: {version[:50]}")
                 return True
             return False
         except (FileNotFoundError, subprocess.TimeoutExpired):
             return False
+
+    def _canonical_report_exists(self, issue_key: str) -> bool:
+        """Check if canonical verification report exists for an issue.
+
+        PATCH 4: Canonical path is reports/{ISSUE_KEY}-verification.md
+
+        Args:
+            issue_key: The issue key (e.g., "KAN-17").
+
+        Returns:
+            True if canonical report exists.
+        """
+        canonical_path = Path(self.config.repo_path) / "reports" / f"{issue_key}-verification.md"
+        return canonical_path.exists()
+
+    def _upsert_work_ledger_entry(
+        self,
+        issue_key: str,
+        issue_type: str,
+        status: str,
+        last_step: str,
+        last_step_result: Optional[str] = None,  # FIXUP-1 PATCH 5: Terminal outcome
+        parent_key: Optional[str] = None,
+        children: Optional[List[str]] = None,
+        decomposition_fingerprint: str = "",
+        last_commit_sha: Optional[str] = None,
+        verification_report_path: str = "",
+        error_text: Optional[str] = None,
+    ) -> None:
+        """Upsert an entry in the work ledger.
+
+        PATCH 1: Update work ledger with issue state for resumption.
+        FIXUP-1 PATCH 5: Added last_step_result for terminal outcome tracking.
+
+        Args:
+            issue_key: The issue key.
+            issue_type: Idea, Epic, or Story.
+            status: Current Jira status.
+            last_step: The step that was just completed (UEP, SUPERVISOR, etc.)
+            last_step_result: Terminal outcome (success|failed|timed_out|cancelled).
+            parent_key: Parent issue key (optional).
+            children: Child issue keys (optional).
+            decomposition_fingerprint: SHA256 of epic description (optional).
+            last_commit_sha: Commit SHA if any (optional).
+            verification_report_path: Path to verification report (optional).
+            error_text: Error text if failed (will compute fingerprint).
+        """
+        entry = self.work_ledger.get(issue_key)
+        if entry is None:
+            entry = WorkLedgerEntry(issueKey=issue_key)
+
+        entry.issueType = issue_type
+        entry.status_last_observed = status
+        entry.last_step = last_step
+
+        # FIXUP-1 PATCH 5: Set terminal outcome
+        if last_step_result is not None:
+            entry.last_step_result = last_step_result
+
+        if parent_key is not None:
+            entry.parentKey = parent_key
+        if children is not None:
+            entry.children = children
+        if decomposition_fingerprint:
+            entry.decomposition_fingerprint = decomposition_fingerprint
+        if last_commit_sha is not None:
+            entry.last_commit_sha = last_commit_sha
+        if verification_report_path:
+            entry.verification_report_path = verification_report_path
+
+        # Handle error recording
+        if error_text:
+            entry.last_error_fingerprint = compute_error_fingerprint(last_step, error_text)
+            entry.last_error_at = datetime.now(timezone.utc).isoformat()
+        else:
+            # Clear error on success
+            entry.last_error_fingerprint = None
+            entry.last_error_at = None
+
+        self.work_ledger.upsert(entry)
+
+        # Save (best-effort, log on failure)
+        if not self.work_ledger.save():
+            self.log("SUPERVISOR", f"Warning: failed to save work ledger for {issue_key}")
 
     def _get_ledger_path(self) -> Path:
         """Get canonical ledger path and ensure parent directory exists."""
@@ -1639,7 +1887,7 @@ class ExecutionEngine:
             temp_path.replace(ledger_path)
             return True
         except (OSError, TypeError) as e:
-            self.log("SYSTEM", f"Ledger save failed: {e}")
+            self.log("SUPERVISOR", f"Ledger save failed: {e}")
             # Clean up temp file if it exists
             try:
                 temp_path.unlink(missing_ok=True)
@@ -1699,7 +1947,7 @@ class ExecutionEngine:
 
         # Save (best-effort, log on failure)
         if not self._save_guardrails_ledger(ledger):
-            self.log("SYSTEM", f"Warning: failed to save ledger for {issue_key}")
+            self.log("SUPERVISOR", f"Warning: failed to save ledger for {issue_key}")
 
     def _find_ledger_entry(self, ledger: Any, issue_key: str) -> Optional[dict]:
         """Recursively search ledger for entry associated with issue_key.
@@ -1763,113 +2011,56 @@ class ExecutionEngine:
         return (base_sha_short, changed_files_count)
 
     def _ensure_verification_report(self, issue_key: str, description: str) -> Optional[str]:
-        """Ensure verification report exists at expected path.
+        """Check if canonical verification report exists (STRICT NO-OP).
 
-        Computes expected path from VERIFICATION REQUIRED section or default.
-        If expected path already exists, returns it.
-        Otherwise searches for candidate reports and copies newest to expected path.
-
-        PATCH 1-D: Copy-only, never creates stub reports.
+        FIXUP-1 PATCH 2: No copy, no alias writes. Strict canonical path check only.
+        The Implementer MUST write the report to the canonical path directly.
 
         Args:
             issue_key: The issue key (e.g., "KAN-16").
-            description: Story/bug description text.
+            description: Story/bug description text (ignored).
 
-        Returns: Repo-relative path to verification report if exists/copied, else None.
+        Returns: Canonical repo-relative path if exists, else None.
         """
-        import glob
-        import shutil
+        canonical_path = _canonical_verification_report_relpath(issue_key)
+        full_path = Path(self.config.repo_path) / canonical_path
 
-        expected_path = _expected_verification_report_path(issue_key, description, self.run_id)
-        expected_fullpath = Path(self.config.repo_path) / expected_path
+        if full_path.exists():
+            return canonical_path
 
-        # If expected path already exists, return it
-        if expected_fullpath.exists():
-            return expected_path
+        # FIXUP-1: No copy, no fallback - return None if canonical path doesn't exist
+        return None
 
-        # Create parent directories if needed
-        expected_fullpath.parent.mkdir(parents=True, exist_ok=True)
-
-        prefix = f"{issue_key}-"
-        candidates = []  # List of (mtime, Path)
-
-        # Search location 1: repo-root reports/
-        repo_reports_dir = Path(self.config.repo_path) / "reports"
-        if repo_reports_dir.exists():
-            for match in glob.glob(str(repo_reports_dir / "*-verification.md")):
-                path = Path(match)
-                filename = path.name
-
-                # Accept issue-key-prefixed files
-                if filename.startswith(prefix):
-                    candidates.append((path.stat().st_mtime, path))
-                    continue
-
-                # Accept title-prefixed ONLY if content contains issue key (safety)
-                try:
-                    content = path.read_text(encoding='utf-8')
-                    if issue_key in content:
-                        candidates.append((path.stat().st_mtime, path))
-                except (OSError, UnicodeDecodeError):
-                    pass
-
-        # Search location 2: scripts/autonomous-agent/reports/
-        script_reports_dir = SCRIPT_DIR / CLAUDE_OUTPUT_DIRNAME
-        if script_reports_dir.exists():
-            for match in glob.glob(str(script_reports_dir / "*-verification.md")):
-                path = Path(match)
-                filename = path.name
-
-                # Accept issue-key-prefixed files
-                if filename.startswith(prefix):
-                    candidates.append((path.stat().st_mtime, path))
-                    continue
-
-                # Accept title-prefixed ONLY if content contains issue key (safety)
-                try:
-                    content = path.read_text(encoding='utf-8')
-                    if issue_key in content:
-                        candidates.append((path.stat().st_mtime, path))
-                except (OSError, UnicodeDecodeError):
-                    pass
-
-        if not candidates:
-            return None
-
-        # Choose newest by mtime
-        candidates.sort(key=lambda x: x[0], reverse=True)
-        source_path = candidates[0][1]
-
-        # Copy to expected path
-        try:
-            shutil.copy2(source_path, expected_fullpath)
-            self.log("IMPLEMENTER", f"Copied verification report: {source_path.name} -> {expected_path}")
-
-            # PATCH 3-B: Also write/update legacy alias {ISSUE_KEY}-verification.md (best-effort)
-            legacy_alias = expected_fullpath.parent / f"{issue_key}-verification.md"
-            try:
-                shutil.copy2(expected_fullpath, legacy_alias)
-                self.log("IMPLEMENTER", f"Updated legacy alias: {issue_key}-verification.md")
-            except OSError:
-                pass  # Best-effort for legacy alias
-
-            return expected_path
-        except OSError as e:
-            self.log("IMPLEMENTER", f"Failed to copy verification report: {e}")
-            return None
-
-    def log(self, role: str, message: str):
+    def log(self, role: str, message: str, model: Optional[str] = None, tool: Optional[str] = None):
         """Log with role prefix to both console and run-scoped log file.
 
-        PATCH 2 & 5: Tee structured logs to console AND engine-<run_id>.log with flush.
-        Role display mapping: internal keys -> display names for consistency.
-        """
-        # PATCH 2-C: No role remapping - use exact role keys as passed
-        # Resulting log prefix: [UEP], [SUPERVISOR], [IMPLEMENTER], [SYSTEM], [CLAUDE]
-        display_role = role
+        PATCH 7: Role naming standardization.
+        Valid roles: UEP, SUPERVISOR, IMPLEMENTER
+        Optional model/tool fields for implementation logging.
 
-        timestamp = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
-        log_line = f"[{timestamp}] [{display_role}] {message}"
+        Args:
+            role: Role name (UEP, SUPERVISOR, IMPLEMENTER, or legacy CLAUDE)
+            message: Log message text
+            model: Optional model name (e.g., "opus", "sonnet")
+            tool: Optional tool name (e.g., "claude-code-cli")
+        """
+        # PATCH 7: Role name normalization (fail-closed for invalid roles)
+        valid_roles = {"UEP", "SUPERVISOR", "IMPLEMENTER"}
+        if role == "CLAUDE":
+            # Legacy CLAUDE logs become IMPLEMENTER with tool=claude-code-cli
+            display_role = "IMPLEMENTER"
+            if tool is None:
+                tool = "claude-code-cli"
+        elif role == "SYSTEM":
+            # Legacy SYSTEM logs become SUPERVISOR
+            display_role = "SUPERVISOR"
+        elif role in valid_roles:
+            display_role = role
+        else:
+            # Unknown role - normalize to SUPERVISOR (fail-closed)
+            display_role = "SUPERVISOR"
+
+        log_line = _format_log_line(display_role, message, model, tool)
 
         # Write to stdout with flush (PATCH 5)
         print(log_line, flush=True)
@@ -1883,6 +2074,129 @@ class ExecutionEngine:
             except OSError:
                 pass  # Don't fail on log write errors
 
+    # -------------------------------------------------------------------------
+    # PATCH 2: Dispatcher Priority State Machine
+    # -------------------------------------------------------------------------
+
+    def dispatch_once(self) -> bool:
+        """Single dispatch iteration with hard priority order.
+
+        PATCH 2: Priority order (hard requirement):
+        1. Recover - work ledger entries with errors or missing artifacts
+        2. Verify/Close - Stories with statusCategory In Progress OR status BLOCKED
+        3. Implement - Stories with status "To Do"
+        4. Decompose - Epics with (status "To Do" OR statusCategory In Progress) AND no children
+        5. Intake - Ideas with status "TO DO"
+
+        Returns:
+            True if any work was dispatched, False if idle.
+        """
+        # Priority 1: RECOVER
+        # Check work ledger for resumable entries (errors or missing artifacts)
+        resumable = self.work_ledger.get_resumable_entries(self._canonical_report_exists)
+        for entry in resumable:
+            self.log("SUPERVISOR", f"[RECOVER] Processing resumable entry: {entry.issueKey}")
+
+            # Fetch fresh issue data
+            issue = self.jira.get_issue(entry.issueKey)
+            if not issue:
+                self.log("SUPERVISOR", f"[RECOVER] Issue {entry.issueKey} not found in Jira, clearing ledger entry")
+                self.work_ledger.delete(entry.issueKey)
+                self.work_ledger.save()
+                continue
+
+            issue_type = issue['fields']['issuetype']['name'].lower()
+
+            # Determine recovery action based on last step
+            if entry.last_step in (LastStep.VERIFY.value, LastStep.RECONCILE.value):
+                # Re-run verification
+                if self.verify_work_item(issue):
+                    return True
+            elif entry.last_step == LastStep.IMPLEMENTER.value:
+                # Re-run implementation
+                if issue_type in ('story', 'bug'):
+                    if self._process_story(issue):
+                        return True
+            elif entry.last_step == LastStep.SUPERVISOR.value:
+                # Re-run decomposition for epics
+                if issue_type == 'epic':
+                    if self._process_epic(issue):
+                        return True
+            elif entry.last_step == LastStep.UEP.value:
+                # Re-run idea processing
+                if issue_type in ('initiative', 'idea'):
+                    if self._process_idea(issue):
+                        return True
+
+            # Also check for Ideas in progress that need recovery (EA-19 case)
+            ideas_in_progress = self.jira.get_ideas_in_progress()
+            for idea in ideas_in_progress:
+                idea_key = idea['key']
+                if self.work_ledger.get(idea_key) and self.work_ledger.get(idea_key).last_error_fingerprint:
+                    self.log("SUPERVISOR", f"[RECOVER] Retrying failed Idea: {idea_key}")
+                    if self._process_idea(idea):
+                        return True
+
+        # Priority 2: VERIFY/CLOSE
+        # Stories with statusCategory In Progress OR status BLOCKED
+        stories_for_verify = self.jira.get_stories_for_verify_close()
+        if stories_for_verify:
+            self.log("SUPERVISOR", f"[VERIFY/CLOSE] Found {len(stories_for_verify)} candidates")
+            for story in stories_for_verify:
+                if self.verify_work_item(story):
+                    return True
+
+        # Priority 3: IMPLEMENT
+        # Stories with exact status "To Do"
+        stories_todo = self.jira.get_stories_todo()
+        if stories_todo:
+            story = stories_todo[0]  # FIFO - oldest first
+            self.log("IMPLEMENTER", f"[IMPLEMENT] Processing: {story['key']}")
+            if self._process_story(story):
+                return True
+
+        # Priority 4: DECOMPOSE
+        # Epics with (status "To Do" OR statusCategory In Progress) AND no children
+        epics_for_decomp = self.jira.get_epics_for_decomposition()
+        if epics_for_decomp:
+            # FIXUP-1 PATCH 4: Use DecompositionManifestStore.exists() instead of ledger fingerprint
+            manifest_store = DecompositionManifestStore(self.config.repo_path)
+
+            for epic in epics_for_decomp:
+                epic_key = epic['key']
+
+                # Check if epic already has children (implement-stories) in Jira
+                existing_children = self.jira.get_implement_stories_for_epic(epic_key)
+                if existing_children:
+                    self.log("SUPERVISOR", f"[DECOMPOSE] Epic {epic_key} already has {len(existing_children)} children in Jira, skipping")
+                    continue
+
+                # Check if decomposition manifest exists on disk
+                if manifest_store.exists(epic_key):
+                    self.log("SUPERVISOR", f"[DECOMPOSE] Epic {epic_key} has decomposition manifest, skipping")
+                    continue
+
+                # Check work ledger for recorded children (fallback)
+                ledger_entry = self.work_ledger.get(epic_key)
+                if ledger_entry and ledger_entry.children:
+                    self.log("SUPERVISOR", f"[DECOMPOSE] Epic {epic_key} has recorded children in work ledger, skipping")
+                    continue
+
+                self.log("SUPERVISOR", f"[DECOMPOSE] Processing: {epic_key}")
+                if self._process_epic(epic):
+                    return True
+
+        # Priority 5: INTAKE
+        # Ideas with exact status "TO DO"
+        ideas_todo = self.jira.get_ideas_todo()
+        if ideas_todo:
+            idea = ideas_todo[0]  # FIFO - oldest first
+            self.log("UEP", f"[INTAKE] Processing: {idea['key']}")
+            if self._process_idea(idea):
+                return True
+
+        return False
+
     def run(self):
         """Main execution loop"""
         print("=" * 60)
@@ -1894,7 +2208,7 @@ class ExecutionEngine:
         errors = self.config.validate()
         if errors:
             for err in errors:
-                self.log("SYSTEM", f"Config error: {err}")
+                self.log("SUPERVISOR", f"Config error: {err}")
             self.escalate("SYSTEM", "Configuration Error", "\n".join(errors))
             return
 
@@ -1908,7 +2222,7 @@ class ExecutionEngine:
             self.escalate("SYSTEM", "Git Checkout Failed", f"Unable to checkout {self.config.feature_branch}")
             return
 
-        self.log("SYSTEM", "Initialization complete. Starting runtime loop...")
+        self.log("SUPERVISOR", "Initialization complete. Starting runtime loop...")
         print()
 
         iteration = 0
@@ -1919,34 +2233,22 @@ class ExecutionEngine:
             print(f"{'=' * 60}\n")
 
             try:
-                # Step 1: UEP - Check for Ideas (Initiatives)
-                if self.step_1_initiative_intake():
-                    continue
-
-                # Step 2: Supervisor - Check for Epics to decompose
-                if self.step_2_epic_decomposition():
-                    continue
-
-                # Step 3: Developer - Check for Stories to implement
-                if self.step_3_story_implementation():
-                    continue
-
-                # Step 4: Supervisor - Check for Stories to verify
-                if self.step_4_story_verification():
+                # PATCH 2: Use dispatch_once() for priority state machine
+                if self.dispatch_once():
                     continue
 
                 # No work found - idle
-                self.log("SYSTEM", "STATUS: IDLE - No work items found")
-                self.log("SYSTEM", "Waiting for new Initiatives in Product Discovery...")
+                self.log("SUPERVISOR", "STATUS: IDLE - No work items found")
+                self.log("SUPERVISOR", "Waiting for new Initiatives in Product Discovery...")
 
                 # Wait before next iteration
                 time.sleep(30)
 
             except KeyboardInterrupt:
-                self.log("SYSTEM", "Shutdown requested")
+                self.log("SUPERVISOR", "Shutdown requested")
                 self.running = False
             except Exception as e:
-                self.log("SYSTEM", f"Unexpected error: {e}")
+                self.log("SUPERVISOR", f"Unexpected error: {e}")
                 self.escalate("SYSTEM", "Runtime Error", str(e))
                 time.sleep(60)
 
@@ -2154,6 +2456,9 @@ Generate the Epic description now:"""
     def step_2_epic_decomposition(self) -> bool:
         """Supervisor: Decompose Epics into Stories with PATCH BATCH instructions
 
+        PATCH 3: Uses decomposition manifest for idempotency.
+        Delegates to _process_epic for manifest-aware processing.
+
         The Supervisor role:
         - Reads Epic business intent from UEP
         - Analyzes the codebase to find relevant files
@@ -2171,45 +2476,9 @@ Generate the Epic description now:"""
 
         self.log("SUPERVISOR", f"Found {len(epics)} Epics in 'To Do' status")
 
-        # Process oldest (FIFO)
+        # Process oldest (FIFO) - delegate to _process_epic for manifest handling
         epic = epics[0]
-        key = epic['key']
-        summary = epic['fields']['summary']
-        description = self.jira.parse_adf_to_text(epic['fields'].get('description', {}))
-
-        self.log("SUPERVISOR", f"Decomposing: [{key}] {summary}")
-        self.log("SUPERVISOR", "Analyzing codebase to identify implementation targets...")
-
-        # Supervisor Analysis: Read codebase, identify files, create PATCH BATCH
-        stories_to_create = self._supervisor_analyze_epic(key, summary, description)
-
-        created_stories = []
-        for story_def in stories_to_create:
-            story_key = self.jira.create_story(story_def['summary'], story_def['description'], key)
-            if story_key:
-                self.log("SUPERVISOR", f"Created Story: {story_key} - {story_def['summary']}")
-                created_stories.append(story_key)
-
-        if created_stories:
-            # Transition Epic to In Progress
-            self.jira.transition_issue(key, 'In Progress')
-
-            # Add comment with all created Stories
-            story_list = '\n'.join([f"- {s}" for s in created_stories])
-            self.jira.add_comment(key, f"""
-Epic decomposed by SUPERVISOR v3.2
-
-Created {len(created_stories)} Story(ies):
-{story_list}
-
-Analysis Complete:
-- Codebase scanned for relevant files
-- PATCH BATCH instructions generated
-- Ready for Developer implementation
-""")
-            return True
-
-        return False
+        return self._process_epic(epic)
 
     def _supervisor_analyze_epic(self, epic_key: str, summary: str, description: str) -> List[dict]:
         """Supervisor: Analyze Epic and codebase to create Stories with PATCH BATCH
@@ -2573,6 +2842,38 @@ after identifying the relevant codebase locations.
             self.log("IMPLEMENTER", f"Claude Code completed implementation")
             self.log("IMPLEMENTER", f"Modified files: {', '.join(modified_files) if modified_files else 'None detected'}")
 
+            # FIXUP-1 PATCH 2: Enforce canonical report existence BEFORE commit/push
+            exists, canonical_report_path, remediation = _verify_canonical_report_or_fail_fast(
+                self.config.repo_path, key, log_func=lambda msg: self.log("IMPLEMENTER", msg)
+            )
+
+            if not exists:
+                # Fail-fast: canonical report missing, do NOT commit/push
+                self.log("IMPLEMENTER", f"[{key}] FAIL-FAST: Canonical verification report missing")
+                self.jira.add_comment(key, f"""Implementation completed but verification report missing.
+
+{remediation}
+
+**ACTION REQUIRED:** Implementer must write report to canonical path before verification can proceed.
+Commit and push were NOT performed.""")
+
+                # Record failure to work ledger
+                self._upsert_work_ledger_entry(
+                    issue_key=key,
+                    issue_type="Story",
+                    status="failed",
+                    last_step=LastStep.IMPLEMENTER.value,
+                    last_step_result=StepResult.FAILED.value,  # FIXUP-1 PATCH 5
+                    error_text="Canonical verification report missing",
+                )
+
+                self.escalate(
+                    "IMPLEMENTER",
+                    f"Story {key} missing canonical verification report",
+                    f"Story: {summary}\n\n{remediation}"
+                )
+                return True  # Continue run, but mark as handled
+
             # Update IMPLEMENTATION_PLAN.md only if docs allowed
             if modified_files:
                 if allow_docs:
@@ -2592,23 +2893,19 @@ after identifying the relevant codebase locations.
 
             # Add success comment to Jira
             commit_status = "Committed and pushed" if commit_success else "Changes pending commit"
+            resolved_report_path = canonical_report_path  # Use canonical path from fail-fast check
             self.jira.add_comment(key, f"""
 Implementation completed by IMPLEMENTER.
 
 Branch: {self.config.feature_branch}
 Status: {commit_status}
+Verification report: {resolved_report_path}
 Files modified:
 {chr(10).join(['- ' + f for f in modified_files]) if modified_files else '(see git log for details)'}
 
 Ready for Supervisor verification.
 """)
             self.log("IMPLEMENTER", f"Story {key} implementation complete")
-
-            # PATCH 1-D: Ensure verification report at expected path
-            self._ensure_verification_report(key, description)
-
-            # PATCH 2-B: Resolve verification report path for ledger
-            resolved_report_path = _resolve_verification_report(self.config.repo_path, key) or ""
 
             # PATCH 2-C: Upsert ledger entry on success
             self._upsert_kan_story_run(key, {
@@ -2619,6 +2916,17 @@ Ready for Supervisor verification.
                 "attemptArtifacts": [artifact_path] if artifact_path else [],
                 "guardrailsPassed": commit_detected or commit_success,
             })
+
+            # PATCH 5: Record success to work ledger
+            self._upsert_work_ledger_entry(
+                issue_key=key,
+                issue_type="Story",
+                status="In Progress",
+                last_step=LastStep.IMPLEMENTER.value,
+                last_step_result=StepResult.SUCCESS.value,  # FIXUP-1 PATCH 5
+                last_commit_sha=head_sha_after or head_sha_before,
+                verification_report_path=resolved_report_path,
+            )
         else:
             self.log("IMPLEMENTER", f"Claude Code encountered issues")
 
@@ -2648,6 +2956,25 @@ Human intervention may be required.
                 "attemptArtifacts": [artifact_path] if artifact_path else [],
                 "guardrailsPassed": False,
             })
+
+            # FIXUP-2 PATCH 1: Classify terminal result for proper Work Ledger recording
+            terminal_result = _classify_implementer_terminal_result(output)
+            error_constants = {
+                StepResult.TIMED_OUT.value: "Implementation timed out",
+                StepResult.CANCELLED.value: "Implementation cancelled (lock/session conflict)",
+                StepResult.FAILED.value: "Implementation failed",
+            }
+            error_text = error_constants.get(terminal_result, "Implementation failed")
+
+            # FIXUP-1 PATCH 5: Record failure to work ledger
+            self._upsert_work_ledger_entry(
+                issue_key=key,
+                issue_type="Story",
+                status="failed",
+                last_step=LastStep.IMPLEMENTER.value,
+                last_step_result=terminal_result,  # FIXUP-2 PATCH 1: Classified result
+                error_text=error_text,
+            )
 
         self.log("IMPLEMENTER", "Notifying Supervisor for verification...")
         return True
@@ -2797,7 +3124,12 @@ Branch: {self.config.feature_branch}
     def verify_work_item(self, issue: dict) -> bool:
         """Verify a single work item (Story or Bug) and auto-transition if passed.
 
-        PATCH 1-C: Real verification with ledger gate and auto-transition.
+        PATCH 8: Evidence-based auto-close policy.
+        - Checks canonical report exists: reports/{ISSUE}-verification.md
+        - Validates report has ## Checklist with no unchecked items
+        - Checks commit evidence from Work Ledger or git history
+        - Auto-transitions to Done/Resolved if evidence complete
+        - Handles BLOCKED status (included in Verify/Close queue)
 
         Returns: True if any action was taken, False otherwise.
         """
@@ -2806,21 +3138,23 @@ Branch: {self.config.feature_branch}
         issue_type = issue['fields']['issuetype']['name']
         status = issue['fields']['status']['name']
 
-        # Only process items in "In Progress"
-        if status != "In Progress":
+        # PATCH 8: Include BLOCKED status in verification (not just In Progress)
+        if status not in ("In Progress", "BLOCKED", "Blocked"):
             return False
 
         self.log("SUPERVISOR", f"Verifying [{key}] {issue_type}: {summary}")
 
-        # Step 1: Resolve verification report
-        report_path = _resolve_verification_report(self.config.repo_path, key)
+        # Step 1: Verify canonical report exists (FIXUP-1 PATCH 2: fail-fast remediation)
+        exists, report_path, remediation = _verify_canonical_report_or_fail_fast(
+            self.config.repo_path, key, log_func=lambda msg: self.log("SUPERVISOR", msg)
+        )
 
-        if not report_path:
-            # PENDING: No verification report found
-            self.log("SUPERVISOR", f"[{key}] Verification report not found")
+        if not exists:
+            # PENDING: Canonical verification report not found
+            self.log("SUPERVISOR", f"[{key}] Canonical verification report not found")
             comment = f"""Supervisor Verification: PENDING — verification report not found
 
-Expected pattern: {key}-*-verification.md"""
+{remediation}"""
             self.jira.add_comment(key, comment)
             return True
 
@@ -2846,104 +3180,299 @@ Note: Verification reports MUST contain a ## Checklist section."""
             self.jira.add_comment(key, comment)
             return True
 
-        # Step 2: Load/init ledger and check entry
-        ledger = self._load_guardrails_ledger()
-
-        # If ledger file missing/unreadable, initialize it and return PENDING (not FAILED)
-        if ledger is None:
-            self.log("SUPERVISOR", f"[{key}] Ledger file missing, initializing...")
-            ledger = self._load_or_init_guardrails_ledger()
-            comment = f"""Supervisor Verification: PENDING — guardrails ledger initialized; entry missing
+        # PATCH 8: Check for unchecked items (fail-closed)
+        if "- [ ]" in report_content:
+            unchecked_count = report_content.count("- [ ]")
+            self.log("SUPERVISOR", f"[{key}] Report has {unchecked_count} unchecked checklist items")
+            comment = f"""Supervisor Verification: INCOMPLETE — unchecked checklist items found
 
 Report: {report_path}
-Note: Ledger was just created. Run implementation again or wait for next verification cycle."""
-            self.jira.add_comment(key, comment)
-            return True
-
-        # Look up entry (canonical kan_story_runs first, fallback for backward compat)
-        entry = None
-        if isinstance(ledger, dict):
-            entry = ledger.get("kan_story_runs", {}).get(key)
-            if entry is None:
-                entry = self._find_ledger_entry(ledger, key)
-
-        # If entry missing, return PENDING (not FAILED)
-        if entry is None:
-            self.log("SUPERVISOR", f"[{key}] No ledger entry found")
-            comment = f"""Supervisor Verification: PENDING — no ledger entry for {key}
-
-Report: {report_path}
-Note: Implementation may not have run the commit gate yet."""
-            self.jira.add_comment(key, comment)
-            return True
-
-        # Entry exists - check if guardrails passed
-        if not self._ledger_passed(entry):
-            # FAILED: Entry exists but guardrails not passed
-            self.log("SUPERVISOR", f"[{key}] Verification FAILED: guardrails not passed")
-
-            comment = f"""Supervisor Verification: FAILED — guardrails not passed
-
-Report: {report_path}
-Reason: Entry exists but guardrailsPassed is not true"""
+Unchecked items: {unchecked_count}
+Note: All checklist items must be checked (- [x]) for verification to pass."""
             self.jira.add_comment(key, comment)
 
-            # Transition to Blocked (fallback to To Do)
-            if not self.jira.transition_issue(key, "Blocked"):
-                self.jira.transition_issue(key, "To Do")
+            # Keep as BLOCKED or set to BLOCKED best-effort, then continue
+            if status not in ("BLOCKED", "Blocked"):
+                self.jira.transition_issue(key, "Blocked")
 
-            # Escalate
-            self.escalate("SUPERVISOR", f"{issue_type} {key} verification failed (guardrails)",
-                         f"Issue: {key}\nSummary: {summary}\nReason: guardrails not passed\nReport: {report_path}")
             return True
 
-        # Step 3: PASSED - get evidence and attempt auto-transition
-        base_sha_short, changed_files_count = self._ledger_evidence(entry)
-        self.log("SUPERVISOR", f"[{key}] Verification PASSED (base={base_sha_short}, files={changed_files_count})")
+        # Step 2: FIXUP-1 PATCH 4: Check commit evidence from Work Ledger OR git history
+        # Evidence sources (in order of precedence):
+        # 1. Work Ledger last_commit_sha
+        # 2. Git log --grep for commits referencing the issue key
+        work_entry = self.work_ledger.get(key)
+        commit_evidence = None
+        commit_source = None
 
-        # Update ledger entry to mark as verified
-        self._upsert_kan_story_run(key, {
-            "status": "verified",
-            "verificationReportPath": report_path,
-        })
+        if work_entry and work_entry.last_commit_sha:
+            commit_evidence = work_entry.last_commit_sha[:8]
+            commit_source = "work_ledger"
+        else:
+            # Fall back to git log search
+            git_commits = self.git.find_commits_referencing(key, max_count=5)
+            if git_commits:
+                commit_evidence = git_commits[0]  # Most recent
+                commit_source = "git_log"
 
-        # Probe available transitions (PATCH 2-C)
+        if not commit_evidence:
+            # Missing commit evidence - keep/set BLOCKED
+            self.log("SUPERVISOR", f"[{key}] Missing commit evidence")
+            comment = f"""Supervisor Verification: BLOCKED — missing commit evidence
+
+Report: {report_path} (valid, checklist complete)
+
+**Missing evidence:**
+- Work Ledger entry not found OR last_commit_sha not set
+- No commits found referencing {key} in git history
+
+**What is needed:**
+1. Run implementation again to create Work Ledger entry with commit SHA, OR
+2. Create a commit with {key} in the commit message
+
+Note: Story will remain BLOCKED until commit evidence is found."""
+            self.jira.add_comment(key, comment)
+
+            if status not in ("BLOCKED", "Blocked"):
+                self.jira.transition_issue(key, "Blocked")
+
+            return True
+
+        # Step 3: PASSED - all evidence complete
+        self.log("SUPERVISOR", f"[{key}] Verification PASSED (commit={commit_evidence} from {commit_source})")
+
+        # Update work ledger entry to mark as verified
+        self._upsert_work_ledger_entry(
+            issue_key=key,
+            issue_type="Story",
+            status="verified",
+            last_step=LastStep.VERIFY.value,
+            last_step_result=StepResult.SUCCESS.value,  # FIXUP-1 PATCH 5
+            verification_report_path=report_path,
+        )
+
+        # Probe available transitions
         names = self.jira.get_available_transition_names(key)
         chosen = choose_transition(names)
 
+        transitioned = False
         if chosen is None:
             # No matching transition found
             comment = f"""Supervisor Verification: PASSED — cannot auto-transition (no matching transition found)
 
 Report: {report_path}
-Base SHA: {base_sha_short}
-Changed files: {changed_files_count}
+Commit: {commit_evidence} (source: {commit_source})
 Available transitions: {', '.join(names) if names else 'none'}"""
             self.jira.add_comment(key, comment)
             self.log("SUPERVISOR", f"[{key}] No matching transition found: {names}")
-            return True
-
-        # Attempt transition
-        if self.jira.transition_issue(key, chosen):
+        elif self.jira.transition_issue(key, chosen):
             comment = f"""Supervisor Verification: PASSED
 
 Report: {report_path}
-Base SHA: {base_sha_short}
-Changed files: {changed_files_count}
+Commit: {commit_evidence} (source: {commit_source})
 Status: Transitioned to {chosen}"""
             self.jira.add_comment(key, comment)
             self.log("SUPERVISOR", f"[{key}] Transitioned to {chosen}")
+            transitioned = True
         else:
             comment = f"""Supervisor Verification: PASSED — auto-transition failed; manual move required
 
 Report: {report_path}
-Base SHA: {base_sha_short}
-Changed files: {changed_files_count}
+Commit: {commit_evidence} (source: {commit_source})
 Attempted transition: {chosen}"""
             self.jira.add_comment(key, comment)
             self.log("SUPERVISOR", f"[{key}] Transition to {chosen} failed")
 
+        # FIXUP-1 PATCH 4: Reconcile wiring - best-effort after story transition
+        if transitioned:
+            # Determine parent epic key
+            parent_key = None
+
+            # Try fields.parent.key first
+            parent_field = issue.get('fields', {}).get('parent', {})
+            if isinstance(parent_field, dict) and parent_field.get('key'):
+                parent_key = parent_field['key']
+
+            # Fallback: check work ledger entry
+            if not parent_key and work_entry and work_entry.parentKey:
+                parent_key = work_entry.parentKey
+
+            if parent_key:
+                self.log("SUPERVISOR", f"[{key}] Attempting Epic reconciliation for parent: {parent_key}")
+                if self.reconcile_epic(parent_key):
+                    # Epic reconciled - try to find and reconcile Idea
+                    # Idea key is inferred from Epic summary prefix [EA-XX]
+                    epic_issue = self.jira.get_issue(parent_key)
+                    if epic_issue:
+                        epic_summary = epic_issue.get('fields', {}).get('summary', '')
+                        import re
+                        idea_match = re.match(r'\[(EA-\d+)\]', epic_summary)
+                        if idea_match:
+                            idea_key = idea_match.group(1)
+                            self.log("SUPERVISOR", f"[{key}] Attempting Idea reconciliation: {idea_key}")
+                            self.reconcile_idea(idea_key)
+
         return True
+
+    def reconcile_epic(self, epic_key: str) -> bool:
+        """Reconcile Epic: transition to Done if all child Stories are resolved.
+
+        PATCH 8: Epic reconciliation.
+        If all child "Implement:" stories are in terminal states (Done/Duplicate/Canceled),
+        transition Epic to Done/Complete.
+
+        Returns: True if Epic was reconciled, False otherwise.
+        """
+        # Get all child stories for the epic
+        children = self.jira.get_children_for_epic(epic_key)
+
+        if not children:
+            self.log("SUPERVISOR", f"[{epic_key}] No child stories found for reconciliation")
+            return False
+
+        # Check if all children are in terminal states
+        terminal_statuses = {"Done", "Duplicate", "Canceled", "Cancelled", "Closed", "Resolved"}
+        all_resolved = all(
+            child['fields']['status']['name'] in terminal_statuses
+            for child in children
+        )
+
+        if not all_resolved:
+            unresolved = [
+                c['key'] for c in children
+                if c['fields']['status']['name'] not in terminal_statuses
+            ]
+            self.log("SUPERVISOR", f"[{epic_key}] {len(unresolved)} child stories not resolved: {', '.join(unresolved[:3])}")
+            return False
+
+        # All children resolved - transition Epic to Done
+        self.log("SUPERVISOR", f"[{epic_key}] All {len(children)} child stories resolved, reconciling Epic")
+
+        # Build evidence comment
+        child_evidence = []
+        for child in children:
+            child_key = child['key']
+            child_status = child['fields']['status']['name']
+            work_entry = self.work_ledger.get(child_key)
+            if work_entry and work_entry.verification_report_path:
+                child_evidence.append(f"- {child_key}: {child_status} (report: {work_entry.verification_report_path})")
+            elif work_entry and work_entry.last_commit_sha:
+                child_evidence.append(f"- {child_key}: {child_status} (commit: {work_entry.last_commit_sha[:8]})")
+            else:
+                child_evidence.append(f"- {child_key}: {child_status}")
+
+        # Attempt transition
+        names = self.jira.get_available_transition_names(epic_key)
+        chosen = choose_transition(names)
+
+        if chosen and self.jira.transition_issue(epic_key, chosen):
+            comment = f"""Epic Reconciliation: COMPLETE
+
+All {len(children)} child stories resolved:
+{chr(10).join(child_evidence)}
+
+Transitioned to: {chosen}"""
+            self.jira.add_comment(epic_key, comment)
+            self.log("SUPERVISOR", f"[{epic_key}] Transitioned to {chosen}")
+
+            # Update work ledger
+            self._upsert_work_ledger_entry(
+                issue_key=epic_key,
+                issue_type="Epic",
+                status=chosen,
+                last_step=LastStep.RECONCILE.value,
+                last_step_result=StepResult.SUCCESS.value,  # FIXUP-1 PATCH 5
+            )
+            return True
+        else:
+            # Transition unavailable - still record in work ledger
+            self._upsert_work_ledger_entry(
+                issue_key=epic_key,
+                issue_type="Epic",
+                status="pending_transition",
+                last_step=LastStep.RECONCILE.value,
+                last_step_result=StepResult.FAILED.value,  # FIXUP-1 PATCH 5
+            )
+            comment = f"""Epic Reconciliation: All children resolved but transition unavailable
+
+All {len(children)} child stories resolved:
+{chr(10).join(child_evidence)}
+
+Available transitions: {', '.join(names) if names else 'none'}
+Manual transition required."""
+            self.jira.add_comment(epic_key, comment)
+            return False
+
+    def reconcile_idea(self, idea_key: str) -> bool:
+        """Reconcile Idea: transition if all child Epics are Done.
+
+        PATCH 8: Idea reconciliation (workflow-adaptive).
+        If all Epics under the Idea are Done/Complete, transition accordingly.
+
+        Returns: True if Idea was reconciled, False otherwise.
+        """
+        # Get all Epics for this Idea (by summary prefix)
+        epics = self.jira.get_epics_for_idea(idea_key)
+
+        if not epics:
+            self.log("SUPERVISOR", f"[{idea_key}] No child Epics found for reconciliation")
+            return False
+
+        # Check if all Epics are in terminal states
+        terminal_statuses = {"Done", "Complete", "Closed", "Resolved"}
+        all_resolved = all(
+            epic['fields']['status']['name'] in terminal_statuses
+            for epic in epics
+        )
+
+        if not all_resolved:
+            unresolved = [
+                e['key'] for e in epics
+                if e['fields']['status']['name'] not in terminal_statuses
+            ]
+            self.log("SUPERVISOR", f"[{idea_key}] {len(unresolved)} child Epics not resolved")
+            return False
+
+        # All Epics resolved - attempt transition
+        self.log("SUPERVISOR", f"[{idea_key}] All {len(epics)} child Epics resolved, reconciling Idea")
+
+        names = self.jira.get_available_transition_names(idea_key)
+        chosen = choose_transition(names)
+
+        if chosen and self.jira.transition_issue(idea_key, chosen):
+            epic_list = '\n'.join([f"- {e['key']}: {e['fields']['status']['name']}" for e in epics])
+            comment = f"""Idea Reconciliation: COMPLETE
+
+All {len(epics)} child Epics resolved:
+{epic_list}
+
+Transitioned to: {chosen}"""
+            self.jira.add_comment(idea_key, comment)
+            self.log("SUPERVISOR", f"[{idea_key}] Transitioned to {chosen}")
+
+            # Update work ledger
+            self._upsert_work_ledger_entry(
+                issue_key=idea_key,
+                issue_type="Idea",
+                status=chosen,
+                last_step=LastStep.RECONCILE.value,
+                last_step_result=StepResult.SUCCESS.value,  # FIXUP-1 PATCH 5
+            )
+            return True
+        else:
+            # Update work ledger with failed result
+            self._upsert_work_ledger_entry(
+                issue_key=idea_key,
+                issue_type="Idea",
+                status="",
+                last_step=LastStep.RECONCILE.value,
+                last_step_result=StepResult.FAILED.value,  # FIXUP-1 PATCH 5
+            )
+            comment = f"""Idea Reconciliation: All Epics resolved but no matching transition found
+
+Available transitions: {', '.join(names) if names else 'none'}"""
+            self.jira.add_comment(idea_key, comment)
+            return False
 
     def step_4_story_verification(self) -> bool:
         """Supervisor: Verify completed Stories and Bugs.
@@ -2986,25 +3515,25 @@ DETAILS:
 This is an automated escalation from the EngineO Autonomous Execution Engine.
 """
 
-        self.log("SYSTEM", f"ESCALATION: {title}")
+        self.log("SUPERVISOR", f"ESCALATION: {title}")
         self.email.send_escalation(subject, body)
 
     def process_issue(self, issue_key: str) -> bool:
         """Process a specific issue by key, determining the appropriate persona based on issue type"""
-        self.log("SYSTEM", f"Processing specific issue: {issue_key}")
+        self.log("SUPERVISOR", f"Processing specific issue: {issue_key}")
 
         # Get the issue details
         issue = self.jira.get_issue(issue_key)
         if not issue:
-            self.log("SYSTEM", f"Issue {issue_key} not found")
+            self.log("SUPERVISOR", f"Issue {issue_key} not found")
             return False
 
         issue_type = issue['fields']['issuetype']['name'].lower()
         summary = issue['fields']['summary']
         status = issue['fields']['status']['name']
 
-        self.log("SYSTEM", f"Issue: [{issue_key}] {summary}")
-        self.log("SYSTEM", f"Type: {issue_type}, Status: {status}")
+        self.log("SUPERVISOR", f"Issue: [{issue_key}] {summary}")
+        self.log("SUPERVISOR", f"Type: {issue_type}, Status: {status}")
 
         dispatch_kind = resolve_dispatch_kind(issue_type)
 
@@ -3018,7 +3547,7 @@ This is an automated escalation from the EngineO Autonomous Execution Engine.
             # Developer implements Stories and Bugs (same pipeline)
             return self._process_story(issue)
         else:
-            self.log("SYSTEM", f"Unknown issue type: {issue_type}")
+            self.log("SUPERVISOR", f"Unknown issue type: {issue_type}")
             return False
 
     def _process_idea(self, issue: dict) -> bool:
@@ -3056,52 +3585,118 @@ Business Intent Defined - Ready for Supervisor decomposition.
         return False
 
     def _process_epic(self, issue: dict) -> bool:
-        """Supervisor: Decompose a specific Epic into Stories (uses enhanced analysis)"""
+        """Supervisor: Decompose a specific Epic into Stories (uses enhanced analysis)
+
+        PATCH 3: Uses decomposition manifest for idempotency and delta mode.
+        """
         key = issue['key']
         summary = issue['fields']['summary']
         description = self.jira.parse_adf_to_text(issue['fields'].get('description', {}))
+        status = issue['fields']['status']['name']
 
         self.log("SUPERVISOR", f"Decomposing Epic: [{key}] {summary}")
 
-        # PATCH 4-B: Idempotency check - skip if implement-stories already exist
-        existing_stories = self.jira.get_implement_stories_for_epic(key)
-        if existing_stories:
-            keys = [s['key'] for s in existing_stories]
-            self.log("SUPERVISOR", f"[{key}] Skipping decomposition: {len(existing_stories)} implement-stories already exist: {', '.join(keys)}")
+        # PATCH 3: Initialize manifest store
+        manifest_store = DecompositionManifestStore(self.config.repo_path)
 
-            # Add comment noting decomposition is already complete
-            story_list = '\n'.join([f"- {s['key']}: {s['fields']['summary']}" for s in existing_stories])
-            self.jira.add_comment(key, f"""
-Epic decomposition already complete.
+        # PATCH 3: Check manifest and fingerprint to determine decomposition mode
+        should_decomp, mode, manifest = should_decompose(manifest_store, key, description)
+
+        # Get existing stories from Jira
+        existing_stories = self.jira.get_implement_stories_for_epic(key)
+        existing_summaries = [s['fields']['summary'] for s in existing_stories]
+        existing_keys = [s['key'] for s in existing_stories]
+
+        if mode == "skip":
+            # Manifest exists and fingerprint unchanged
+            self.log("SUPERVISOR", f"[{key}] Skipping decomposition: fingerprint unchanged")
+
+            # Still update manifest with any new Jira keys
+            for story in existing_stories:
+                child = manifest.find_child_by_intent(story['fields']['summary'])
+                if child and child.key is None:
+                    child.key = story['key']
+            manifest_store.save(manifest)
+
+            if existing_stories:
+                story_list = '\n'.join([f"- {s['key']}: {s['fields']['summary']}" for s in existing_stories])
+                self.jira.add_comment(key, f"""
+Epic decomposition already complete (fingerprint unchanged).
 
 Existing {len(existing_stories)} implement-story(ies):
 {story_list}
 
-No new stories created (idempotency check).
+No new stories created.
 """)
+            return True
 
-            # Transition Epic to In Progress (best-effort)
-            self.jira.transition_issue(key, 'In Progress')
+        if mode == "delta":
+            self.log("SUPERVISOR", f"[{key}] Delta mode: fingerprint changed, checking for missing stories")
 
-            return True  # Action taken - mark as processed
-
+        # PATCH 3: Analyze and generate stories
         self.log("SUPERVISOR", "Analyzing codebase to identify implementation targets...")
 
         # Use enhanced Supervisor analysis
         stories_to_create = self._supervisor_analyze_epic(key, summary, description)
 
-        created_stories = []
+        # PATCH 3: Filter to only create missing stories (delta mode)
+        stories_actually_needed = []
         for story_def in stories_to_create:
+            story_summary = story_def['summary']
+
+            # Check if story already exists in Jira
+            intent_id = compute_intent_id(story_summary)
+            exists_in_jira = any(compute_intent_id(s) == intent_id for s in existing_summaries)
+
+            if exists_in_jira:
+                self.log("SUPERVISOR", f"[{key}] Skipping existing story: {story_summary[:50]}...")
+                continue
+
+            # Check if story is in manifest with a key
+            child = manifest.find_child_by_intent(story_summary)
+            if child and child.key:
+                self.log("SUPERVISOR", f"[{key}] Skipping (manifest has key): {story_summary[:50]}...")
+                continue
+
+            stories_actually_needed.append(story_def)
+
+            # Add to manifest
+            if child is None:
+                manifest.add_child(story_summary)
+
+        created_stories = []
+        for story_def in stories_actually_needed:
             story_key = self.jira.create_story(story_def['summary'], story_def['description'], key)
             if story_key:
                 self.log("SUPERVISOR", f"Created Story: {story_key}")
                 created_stories.append(story_key)
 
+                # Update manifest with created key
+                child = manifest.find_child_by_intent(story_def['summary'])
+                if child:
+                    child.key = story_key
+
+        # Save updated manifest
+        manifest_store.save(manifest)
+
+        # Update work ledger
+        self._upsert_work_ledger_entry(
+            issue_key=key,
+            issue_type="Epic",
+            status=status,
+            last_step=LastStep.SUPERVISOR.value,
+            last_step_result=StepResult.SUCCESS.value,  # FIXUP-1 PATCH 5
+            children=[s['key'] for s in existing_stories] + created_stories,
+            decomposition_fingerprint=manifest.fingerprint,
+        )
+
         if created_stories:
             self.jira.transition_issue(key, 'In Progress')
             story_list = '\n'.join([f"- {s}" for s in created_stories])
+
+            mode_note = "(delta mode - only new stories)" if mode == "delta" else ""
             self.jira.add_comment(key, f"""
-Epic decomposed by SUPERVISOR v3.2
+Epic decomposed by SUPERVISOR v3.2 {mode_note}
 
 Created {len(created_stories)} Story(ies):
 {story_list}
@@ -3109,6 +3704,10 @@ Created {len(created_stories)} Story(ies):
 Codebase analyzed - PATCH BATCH instructions generated.
 Ready for Developer implementation.
 """)
+            return True
+        elif existing_stories:
+            # No new stories but existing ones - still success
+            self.jira.transition_issue(key, 'In Progress')
             return True
 
         return False
@@ -3136,7 +3735,8 @@ Ready for Developer implementation.
         # PATCH 2-A: Capture head SHA before Claude execution
         head_sha_before = self.git.get_head_sha()
 
-        success, _, modified_files, artifact_path = self._invoke_claude_code(key, summary, description)
+        # FIXUP-2 PATCH 1: Capture output text for terminal outcome classification
+        success, claude_output, modified_files, artifact_path = self._invoke_claude_code(key, summary, description)
 
         # PATCH 2-A: Capture head SHA after Claude execution
         head_sha_after = self.git.get_head_sha()
@@ -3145,6 +3745,38 @@ Ready for Developer implementation.
         if success:
             self.log("IMPLEMENTER", f"Claude Code completed implementation")
             self.log("IMPLEMENTER", f"Modified files: {', '.join(modified_files) if modified_files else 'None detected'}")
+
+            # FIXUP-1 PATCH 2: Enforce canonical report existence BEFORE commit/push
+            exists, canonical_report_path, remediation = _verify_canonical_report_or_fail_fast(
+                self.config.repo_path, key, log_func=lambda msg: self.log("IMPLEMENTER", msg)
+            )
+
+            if not exists:
+                # Fail-fast: canonical report missing, do NOT commit/push
+                self.log("IMPLEMENTER", f"[{key}] FAIL-FAST: Canonical verification report missing")
+                self.jira.add_comment(key, f"""Implementation completed but verification report missing.
+
+{remediation}
+
+**ACTION REQUIRED:** Implementer must write report to canonical path before verification can proceed.
+Commit and push were NOT performed.""")
+
+                # Record failure to work ledger
+                self._upsert_work_ledger_entry(
+                    issue_key=key,
+                    issue_type="Story",
+                    status="failed",
+                    last_step=LastStep.IMPLEMENTER.value,
+                    last_step_result=StepResult.FAILED.value,  # FIXUP-1 PATCH 5
+                    error_text="Canonical verification report missing",
+                )
+
+                self.escalate(
+                    "IMPLEMENTER",
+                    f"Story {key} missing canonical verification report",
+                    f"Story: {summary}\n\n{remediation}"
+                )
+                return True  # Continue run, but mark as handled
 
             # Update IMPLEMENTATION_PLAN.md only if docs allowed
             if modified_files:
@@ -3165,23 +3797,19 @@ Ready for Developer implementation.
 
             # Add success comment to Jira
             commit_status = "Committed and pushed" if commit_success else "Changes pending commit"
+            resolved_report_path = canonical_report_path  # Use canonical path from fail-fast check
             self.jira.add_comment(key, f"""
 Implementation completed by IMPLEMENTER.
 
 Branch: {self.config.feature_branch}
 Status: {commit_status}
+Verification report: {resolved_report_path}
 Files modified:
 {chr(10).join(['- ' + f for f in modified_files]) if modified_files else '(see git log for details)'}
 
 Ready for Supervisor verification.
 """)
             self.log("IMPLEMENTER", f"Story {key} implementation complete")
-
-            # PATCH 1-D: Ensure verification report at expected path
-            self._ensure_verification_report(key, description)
-
-            # PATCH 2-B: Resolve verification report path for ledger
-            resolved_report_path = _resolve_verification_report(self.config.repo_path, key) or ""
 
             # PATCH 2-C: Upsert ledger entry on success
             self._upsert_kan_story_run(key, {
@@ -3192,6 +3820,17 @@ Ready for Supervisor verification.
                 "attemptArtifacts": [artifact_path] if artifact_path else [],
                 "guardrailsPassed": commit_detected or commit_success,
             })
+
+            # PATCH 5: Record success to work ledger
+            self._upsert_work_ledger_entry(
+                issue_key=key,
+                issue_type="Story",
+                status="In Progress",
+                last_step=LastStep.IMPLEMENTER.value,
+                last_step_result=StepResult.SUCCESS.value,  # FIXUP-1 PATCH 5
+                last_commit_sha=head_sha_after or head_sha_before,
+                verification_report_path=resolved_report_path,
+            )
         else:
             self.log("IMPLEMENTER", f"Claude Code encountered issues")
 
@@ -3222,6 +3861,26 @@ Human intervention may be required.
                 "guardrailsPassed": False,
             })
 
+            # FIXUP-2 PATCH 1: Classify terminal result for proper Work Ledger recording
+            terminal_result = _classify_implementer_terminal_result(claude_output)
+            error_constants = {
+                StepResult.TIMED_OUT.value: "Implementation timed out",
+                StepResult.CANCELLED.value: "Implementation cancelled (lock/session conflict)",
+                StepResult.FAILED.value: "Implementation failed",
+            }
+            error_text = error_constants.get(terminal_result, "Implementation failed")
+
+            # PATCH 5: Record to work ledger with classified terminal outcome
+            self._upsert_work_ledger_entry(
+                issue_key=key,
+                issue_type="Story",
+                status="failed",
+                last_step=LastStep.IMPLEMENTER.value,
+                last_step_result=terminal_result,  # FIXUP-2 PATCH 1: Classified result
+                last_commit_sha=head_sha_after or head_sha_before,
+                error_text=error_text,
+            )
+
         self.log("IMPLEMENTER", "Notifying Supervisor for verification...")
         return True
 
@@ -3230,7 +3889,7 @@ Human intervention may be required.
 
         Claude Execution Hardening (OBSERVABILITY-HARDENING-1):
         - Acquires lock to prevent concurrent sessions
-        - Streams output live via PTY with [CLAUDE] prefix (secrets redacted)
+        - Streams output live via PTY with [IMPLEMENTER] prefix (secrets redacted)
         - Line-buffered output prevents cross-chunk leakage
         - Emits heartbeat if no output for 30s
         - Configurable timeout (default 4h, env override, per-ticket cap)
@@ -3240,8 +3899,8 @@ Human intervention may be required.
         Returns: (success, output, list of modified files, artifact_path)
         """
         # Build the prompt for Claude Code
-        # PATCH 3-B: Compute expected verification report path with run_id for timestamped filename
-        expected_report_path = _expected_verification_report_path(story_key, description, self.run_id)
+        # PATCH 4: Use canonical verification report path only (no run_id variants)
+        canonical_report_path = _canonical_verification_report_relpath(story_key)
 
         prompt = f"""You are the IMPLEMENTER in an autonomous execution system.
 
@@ -3260,11 +3919,18 @@ Human intervention may be required.
 5. Do NOT push to remote - just commit locally
 
 ## Verification Report (REQUIRED)
-Write verification report EXACTLY to: {expected_report_path}
+Write verification report EXACTLY to: {canonical_report_path}
 
-CRITICAL: You MUST use the exact path above. Do NOT use title-prefixed filenames like
-AUTONOMOUS-AGENT-...-verification.md. Title-prefixed reports are NOT accepted as valid
-verification output and will cause verification to fail.
+CRITICAL CONTRACT:
+- You MUST use the EXACT path above: {canonical_report_path}
+- Do NOT use timestamped filenames (e.g., KAN-17-20260127-...-verification.md)
+- Do NOT use title-prefixed filenames (e.g., AUTONOMOUS-AGENT-...-verification.md)
+- Only the canonical path above is accepted for verification
+
+The verification report MUST contain:
+- ## Checklist section with checkboxes
+- All checklist items must be checked (- [x]) if completed
+- Any unchecked items (- [ ]) will cause verification to fail
 
 Important:
 - Make ONLY the changes specified in the PATCH BATCH
@@ -3296,7 +3962,8 @@ Begin implementation now.
 
         try:
             for attempt in range(1, CLAUDE_MAX_ATTEMPTS + 1):
-                self.log("IMPLEMENTER", f"Claude attempt {attempt}/{CLAUDE_MAX_ATTEMPTS}...")
+                # FIXUP-2 PATCH 2: Include tool/model metadata for Claude subprocess logs
+                self.log("IMPLEMENTER", f"Claude attempt {attempt}/{CLAUDE_MAX_ATTEMPTS}...", model=MODEL_IMPLEMENTER, tool="claude-code-cli")
                 attempt_output = []
                 attempt_output.append(f"=== Attempt {attempt}/{CLAUDE_MAX_ATTEMPTS} ===\n")
                 master_fd = None
@@ -3409,7 +4076,8 @@ Begin implementation now.
 
                                 # PATCH 5-A: Fatal output detection using rolling buffer (boundary-safe)
                                 if _is_fatal_claude_output(recent_output_buf):
-                                    self.log("IMPLEMENTER", f"[{issue_key}] Fatal error detected, killing process")
+                                    # FIXUP-2 PATCH 2: Include tool/model metadata
+                                    self.log("IMPLEMENTER", f"[{issue_key}] Fatal error detected, killing process", model=MODEL_IMPLEMENTER, tool="claude-code-cli")
                                     try:
                                         os.killpg(os.getpgid(process.pid), 15)  # SIGTERM
                                         process.wait(timeout=5)
@@ -3437,12 +4105,13 @@ Begin implementation now.
 
                                     if line:  # Skip empty lines from \r\n sequences
                                         redacted_line = _redact_secrets(line)
-                                        self.log("CLAUDE", redacted_line)
+                                        # FIXUP-2 PATCH 2: Include tool/model metadata for streamed output
+                                        self.log("IMPLEMENTER", redacted_line, model=MODEL_IMPLEMENTER, tool="claude-code-cli")
 
                                 # PATCH 4-E: Emit partial buffer if exceeds threshold (reduces visibility gaps)
                                 if len(line_buf) > LINE_BUF_THRESHOLD:
                                     redacted_chunk = _redact_secrets(line_buf[:LINE_BUF_THRESHOLD])
-                                    self.log("CLAUDE", f"[partial] {redacted_chunk}")
+                                    self.log("IMPLEMENTER", f"[partial] {redacted_chunk}", model=MODEL_IMPLEMENTER, tool="claude-code-cli")
                                     line_buf = line_buf[LINE_BUF_THRESHOLD:]
                             else:
                                 # EOF
@@ -3454,7 +4123,8 @@ Begin implementation now.
                             if silent_seconds >= CLAUDE_HEARTBEAT_INTERVAL:
                                 elapsed_mins = int(elapsed // 60)
                                 elapsed_secs = int(elapsed % 60)
-                                self.log("IMPLEMENTER", f"Claude still running... (elapsed: {elapsed_mins}m {elapsed_secs}s)")
+                                # FIXUP-2 PATCH 2: Include tool/model metadata for heartbeat
+                                self.log("IMPLEMENTER", f"Claude still running... (elapsed: {elapsed_mins}m {elapsed_secs}s)", model=MODEL_IMPLEMENTER, tool="claude-code-cli")
                                 last_output_time = time.time()  # Reset heartbeat timer
 
                     # Flush remaining line buffer (PATCH 4-C)
@@ -3465,7 +4135,7 @@ Begin implementation now.
                         display_text = _parse_stream_json_line(line_buf)
                         if display_text:
                             redacted = _redact_secrets(display_text)
-                            self.log("CLAUDE", redacted)
+                            self.log("IMPLEMENTER", redacted, model=MODEL_IMPLEMENTER, tool="claude-code-cli")
 
                     # PATCH 4-B: Close artifact file
                     try:
@@ -3485,17 +4155,17 @@ Begin implementation now.
 
                     # Artifact was written live, just log the path
                     final_artifact_path = artifact_relpath
-                    self.log("IMPLEMENTER", f"Attempt artifact: {final_artifact_path}")
+                    self.log("IMPLEMENTER", f"Attempt artifact: {final_artifact_path}", model=MODEL_IMPLEMENTER, tool="claude-code-cli")
 
                     if timed_out:
                         timeout_mins = timeout_seconds // 60
                         timeout_msg = f"Claude Code timed out after {timeout_mins} minutes (attempt {attempt})"
-                        self.log("IMPLEMENTER", timeout_msg)
+                        self.log("IMPLEMENTER", timeout_msg, model=MODEL_IMPLEMENTER, tool="claude-code-cli")
 
                         # Timeout is transient - retry if attempts remain
                         if attempt < CLAUDE_MAX_ATTEMPTS:
                             sleep_seconds = CLAUDE_RETRY_BACKOFF_SECONDS[attempt - 1]
-                            self.log("IMPLEMENTER", f"Retrying in {sleep_seconds}s due to timeout...")
+                            self.log("IMPLEMENTER", f"Retrying in {sleep_seconds}s due to timeout...", model=MODEL_IMPLEMENTER, tool="claude-code-cli")
                             time.sleep(sleep_seconds)
                             continue
 
@@ -3504,10 +4174,10 @@ Begin implementation now.
                     # PATCH 4-B: Fatal output detected - no retry
                     if fatal_detected:
                         output_text = "".join(attempt_output)
-                        self.log("IMPLEMENTER", "Fatal error detected - no retry")
+                        self.log("IMPLEMENTER", "Fatal error detected - no retry", model=MODEL_IMPLEMENTER, tool="claude-code-cli")
                         return False, output_text, [], final_artifact_path
 
-                    self.log("IMPLEMENTER", f"Claude Code exit code: {returncode}")
+                    self.log("IMPLEMENTER", f"Claude Code exit code: {returncode}", model=MODEL_IMPLEMENTER, tool="claude-code-cli")
 
                     if returncode == 0:
                         # Success - get modified files and return
@@ -3528,7 +4198,7 @@ Begin implementation now.
                     output_text = "".join(attempt_output)
                     if _is_transient_claude_failure(output_text) and attempt < CLAUDE_MAX_ATTEMPTS:
                         sleep_seconds = CLAUDE_RETRY_BACKOFF_SECONDS[attempt - 1]
-                        self.log("IMPLEMENTER", f"Retrying in {sleep_seconds}s due to transient error...")
+                        self.log("IMPLEMENTER", f"Retrying in {sleep_seconds}s due to transient error...", model=MODEL_IMPLEMENTER, tool="claude-code-cli")
                         time.sleep(sleep_seconds)
                         continue
 
@@ -3537,7 +4207,7 @@ Begin implementation now.
 
                 except FileNotFoundError:
                     msg = "Claude Code CLI not found. Install with: npm install -g @anthropic-ai/claude-code"
-                    self.log("IMPLEMENTER", "Claude Code CLI not found - ensure 'claude' is installed")
+                    self.log("IMPLEMENTER", "Claude Code CLI not found - ensure 'claude' is installed", model=MODEL_IMPLEMENTER, tool="claude-code-cli")
                     attempt_output.append(f"\n{msg}\n")
                     final_artifact_path = _write_claude_attempt_output(
                         self.config.repo_path, story_key, self.run_id, attempt, "".join(attempt_output)
@@ -3546,7 +4216,7 @@ Begin implementation now.
 
                 except Exception as e:
                     error_msg = str(e)
-                    self.log("IMPLEMENTER", f"Claude Code error: {e}")
+                    self.log("IMPLEMENTER", f"Claude Code error: {e}", model=MODEL_IMPLEMENTER, tool="claude-code-cli")
                     attempt_output.append(f"\nException: {error_msg}\n")
 
                     # Write attempt artifact before potentially retrying
@@ -3557,7 +4227,7 @@ Begin implementation now.
                     # Check if exception text indicates transient failure
                     if _is_transient_claude_failure(error_msg) and attempt < CLAUDE_MAX_ATTEMPTS:
                         sleep_seconds = CLAUDE_RETRY_BACKOFF_SECONDS[attempt - 1]
-                        self.log("IMPLEMENTER", f"Retrying in {sleep_seconds}s due to transient error...")
+                        self.log("IMPLEMENTER", f"Retrying in {sleep_seconds}s due to transient error...", model=MODEL_IMPLEMENTER, tool="claude-code-cli")
                         time.sleep(sleep_seconds)
                         continue
 
@@ -3622,6 +4292,7 @@ Examples:
   python engine.py --issue KAN-10            # Process single issue
   python engine.py --issue KAN-10 KAN-11     # Process multiple issues
   python engine.py --issue KAN-10 --type story  # Force issue type
+  python engine.py --show-work-ledger        # Print work ledger summary and exit
 """
     )
     parser.add_argument(
@@ -3644,8 +4315,29 @@ Examples:
         type=int,
         help='Claude Code CLI timeout in seconds (overrides env vars)'
     )
+    parser.add_argument(
+        '--show-work-ledger',
+        action='store_true',
+        help='Print work ledger summary and exit (no Jira/Git side effects)'
+    )
 
     args = parser.parse_args()
+
+    # PATCH 1: Handle --show-work-ledger early (no Jira/Git side effects)
+    if args.show_work_ledger:
+        # Load dotenv for REPO_PATH
+        load_dotenv(SCRIPT_DIR / '.env')
+        repo_root = SCRIPT_DIR.parent.parent
+        load_dotenv(repo_root / '.env')
+
+        repo_path = os.environ.get('REPO_PATH', str(repo_root))
+        ledger = WorkLedger(repo_path)
+        if ledger.load():
+            print(ledger.print_summary())
+        else:
+            print("Work ledger not found or empty.")
+            print(f"Expected path: {ledger.ledger_path}")
+        return
 
     # PATCH 1 + PATCH 3: Deterministic dotenv loading (no .zshrc sourcing)
     # Load from scripts/autonomous-agent/.env first, fallback to repo root .env
@@ -3714,11 +4406,8 @@ Examples:
                     if issue_type in ('story', 'bug'):
                         engine.verify_work_item(issue)
     elif args.once:
-        # Run one iteration
-        engine.step_1_initiative_intake() or \
-        engine.step_2_epic_decomposition() or \
-        engine.step_3_story_implementation() or \
-        engine.step_4_story_verification()
+        # PATCH 2: Run one dispatch iteration using priority state machine
+        engine.dispatch_once()
     else:
         # Run continuous loop
         engine.run()
