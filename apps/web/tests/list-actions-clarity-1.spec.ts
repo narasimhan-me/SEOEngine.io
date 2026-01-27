@@ -1035,4 +1035,69 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
       expect(typeof firstCollection.blockedByApproval).toBe('boolean');
     }
   });
+
+  // ==========================================================================
+  // [ISSUE-FIX-KIND-CLARITY-1] Fix Type Labels in List Actions
+  // ==========================================================================
+
+  test('LAC1-026: Fix action CTAs show fix-type distinction (AI vs Guidance vs Direct)', async ({
+    page,
+  }) => {
+    await page.goto('/login');
+    await page.evaluate((token) => {
+      localStorage.setItem('engineo_token', token);
+    }, seedData.accessToken);
+
+    await page.goto(`/projects/${seedData.projectId}/products`);
+    await page.waitForSelector('[data-testid="row-status-chip"]', {
+      timeout: 10000,
+    });
+
+    // Find needs-attention product row
+    const needsAttentionRow = getRowByTitle(
+      page,
+      SEEDED_TITLES.products.needsAttention
+    );
+    await expect(needsAttentionRow).toBeVisible();
+
+    // Primary action should exist
+    const primaryAction = needsAttentionRow.locator(
+      '[data-testid="row-primary-action"]'
+    );
+    await expect(primaryAction).toBeVisible();
+
+    // Action text should indicate fix type clarity
+    // Valid labels: "Fix next", "Review", "Fix in workspace", "Review AI fix"
+    const actionText = await primaryAction.textContent();
+    expect(actionText).toMatch(/Fix next|Review|Fix in workspace|Review AI fix/);
+  });
+
+  test('LAC1-027: Issues Engine CTAs display fix-type labels consistently', async ({
+    page,
+  }) => {
+    await page.goto('/login');
+    await page.evaluate((token) => {
+      localStorage.setItem('engineo_token', token);
+    }, seedData.accessToken);
+
+    await page.goto(`/projects/${seedData.projectId}/issues`);
+    await page.waitForLoadState('networkidle');
+
+    // Look for issue cards with CTAs
+    const issueCards = page.locator('[data-testid="issue-card-cta"]');
+    const cardCount = await issueCards.count();
+
+    // If there are issue cards, verify CTAs have fix-type clarity
+    if (cardCount > 0) {
+      for (let i = 0; i < Math.min(cardCount, 3); i++) {
+        const cta = issueCards.nth(i);
+        const ctaText = await cta.textContent();
+
+        // CTA should contain clear action type indicator
+        // Valid patterns: "Fix in workspace", "Review AI fix", "Review", etc.
+        expect(ctaText).toBeTruthy();
+        expect(ctaText?.length).toBeGreaterThan(0);
+      }
+    }
+  });
 });

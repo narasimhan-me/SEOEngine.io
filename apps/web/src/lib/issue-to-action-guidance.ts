@@ -13,6 +13,12 @@
 import type { PlaybookId } from './playbooks-routing';
 
 /**
+ * Fix type classification for user-facing clarity.
+ * [ISSUE-FIX-KIND-CLARITY-1] Explicit fix-type labels per EA-20 EPIC 14.
+ */
+export type FixTypeLabel = 'AI' | 'Template' | 'Guidance' | 'Rule-based';
+
+/**
  * Recommended playbook descriptor with metadata for display in RCP and list views.
  * All fields are static/pre-computed; no runtime evaluation.
  */
@@ -27,6 +33,10 @@ export interface RecommendedPlaybook {
   affects: string;
   /** Static preconditions (non-speculative, non-evaluated) */
   preconditions: string[];
+  /** [ISSUE-FIX-KIND-CLARITY-1] Fix type label for user clarity */
+  fixTypeLabel?: FixTypeLabel;
+  /** [ISSUE-FIX-KIND-CLARITY-1] User-facing description of fix type */
+  fixTypeDescription?: string;
 }
 
 /**
@@ -47,6 +57,9 @@ const ISSUE_TO_PLAYBOOK_MAP: Record<string, RecommendedPlaybook[]> = {
         'No changes are applied unless you explicitly proceed to the Apply step.',
         'Draft previews are stored temporarily and can be reviewed before application.',
       ],
+      fixTypeLabel: 'AI',
+      fixTypeDescription:
+        'AI-generated suggestions that you review before applying',
     },
   ],
   missing_seo_description: [
@@ -62,6 +75,9 @@ const ISSUE_TO_PLAYBOOK_MAP: Record<string, RecommendedPlaybook[]> = {
         'No changes are applied unless you explicitly proceed to the Apply step.',
         'Draft previews are stored temporarily and can be reviewed before application.',
       ],
+      fixTypeLabel: 'AI',
+      fixTypeDescription:
+        'AI-generated suggestions that you review before applying',
     },
   ],
 };
