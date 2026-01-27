@@ -261,7 +261,12 @@ function IssueCard({
             {/* [DIAGNOSTIC-GUIDANCE-1] Outside-control issues get specific label */}
             {/* [ISSUE-TO-FIX-PATH-1] Informational badge for orphan issues (non-outside-control) */}
             {!actionable && (
-              <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600 border border-gray-200">
+              <span
+                className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600 border border-gray-200"
+                title={isOutsideEngineControl
+                  ? 'This issue depends on theme, hosting, or Shopify configuration. Use the guidance below to address manually.'
+                  : 'This issue is tracked for awareness. No user action is required at this time.'}
+              >
                 {isOutsideEngineControl
                   ? 'Informational — outside EngineO.ai control'
                   : 'Informational — no action required'}
@@ -372,6 +377,9 @@ function IssueCard({
                     <span className="text-gray-500">
                       {affectedProductCount} product
                       {affectedProductCount !== 1 ? 's' : ''} affected
+                      <span className="ml-1 text-[10px] text-gray-400" title="Project context required to view affected items">
+                        (context unavailable)
+                      </span>
                     </span>
                   )}
                 </div>

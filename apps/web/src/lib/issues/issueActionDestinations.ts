@@ -137,9 +137,10 @@ function getOpenDestination({
   }
 
   // [PATCH 1] No asset to open
+  // [ISSUE-FIX-ROUTE-INTEGRITY-1] Explicit reason for blocked state
   return {
     kind: 'none',
-    reasonBlocked: 'No asset to open',
+    reasonBlocked: 'No associated asset found. This issue applies to the store generally.',
   };
 }
 
@@ -157,11 +158,12 @@ function getViewAffectedDestination({
     issue.affectedProducts && issue.affectedProducts.length > 0;
 
   if (!hasAffectedProducts || !issue.type) {
+    // [ISSUE-FIX-ROUTE-INTEGRITY-1] User-friendly blocked reasons
     return {
       kind: 'none',
       reasonBlocked: !issue.type
-        ? 'No issueType filter available'
-        : 'Affected list not available for this issue',
+        ? 'Cannot filter by issue type. View products directly to see affected items.'
+        : 'No affected products tracked for this issue. The issue may apply store-wide.',
     };
   }
 

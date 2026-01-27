@@ -287,8 +287,8 @@ function LayoutShellInner({ children }: { children: ReactNode }) {
     <div className="flex h-screen flex-col bg-background text-foreground">
       <header className="z-50 h-16 shrink-0 border-b border-border bg-background">
         <div className="flex h-full items-center gap-3 px-4">
-          <IconButton label="App switcher (placeholder)">
-            <AppSwitcherIcon className="h-5 w-5" />
+          <IconButton label="App switcher — not yet available" aria-disabled="true" title="Multi-app switching is planned for a future release">
+            <AppSwitcherIcon className="h-5 w-5 opacity-50" />
           </IconButton>
           <GuardedLink href="/projects" className="flex items-center gap-2">
             <Image
@@ -346,31 +346,33 @@ function LayoutShellInner({ children }: { children: ReactNode }) {
             </button>
           </div>
           <div className="flex items-center gap-2">
-            <IconButton label="Notifications (placeholder)">
-              <BellIcon className="h-5 w-5" />
+            <IconButton label="Notifications — not yet available" aria-disabled="true" title="Notifications feature is planned for a future release">
+              <BellIcon className="h-5 w-5 opacity-50" />
             </IconButton>
-            <IconButton label="Help / Docs (placeholder)">
-              <HelpIcon className="h-5 w-5" />
+            <IconButton label="Help & Docs — not yet available" aria-disabled="true" title="Help center is planned for a future release">
+              <HelpIcon className="h-5 w-5 opacity-50" />
             </IconButton>
             <button
               type="button"
-              aria-label="Tenant / Project switcher (placeholder)"
+              aria-label="Tenant / Project switcher — not yet available"
               aria-disabled="true"
-              className="hidden items-center gap-2 rounded-md border border-border bg-[hsl(var(--surface-card))] px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:inline-flex"
+              title="Multi-tenant switching is planned for a future release"
+              className="hidden items-center gap-2 rounded-md border border-border bg-[hsl(var(--surface-card))] px-3 py-2 text-sm text-muted-foreground/50 cursor-not-allowed sm:inline-flex"
             >
               <span className="max-w-[160px] truncate">Tenant</span>
-              <ChevronRightIcon className="h-4 w-4 opacity-70" />
+              <ChevronRightIcon className="h-4 w-4 opacity-50" />
             </button>
             <button
               type="button"
-              aria-label="Account menu (placeholder)"
+              aria-label="Account menu — not yet available"
               aria-disabled="true"
-              className="inline-flex items-center gap-2 rounded-md border border-border bg-[hsl(var(--surface-card))] px-2 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              title="Account management is planned for a future release"
+              className="inline-flex items-center gap-2 rounded-md border border-border bg-[hsl(var(--surface-card))] px-2 py-2 text-sm text-muted-foreground/50 cursor-not-allowed"
             >
-              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs font-semibold text-foreground">
+              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs font-semibold text-foreground/50">
                 U
               </span>
-              <ChevronRightIcon className="h-4 w-4 opacity-70" />
+              <ChevronRightIcon className="h-4 w-4 opacity-50" />
             </button>
           </div>
         </div>

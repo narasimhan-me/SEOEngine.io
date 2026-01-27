@@ -217,9 +217,10 @@ export function ContentDeoInsightsPanel({
           </div>
         )}
 
-        {/* Coming Soon / Roadmap */}
+        {/* [ISSUE-FIX-ROUTE-INTEGRITY-1] Planned Features - explicit labeling */}
         <div className="rounded-md border border-dashed border-gray-300 bg-gray-50 p-3">
-          <p className="mb-1 text-xs font-medium text-gray-600">Coming Soon</p>
+          <p className="mb-1 text-xs font-medium text-gray-600">Planned Features</p>
+          <p className="mb-2 text-[10px] text-gray-400">These features are on our roadmap but not yet available.</p>
           <ul className="space-y-0.5 text-xs text-gray-500">
             <li>- Entity structure analysis</li>
             <li>- Indexability status</li>

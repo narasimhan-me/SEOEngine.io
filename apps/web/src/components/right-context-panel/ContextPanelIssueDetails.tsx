@@ -424,6 +424,12 @@ export function ContextPanelIssueDetails({
         <p className="mt-1 text-xs text-muted-foreground italic">
           {fixActionSentence}
         </p>
+        {/* [ISSUE-FIX-ROUTE-INTEGRITY-1] Additional guidance for blocked issues */}
+        {fixActionKind === 'BLOCKED' && (
+          <p className="mt-1 text-xs text-muted-foreground">
+            Check the Issues Engine for alternative actions or review guidance.
+          </p>
+        )}
         {/* [DRAFT-LIFECYCLE-VISIBILITY-1 PATCH 4] Draft lifecycle state line
             [FIXUP-1] Always show draft line (including NO_DRAFT) for complete state visibility */}
         {(() => {

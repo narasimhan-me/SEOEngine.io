@@ -285,8 +285,7 @@ function IssueRow({
   const safeTitle = getSafeIssueTitle(issue);
   const safeDescription = getSafeIssueDescription(issue);
 
-  // Shouldn't happen for actionable issues, but handle gracefully
-  // [UI-POLISH-&-CLARITY-1 FIXUP-1] Token-only text styling
+  // [ISSUE-FIX-ROUTE-INTEGRITY-1] Handle gracefully with explicit blocked state explanation
   if (!href) {
     return (
       <div className="px-4 py-3 flex items-start gap-3">
@@ -301,6 +300,9 @@ function IssueRow({
           <p className="text-sm font-medium text-foreground">{safeTitle}</p>
           <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">
             {safeDescription}
+          </p>
+          <p className="mt-1 text-[10px] text-muted-foreground/70 italic">
+            Fix not available in this workspace. Review in Issues Engine for guidance.
           </p>
         </div>
       </div>
