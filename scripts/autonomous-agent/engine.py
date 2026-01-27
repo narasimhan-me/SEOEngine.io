@@ -81,6 +81,13 @@ CLAUDE_HEARTBEAT_INTERVAL = 30  # Emit heartbeat if no output for 30s
 CLAUDE_TIMEOUT_ENV_VAR = "ENGINEO_CLAUDE_TIMEOUT_SECONDS"  # Env override for timeout
 CLAUDE_PER_TICKET_TIMEOUT_MAX = 8 * 60 * 60  # 8 hour cap for per-ticket override
 
+# Guardrails ledger path (tracks commit eligibility for Step 4 verification)
+LEDGER_REL_PATH = ".engineo/state.json"
+LEDGER_VERSION = 1
+
+# Runtime paths that must NEVER be staged/committed
+RUNTIME_IGNORED_PATHS = {LEDGER_REL_PATH, CLAUDE_LOCK_REL_PATH}
+
 # Secret env vars to redact from output (values only, not names)
 CLAUDE_SECRET_ENV_VARS = ["JIRA_TOKEN", "JIRA_API_TOKEN", "GITHUB_TOKEN"]
 
@@ -924,6 +931,23 @@ class GitClient:
         success, output = self._run('status', '--porcelain')
         return output if success else ''
 
+    def get_head_sha(self) -> str:
+        """Get current HEAD SHA (full)."""
+        success, output = self._run('rev-parse', 'HEAD')
+        return output.strip() if success else ''
+
+    def get_staged_files(self) -> List[str]:
+        """Get list of staged files."""
+        success, output = self._run('diff', '--cached', '--name-only')
+        if success:
+            return [f.strip() for f in output.strip().split('\n') if f.strip()]
+        return []
+
+    def unstage_file(self, filepath: str) -> bool:
+        """Unstage a specific file from the index."""
+        success, output = self._run('reset', 'HEAD', '--', filepath)
+        return success
+
 
 # =============================================================================
 # PATCH BATCH PARSER
@@ -1329,18 +1353,46 @@ class ExecutionEngine:
         except (FileNotFoundError, subprocess.TimeoutExpired):
             return False
 
-    def _load_guardrails_ledger(self) -> Optional[dict]:
-        """Load guardrails ledger from repo-root state.json.
+    def _get_ledger_path(self) -> Path:
+        """Get canonical ledger path and ensure parent directory exists."""
+        ledger_path = Path(self.config.repo_path) / LEDGER_REL_PATH
+        ledger_path.parent.mkdir(parents=True, exist_ok=True)
+        return ledger_path
 
-        PATCH 1-B: Read-only, fail-closed if missing/unreadable.
+    def _load_guardrails_ledger(self) -> Optional[dict]:
+        """Load guardrails ledger from .engineo/state.json.
+
+        Fail-closed: returns None if missing/unreadable.
         """
-        ledger_path = Path(self.config.repo_path) / "state.json"
+        ledger_path = self._get_ledger_path()
         try:
             if ledger_path.exists():
                 return json.loads(ledger_path.read_text())
         except (json.JSONDecodeError, OSError):
             pass
         return None
+
+    def _save_guardrails_ledger(self, ledger: dict) -> bool:
+        """Save guardrails ledger with atomic write.
+
+        Returns True on success, False on any failure (no exception leaks).
+        """
+        ledger_path = self._get_ledger_path()
+        temp_path = ledger_path.with_suffix(".json.tmp")
+        try:
+            # Write to temp file first
+            temp_path.write_text(json.dumps(ledger, indent=2, sort_keys=True))
+            # Atomic replace
+            temp_path.replace(ledger_path)
+            return True
+        except (OSError, TypeError) as e:
+            self.log("SYSTEM", f"Ledger save failed: {e}")
+            # Clean up temp file if it exists
+            try:
+                temp_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+            return False
 
     def _find_ledger_entry(self, ledger: Any, issue_key: str) -> Optional[dict]:
         """Recursively search ledger for entry associated with issue_key.
@@ -2196,12 +2248,53 @@ Human intervention may be required.
             self.log("DEVELOPER", f"Failed to update IMPLEMENTATION_PLAN.md: {e}")
 
     def _commit_implementation(self, story_key: str, summary: str, files: List[str]) -> bool:
-        """Commit and push implementation changes"""
-        # Stage modified files
-        files_to_stage = files + [str(self.impl_plan_path)]
+        """Commit and push implementation changes with ledger pre-commit gate."""
+        # PATCH 3A: Record ledger evidence BEFORE staging
+        head_sha = self.git.get_head_sha()
 
-        # Filter to only existing files
-        existing_files = [f for f in files_to_stage if Path(self.files.resolve_path(f)).exists()]
+        # Filter out runtime ignored paths from candidate files
+        filtered_files = [f for f in files if f not in RUNTIME_IGNORED_PATHS]
+
+        # Load or initialize ledger
+        ledger = self._load_guardrails_ledger()
+        if ledger is None:
+            ledger = {"version": LEDGER_VERSION, "kan_story_runs": {}}
+
+        # Ensure kan_story_runs exists
+        if "kan_story_runs" not in ledger:
+            ledger["kan_story_runs"] = {}
+
+        # Upsert ledger entry for this story
+        ledger["kan_story_runs"][story_key] = {
+            "baseSha": head_sha,
+            "changedFiles": filtered_files,
+            "maxFiles": 15,
+            "frontendOnly": False,
+            "guardrailsPassed": True,
+            "verificationReportPath": "",
+            "updatedAt": datetime.now(timezone.utc).isoformat()
+        }
+
+        # Save ledger - MUST succeed before committing
+        if not self._save_guardrails_ledger(ledger):
+            error_msg = "Cannot commit: ledger write failed"
+            self.log("DEVELOPER", error_msg)
+            self.jira.add_comment(story_key, f"Implementation blocked: {error_msg}")
+            self._escalate("DEVELOPER", f"Story {story_key} commit blocked", error_msg)
+            return False
+
+        # Stage modified files (excluding runtime ignored paths)
+        files_to_stage = filtered_files + [str(self.impl_plan_path)]
+
+        # Filter to only existing files AND exclude runtime paths
+        existing_files = []
+        for f in files_to_stage:
+            # Normalize path for comparison
+            norm_path = f.replace("\\", "/")
+            if norm_path in RUNTIME_IGNORED_PATHS:
+                continue
+            if Path(self.files.resolve_path(f)).exists():
+                existing_files.append(f)
 
         if not existing_files:
             self.log("DEVELOPER", "No files to commit")
@@ -2212,13 +2305,27 @@ Human intervention may be required.
             self.log("DEVELOPER", "Failed to stage files")
             return False
 
+        # PATCH 3B: Safety check - ensure ledger/lock never staged
+        staged = self.git.get_staged_files()
+        for ignored_path in RUNTIME_IGNORED_PATHS:
+            if ignored_path in staged:
+                self.log("DEVELOPER", f"Safety abort: {ignored_path} found in staged files, unstaging")
+                self.git.unstage_file(ignored_path)
+
+        # Re-check staged files after cleanup
+        staged = self.git.get_staged_files()
+        for ignored_path in RUNTIME_IGNORED_PATHS:
+            if ignored_path in staged:
+                self.log("DEVELOPER", f"CRITICAL: Cannot remove {ignored_path} from staging, aborting commit")
+                return False
+
         # Create commit message
         commit_message = f"""feat({story_key}): {summary}
 
 Implemented by EngineO Autonomous Execution Engine (Claude Implementer v3.2)
 
 Files modified:
-{chr(10).join(['- ' + f for f in files])}
+{chr(10).join(['- ' + f for f in filtered_files])}
 
 Story: {story_key}
 Branch: {self.config.feature_branch}
@@ -2267,9 +2374,15 @@ Expected pattern: {key}-*-verification.md"""
             self.jira.add_comment(key, comment)
             return True
 
-        # Step 2: Load and check ledger
+        # Step 2: Load and check ledger (canonical kan_story_runs first, fallback for backward compat)
         ledger = self._load_guardrails_ledger()
-        entry = self._find_ledger_entry(ledger, key) if ledger else None
+        entry = None
+        if ledger and isinstance(ledger, dict):
+            # Canonical structure: ledger["kan_story_runs"][key]
+            entry = ledger.get("kan_story_runs", {}).get(key)
+            # Fallback: recursive search for backward compatibility
+            if entry is None:
+                entry = self._find_ledger_entry(ledger, key)
 
         if not ledger or not entry or not self._ledger_passed(entry):
             # FAILED: Ledger missing or not passed
@@ -2760,7 +2873,10 @@ Begin implementation now.
                             if line.strip():
                                 parts = line.strip().split()
                                 if len(parts) >= 2:
-                                    modified_files.append(parts[-1])
+                                    filepath = parts[-1]
+                                    # PATCH 3B: Filter out runtime ignored paths
+                                    if filepath not in RUNTIME_IGNORED_PATHS:
+                                        modified_files.append(filepath)
 
                         return True, "".join(attempt_output), modified_files, final_artifact_path
 
