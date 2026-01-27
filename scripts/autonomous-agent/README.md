@@ -89,7 +89,40 @@ Real-time streaming with role prefixes (UEP, SUPERVISOR, IMPLEMENTER):
 | Claude attempt artifacts | `scripts/autonomous-agent/reports/{ISSUE_KEY}-{RUN_ID}-claude-output-attempt{N}.txt` | Full Claude output (secrets redacted) |
 | Verification reports | `reports/{ISSUE_KEY}-verification.md` (repo root) | Canonical path only |
 | Decomposition manifests | `reports/{EPIC_KEY}-decomposition.json` (repo root) | Idempotent decomposition state |
+| Patch batch files | `reports/{STORY_KEY}-patch-batch.md` (repo root) | Stable per-story path |
+| Pre-story patch batch | `reports/{EPIC_KEY}-{RUN_ID}-patch-batch.md` (repo root) | Temporary before story key known |
 | Work ledger | `work_ledger.json` (repo root) | Runtime state (git-ignored) |
+
+### Patch Batch Storage (PATCH A)
+
+Jira Story descriptions are concise and do NOT embed full patch batch content (to avoid Jira size limits).
+
+- **Pre-story**: `reports/{EPIC_KEY}-{RUN_ID}-patch-batch.md` (written before story creation)
+- **Per-story**: `reports/{STORY_KEY}-patch-batch.md` (copied after story key is known)
+
+After story creation, the engine adds a Jira comment with:
+- Patch batch file path(s)
+- Excerpt (first 40 lines)
+- Canonical verification report path
+- Verification checklist
+
+### Decomposition Manifest Status (PATCH B)
+
+Manifests track completion state:
+- `INCOMPLETE`: Story creation failed or in progress
+- `COMPLETE`: At least one story exists
+
+Decomposition skip is only allowed when ALL are true:
+- Fingerprint unchanged
+- Manifest status = COMPLETE
+- Jira has implement stories OR all manifest children have keys
+
+### Idea→Epic Idempotency (PATCH C)
+
+Re-running Idea intake does not create duplicate Epics:
+- Epics are tagged with label: `engineo-idea-{IDEA_KEY}`
+- Work Ledger stores Idea→Epic mapping
+- Jira search checks for existing mapped Epics before creation
 
 ## Security
 

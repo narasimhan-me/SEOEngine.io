@@ -226,16 +226,19 @@ class TestShouldDecompose(unittest.TestCase):
             self.assertEqual(manifest.epicKey, "KAN-10")
 
     def test_unchanged_fingerprint_returns_skip_mode(self):
-        """Unchanged fingerprint -> skip mode."""
+        """Unchanged fingerprint -> skip mode (when COMPLETE and has keys)."""
         with tempfile.TemporaryDirectory() as tmpdir:
             store = DecompositionManifestStore(tmpdir)
 
-            # Create and save initial manifest
+            # Create and save initial manifest with COMPLETE status and child with key
             desc = "Epic description"
             manifest = DecompositionManifest(
                 epicKey="KAN-10",
                 fingerprint=compute_fingerprint(desc)
             )
+            # PATCH B: Must have COMPLETE status and child with key for skip
+            manifest.mark_complete()
+            manifest.add_child("Implement: Feature A", key="KAN-17")
             store.save(manifest)
 
             # Check with same description
@@ -249,11 +252,14 @@ class TestShouldDecompose(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             store = DecompositionManifestStore(tmpdir)
 
-            # Create and save initial manifest
+            # Create and save initial manifest with COMPLETE status
             manifest = DecompositionManifest(
                 epicKey="KAN-10",
                 fingerprint=compute_fingerprint("Old description")
             )
+            # PATCH B: Must have COMPLETE status and child with key
+            manifest.mark_complete()
+            manifest.add_child("Implement: Feature A", key="KAN-17")
             store.save(manifest)
 
             # Check with new description
@@ -281,6 +287,8 @@ class TestIdempotentDecomposition(unittest.TestCase):
 
             # Simulate creating story and saving manifest
             manifest1.add_child("Implement: Feature A", key="KAN-17")
+            # PATCH B: Must mark as COMPLETE for skip to work
+            manifest1.mark_complete()
             store.save(manifest1)
 
             # Second run - should skip
@@ -297,6 +305,8 @@ class TestIdempotentDecomposition(unittest.TestCase):
             desc_v1 = "Epic description v1"
             _, _, manifest1 = should_decompose(store, "KAN-10", desc_v1)
             manifest1.add_child("Implement: Feature A", key="KAN-17")
+            # PATCH B: Must mark as COMPLETE for delta mode (vs retry mode)
+            manifest1.mark_complete()
             store.save(manifest1)
 
             # Second run with changed description

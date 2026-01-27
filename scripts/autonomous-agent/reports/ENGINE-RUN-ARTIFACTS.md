@@ -3,13 +3,14 @@
 This document defines the canonical locations and naming conventions for artifacts produced by the EngineO Autonomous Execution Engine.
 
 **PATCH BATCH: AUTONOMOUS-AGENT-RESUME-STATE-MACHINE-RECONCILE-1 FIXUP-1**
+**PATCH BATCH: AUTONOMOUS-AGENT-JIRA-PAYLOAD-HARDENING-AND-IDEMPOTENCY-1**
 
 ## Canonical Directories
 
 | Directory | Purpose |
 |-----------|---------|
 | `scripts/autonomous-agent/logs/` | Engine logs |
-| `reports/` (repo root) | Verification reports and decomposition manifests |
+| `reports/` (repo root) | Verification reports, decomposition manifests, and patch batch files |
 | `scripts/autonomous-agent/reports/` | Claude output attempt artifacts |
 | `.engineo/` | Runtime-only state (never committed) |
 
@@ -67,6 +68,42 @@ Near-matches found (not accepted as canonical):
 Please ensure the verification report is written to the canonical path.
 ```
 
+## Patch Batch Files (PATCH A)
+
+Jira Story descriptions do NOT embed full PATCH BATCH content to avoid Jira size limits.
+Full patch batch is stored in local artifact files.
+
+### Pre-Story Path (Temporary)
+
+**Location:** `reports/{EPIC_KEY}-{RUN_ID}-patch-batch.md` (repo root)
+
+**Example:** `reports/KAN-10-20260127-143047Z-patch-batch.md`
+
+**Purpose:** Stores patch batch before story key is known.
+
+### Per-Story Path (Stable)
+
+**Canonical Location:** `reports/{STORY_KEY}-patch-batch.md` (repo root)
+
+**Example:** `reports/KAN-17-patch-batch.md`
+
+**Purpose:** Stable patch batch path for IMPLEMENTER to load. Preferred over pre-story path.
+
+### Story Description
+
+Jira Story descriptions contain a marker pointing to the patch batch file:
+```
+PATCH_BATCH_FILE: reports/{STORY_KEY}-patch-batch.md
+```
+
+### Jira Comment
+
+After story creation, the engine adds a comment with:
+- Patch batch file paths
+- Excerpt (first 40 lines of patch batch)
+- Canonical verification report path
+- Verification checklist
+
 ## Decomposition Manifests
 
 **Canonical Location:** `reports/{EPIC_KEY}-decomposition.json` (repo root)
@@ -75,12 +112,13 @@ Please ensure the verification report is written to the canonical path.
 
 **Purpose:** Enables idempotent Epic decomposition (no duplicate Stories on repeated runs).
 
-### Manifest Structure
+### Manifest Structure (PATCH B)
 
 ```json
 {
   "epicKey": "KAN-10",
   "fingerprint": "sha256hash",
+  "status": "COMPLETE",
   "children": [
     {
       "intent_id": "abc123def456",
@@ -92,6 +130,20 @@ Please ensure the verification report is written to the canonical path.
   "updated_at": "2026-01-27T12:00:00Z"
 }
 ```
+
+### Manifest Status
+
+| Status | Description |
+|--------|-------------|
+| `INCOMPLETE` | Story creation failed or in progress |
+| `COMPLETE` | At least one story exists |
+
+### Skip Eligibility
+
+Decomposition skip is ONLY allowed when ALL conditions are met:
+- Epic fingerprint unchanged (description not modified)
+- Manifest status = `COMPLETE`
+- Either: Jira has implement stories OR all manifest children have keys
 
 ## Claude Output Artifacts
 
@@ -166,7 +218,9 @@ work_ledger.json                    # Work ledger (repo root, never commit)
 
 reports/
 ├── {ISSUE_KEY}-verification.md     # Canonical verification report (ONLY accepted path)
-└── {EPIC_KEY}-decomposition.json   # Decomposition manifest
+├── {EPIC_KEY}-decomposition.json   # Decomposition manifest (with status field)
+├── {STORY_KEY}-patch-batch.md      # Patch batch (stable per-story path)
+└── {EPIC_KEY}-{RUN_ID}-patch-batch.md  # Patch batch (pre-story temporary)
 
 .engineo/
 ├── state.json                      # Guardrails ledger (runtime-only)

@@ -16,3 +16,6 @@ work_ledger.json
 
 # Decomposition manifests (generated artifacts)
 *-decomposition.json
+
+# Patch batch artifacts (PATCH A: generated artifacts)
+*-patch-batch.md

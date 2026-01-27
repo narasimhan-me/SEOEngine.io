@@ -104,6 +104,14 @@ CLAUDE_HEARTBEAT_INTERVAL = 30  # Emit heartbeat if no output for 30s
 CLAUDE_TIMEOUT_ENV_VAR = "ENGINEO_CLAUDE_TIMEOUT_SECONDS"  # Env override for timeout
 CLAUDE_PER_TICKET_TIMEOUT_MAX = 8 * 60 * 60  # 8 hour cap for per-ticket override
 
+# -----------------------------------------------------------------------------
+# JIRA PAYLOAD SIZE HARDENING (PATCH A)
+# -----------------------------------------------------------------------------
+JIRA_STORY_DESC_MAX_CHARS = 8000  # Hard cap for Jira story description
+JIRA_STORY_DESC_TARGET_CHARS = 6000  # Build target for description
+PATCH_BATCH_EXCERPT_LINES = 40  # Lines to excerpt in Jira comment
+PATCH_BATCH_FILE_MARKER = "PATCH_BATCH_FILE:"  # Marker in story description
+
 # Guardrails ledger path (tracks commit eligibility for Step 4 verification)
 LEDGER_REL_PATH = ".engineo/state.json"
 LEDGER_VERSION = 1
@@ -177,6 +185,117 @@ def _write_claude_attempt_output(repo_path: str, issue_key: str, run_id: str, at
     output_path = SCRIPT_DIR / rel_path
     output_path.write_text(content)
     return rel_path
+
+
+def _write_patch_batch_artifact(repo_path: str, epic_key: str, run_id: str, content: str) -> Tuple[str, str]:
+    """Write patch batch to artifact file with atomic write.
+
+    PATCH A: Writes full patch batch to repo-root reports/ directory.
+
+    Args:
+        repo_path: Path to repository root.
+        epic_key: The Epic key (e.g., "KAN-10").
+        run_id: The run ID (e.g., "20260127-143047Z").
+        content: Full patch batch content.
+
+    Returns:
+        Tuple of (epic_artifact_path, story_artifact_path_pattern).
+        The story_artifact_path_pattern is the pattern used for the final stable path.
+    """
+    reports_dir = Path(repo_path) / "reports"
+    reports_dir.mkdir(parents=True, exist_ok=True)
+
+    # Write to {EPIC_KEY}-{run_id}-patch-batch.md
+    epic_artifact_path = f"reports/{epic_key}-{run_id}-patch-batch.md"
+    full_epic_path = Path(repo_path) / epic_artifact_path
+    temp_path = full_epic_path.with_suffix('.md.tmp')
+
+    try:
+        temp_path.write_text(content, encoding='utf-8')
+        os.replace(str(temp_path), str(full_epic_path))
+    except OSError:
+        try:
+            temp_path.unlink(missing_ok=True)
+        except OSError:
+            pass
+        raise
+
+    # Return pattern for story-specific path (will be created after story key is known)
+    story_pattern = "reports/{STORY_KEY}-patch-batch.md"
+    return epic_artifact_path, story_pattern
+
+
+def _copy_patch_batch_for_story(repo_path: str, epic_artifact_path: str, story_key: str) -> str:
+    """Copy patch batch artifact to story-specific stable path.
+
+    PATCH A: Creates {STORY_KEY}-patch-batch.md for stable reference.
+
+    Args:
+        repo_path: Path to repository root.
+        epic_artifact_path: Path to epic's patch batch file.
+        story_key: The Story key (e.g., "KAN-17").
+
+    Returns:
+        The story-specific patch batch path.
+    """
+    story_path = f"reports/{story_key}-patch-batch.md"
+    full_story_path = Path(repo_path) / story_path
+    full_epic_path = Path(repo_path) / epic_artifact_path
+
+    if full_epic_path.exists():
+        try:
+            content = full_epic_path.read_text(encoding='utf-8')
+            temp_path = full_story_path.with_suffix('.md.tmp')
+            temp_path.write_text(content, encoding='utf-8')
+            os.replace(str(temp_path), str(full_story_path))
+        except OSError:
+            pass
+
+    return story_path
+
+
+def _load_patch_batch_from_file(repo_path: str, story_key: str, description: str) -> Tuple[Optional[str], Optional[str]]:
+    """Load patch batch content from file.
+
+    PATCH A: IMPLEMENTER loads patch batch from file instead of description.
+
+    Priority:
+    1. {STORY_KEY}-patch-batch.md (stable per-story path)
+    2. Path from PATCH_BATCH_FILE: marker in description
+    3. None if not found
+
+    Args:
+        repo_path: Path to repository root.
+        story_key: The Story key.
+        description: Story description text.
+
+    Returns:
+        Tuple of (patch_batch_content, source_path) or (None, None) if not found.
+    """
+    # Priority 1: Story-specific stable path
+    story_path = Path(repo_path) / f"reports/{story_key}-patch-batch.md"
+    if story_path.exists():
+        try:
+            content = story_path.read_text(encoding='utf-8')
+            return content, f"reports/{story_key}-patch-batch.md"
+        except OSError:
+            pass
+
+    # Priority 2: Parse PATCH_BATCH_FILE: marker from description
+    if description and PATCH_BATCH_FILE_MARKER in description:
+        for line in description.split('\n'):
+            if line.strip().startswith(PATCH_BATCH_FILE_MARKER):
+                path_part = line.strip()[len(PATCH_BATCH_FILE_MARKER):].strip()
+                if path_part:
+                    file_path = Path(repo_path) / path_part
+                    if file_path.exists():
+                        try:
+                            content = file_path.read_text(encoding='utf-8')
+                            return content, path_part
+                        except OSError:
+                            pass
+
+    return None, None
 
 
 def _redact_secrets(text: str) -> str:
@@ -920,6 +1039,9 @@ class JiraClient:
             'Accept': 'application/json',
             'Content-Type': 'application/json'
         }
+        # PATCH A: Track last error for CONTENT_LIMIT_EXCEEDED retry
+        self.last_error_message: str = ""
+        self.last_error_status: int = 0
 
     def _request(self, method: str, endpoint: str, data: dict = None) -> dict:
         """Make authenticated request to Jira API"""
@@ -935,6 +1057,9 @@ class JiraClient:
                 raise ValueError(f"Unsupported method: {method}")
 
             if response.status_code >= 400:
+                # PATCH A: Store error details for retry logic
+                self.last_error_message = response.text
+                self.last_error_status = response.status_code
                 return {'error': True, 'status': response.status_code, 'message': response.text}
 
             if response.text:
@@ -1086,8 +1211,20 @@ class JiraClient:
             return None
         return result
 
-    def create_epic(self, summary: str, description: str, parent_key: str = None) -> Optional[str]:
-        """Create an Epic in the software project"""
+    def create_epic(self, summary: str, description: str, parent_key: str = None, labels: List[str] = None) -> Optional[str]:
+        """Create an Epic in the software project.
+
+        PATCH C: Added labels parameter for Idea→Epic mapping.
+
+        Args:
+            summary: Epic summary.
+            description: Epic description.
+            parent_key: Parent issue key (optional).
+            labels: List of labels to add (optional).
+
+        Returns:
+            Epic key or None on failure.
+        """
         payload = {
             'fields': {
                 'project': {'key': self.config.software_project},
@@ -1096,6 +1233,10 @@ class JiraClient:
                 'issuetype': {'name': 'Epic'}
             }
         }
+
+        # PATCH C: Add labels for Idea→Epic mapping
+        if labels:
+            payload['fields']['labels'] = labels
 
         result = self._request('POST', '/rest/api/3/issue', payload)
 
@@ -1106,7 +1247,18 @@ class JiraClient:
         return result.get('key')
 
     def create_story(self, summary: str, description: str, epic_key: str = None) -> Optional[str]:
-        """Create a Story in the software project"""
+        """Create a Story in the software project.
+
+        Note: Use create_story_with_retry() for automatic CONTENT_LIMIT_EXCEEDED handling.
+
+        Args:
+            summary: Story summary.
+            description: Story description.
+            epic_key: Parent Epic key (optional).
+
+        Returns:
+            Story key or None on failure.
+        """
         payload = {
             'fields': {
                 'project': {'key': self.config.software_project},
@@ -1126,6 +1278,97 @@ class JiraClient:
             return None
 
         return result.get('key')
+
+    def is_content_limit_exceeded(self) -> bool:
+        """Check if last error was CONTENT_LIMIT_EXCEEDED.
+
+        PATCH A: Used for retry logic with short description mode.
+        """
+        return "CONTENT_LIMIT_EXCEEDED" in self.last_error_message
+
+    def create_story_with_retry(
+        self,
+        summary: str,
+        description: str,
+        epic_key: str = None,
+        patch_batch_file_path: str = None,
+        verification_path: str = None,
+    ) -> Optional[str]:
+        """Create Story with automatic CONTENT_LIMIT_EXCEEDED retry.
+
+        PATCH A: If first attempt fails with CONTENT_LIMIT_EXCEEDED,
+        retries once with "short description mode" (minimal description).
+
+        Args:
+            summary: Story summary.
+            description: Story description (may be truncated on retry).
+            epic_key: Parent Epic key (optional).
+            patch_batch_file_path: Path to patch batch file (for short mode).
+            verification_path: Path to verification report (for short mode).
+
+        Returns:
+            Story key or None on failure.
+        """
+        # First attempt with normal description
+        story_key = self.create_story(summary, description, epic_key)
+        if story_key:
+            return story_key
+
+        # Check if failure was CONTENT_LIMIT_EXCEEDED
+        if not self.is_content_limit_exceeded():
+            return None
+
+        print(f"[JIRA] CONTENT_LIMIT_EXCEEDED - retrying with short description mode")
+
+        # PATCH A: Build minimal short description
+        short_desc = f"""## Parent Epic
+{epic_key or 'N/A'}
+
+---
+
+## PATCH BATCH Location
+
+{PATCH_BATCH_FILE_MARKER} {patch_batch_file_path or 'reports/{STORY_KEY}-patch-batch.md'}
+
+---
+
+## Verification Report Path
+
+Canonical path: {verification_path or 'reports/{STORY_KEY}-verification.md'}
+
+---
+*Short description mode due to Jira content limits*
+"""
+
+        # Second attempt with short description
+        story_key = self.create_story(summary, short_desc, epic_key)
+        if story_key:
+            print(f"[JIRA] Story created with short description mode: {story_key}")
+        return story_key
+
+    def find_epics_for_idea(self, idea_key: str) -> List[dict]:
+        """Find Epics associated with an Idea using stable mapping label.
+
+        PATCH C: Uses JQL to find Epics with the mapping label.
+        Also includes fallback search for legacy Epics by summary prefix.
+
+        Args:
+            idea_key: The Idea key (e.g., "EA-20").
+
+        Returns:
+            List of Epic issues found.
+        """
+        # Primary search: label-based mapping
+        label = f"engineo-idea-{idea_key}"
+        jql = f'project = {self.config.software_project} AND issuetype = Epic AND labels = "{label}" ORDER BY created ASC'
+        labeled_epics = self.search_issues(jql, ['summary', 'status', 'description', 'labels'])
+
+        if labeled_epics:
+            return labeled_epics
+
+        # Fallback: summary prefix match for legacy Epics
+        jql_fallback = f'project = {self.config.software_project} AND issuetype = Epic AND summary ~ "[{idea_key}]" ORDER BY created ASC'
+        return self.search_issues(jql_fallback, ['summary', 'status', 'description', 'labels'])
 
     def transition_issue(self, issue_key: str, status_name: str) -> bool:
         """Transition an issue to a new status"""
@@ -2159,28 +2402,36 @@ class ExecutionEngine:
         # Epics with (status "To Do" OR statusCategory In Progress) AND no children
         epics_for_decomp = self.jira.get_epics_for_decomposition()
         if epics_for_decomp:
-            # FIXUP-1 PATCH 4: Use DecompositionManifestStore.exists() instead of ledger fingerprint
+            # PATCH B: Use DecompositionManifestStore and should_decompose for status-aware skip
             manifest_store = DecompositionManifestStore(self.config.repo_path)
 
             for epic in epics_for_decomp:
                 epic_key = epic['key']
+                epic_description = self.jira.parse_adf_to_text(epic['fields'].get('description', {}))
 
                 # Check if epic already has children (implement-stories) in Jira
                 existing_children = self.jira.get_implement_stories_for_epic(epic_key)
-                if existing_children:
-                    self.log("SUPERVISOR", f"[DECOMPOSE] Epic {epic_key} already has {len(existing_children)} children in Jira, skipping")
+                has_jira_stories = len(existing_children) > 0
+
+                # PATCH B: Use should_decompose for proper status-aware skip behavior
+                # Skip is ONLY allowed when:
+                # - fingerprint unchanged AND
+                # - manifest.status == COMPLETE AND
+                # - (has Jira implement stories) OR (all manifest children have keys)
+                should_decomp, mode, manifest = should_decompose(
+                    manifest_store, epic_key, epic_description, has_jira_implement_stories=has_jira_stories
+                )
+
+                if not should_decomp and mode == "skip":
+                    self.log("SUPERVISOR", f"[DECOMPOSE] Epic {epic_key} decomposition complete (mode={mode}), skipping")
                     continue
 
-                # Check if decomposition manifest exists on disk
-                if manifest_store.exists(epic_key):
-                    self.log("SUPERVISOR", f"[DECOMPOSE] Epic {epic_key} has decomposition manifest, skipping")
-                    continue
-
-                # Check work ledger for recorded children (fallback)
-                ledger_entry = self.work_ledger.get(epic_key)
-                if ledger_entry and ledger_entry.children:
-                    self.log("SUPERVISOR", f"[DECOMPOSE] Epic {epic_key} has recorded children in work ledger, skipping")
-                    continue
+                if mode == "retry":
+                    self.log("SUPERVISOR", f"[DECOMPOSE] Epic {epic_key} needs retry (manifest INCOMPLETE or missing keys)")
+                elif mode == "delta":
+                    self.log("SUPERVISOR", f"[DECOMPOSE] Epic {epic_key} fingerprint changed, running delta mode")
+                elif mode == "new":
+                    self.log("SUPERVISOR", f"[DECOMPOSE] Epic {epic_key} is new (no manifest)")
 
                 self.log("SUPERVISOR", f"[DECOMPOSE] Processing: {epic_key}")
                 if self._process_epic(epic):
@@ -2571,7 +2822,14 @@ Generate the Epic description now:"""
         return relevant_files[:10]  # Limit to 10 most relevant files
 
     def _generate_patch_batch(self, epic_key: str, summary: str, description: str, files: List[dict]) -> dict:
-        """Generate Story with PATCH BATCH instructions using Claude Code CLI"""
+        """Generate Story with PATCH BATCH instructions using Claude Code CLI.
+
+        PATCH A: Story description is concise and does NOT embed full patch batch.
+        Full patch batch is returned separately for file storage.
+
+        Returns:
+            Dict with 'summary', 'description', and 'patch_batch_text' keys.
+        """
 
         # Read full file contents for Claude analysis
         file_contents = []
@@ -2604,56 +2862,49 @@ DESCRIPTION: Add changes per Epic requirements
 """)
             patch_batch_text = '\n'.join(patch_sections) if patch_sections else "No patches generated"
 
-        # Build file analysis section for reference
-        file_analysis = []
-        for f in files[:5]:
-            file_analysis.append(f"### {f['path']}\n```\n{f['preview'][:300]}...\n```")
-        file_analysis_text = '\n\n'.join(file_analysis) if file_analysis else "No files analyzed"
+        # PATCH A: Build concise story description (no full patch batch embedded)
+        # Truncate implementation goal to stay within limits
+        impl_goal = description[:JIRA_STORY_DESC_TARGET_CHARS // 2] if description else ""
+        if len(impl_goal) < len(description):
+            impl_goal += "\n\n[...truncated for Jira limits...]"
 
-        story_description = f"""
-## Parent Epic
+        # PATCH A: Story description uses marker for patch batch file location
+        # Pattern will be filled in after story key is known
+        story_description = f"""## Parent Epic
 {epic_key}: {summary}
 
 ## Implementation Goal
-{description[:800]}
+{impl_goal}
 
 ---
 
-## Codebase Analysis (by Supervisor)
+## PATCH BATCH Location
 
-The following files were identified as relevant to this implementation:
+{PATCH_BATCH_FILE_MARKER} reports/{{STORY_KEY}}-patch-batch.md
 
-{file_analysis_text}
-
----
-
-## PATCH BATCH Instructions
-
-The following patches should be applied by the Developer:
-
-PATCH BATCH: {summary}
-
-{patch_batch_text}
+Full PATCH BATCH instructions are stored in the artifact file above.
+See Jira comment for excerpt and verification checklist.
 
 ---
 
-## Verification Checklist
-- [ ] Code implemented per PATCH BATCH specs
-- [ ] Changes are surgical and minimal
-- [ ] Existing functionality preserved
-- [ ] Tests pass
-- [ ] IMPLEMENTATION_PLAN.md updated
-- [ ] Committed to {self.config.feature_branch}
+## Verification Report Path
+
+Canonical verification report: reports/{{STORY_KEY}}-verification.md
 
 ---
 *Story created by SUPERVISOR v3.2*
-*PATCH BATCH instructions generated from codebase analysis*
-*No API key required - using local Claude Code*
+*PATCH BATCH stored externally to avoid Jira content limits*
 """
+
+        # PATCH A: Enforce size limit with fail-closed truncation
+        if len(story_description) > JIRA_STORY_DESC_MAX_CHARS:
+            truncate_at = JIRA_STORY_DESC_MAX_CHARS - 100
+            story_description = story_description[:truncate_at] + "\n\n[TRUNCATED - see patch batch file for full details]"
 
         return {
             'summary': f"Implement: {summary}",
-            'description': story_description
+            'description': story_description,
+            'patch_batch_text': patch_batch_text,  # PATCH A: Return separately
         }
 
     def _claude_code_generate_patches(self, epic_key: str, summary: str, description: str, files: List[dict]) -> str:
@@ -2747,13 +2998,22 @@ DESCRIPTION: Add changes per Epic requirements
         return '\n'.join(patch_sections) if patch_sections else "No patches generated"
 
     def _create_placeholder_story(self, epic_key: str, summary: str, description: str) -> dict:
-        """Create placeholder Story when no relevant files found"""
-        story_description = f"""
-## Parent Epic
+        """Create placeholder Story when no relevant files found.
+
+        PATCH A: Story description is concise with patch batch file marker.
+        Returns placeholder patch batch text for file storage.
+        """
+        # PATCH A: Truncate implementation goal for Jira limits
+        impl_goal = description[:JIRA_STORY_DESC_TARGET_CHARS // 2] if description else ""
+        if len(impl_goal) < len(description):
+            impl_goal += "\n\n[...truncated for Jira limits...]"
+
+        # PATCH A: Concise story description with file marker
+        story_description = f"""## Parent Epic
 {epic_key}: {summary}
 
 ## Implementation Goal
-{description[:800]}
+{impl_goal}
 
 ---
 
@@ -2768,9 +3028,40 @@ The Supervisor requires human assistance to:
 
 ---
 
-## PATCH BATCH Instructions
+## PATCH BATCH Location
 
-PATCH BATCH: {summary}
+{PATCH_BATCH_FILE_MARKER} reports/{{STORY_KEY}}-patch-batch.md
+
+Full PATCH BATCH instructions (placeholder template) stored in the artifact file above.
+
+---
+
+## Verification Report Path
+
+Canonical verification report: reports/{{STORY_KEY}}-verification.md
+
+---
+*Story created by SUPERVISOR v3.2*
+*Human assistance required for PATCH BATCH specification*
+"""
+
+        # PATCH A: Enforce size limit
+        if len(story_description) > JIRA_STORY_DESC_MAX_CHARS:
+            truncate_at = JIRA_STORY_DESC_MAX_CHARS - 100
+            story_description = story_description[:truncate_at] + "\n\n[TRUNCATED]"
+
+        # PATCH A: Placeholder patch batch text for file storage
+        patch_batch_text = f"""PATCH BATCH: {summary}
+
+## Status: PLACEHOLDER - Human assistance required
+
+No directly relevant files found in initial codebase scan.
+
+## Action Required
+Please update this file with specific PATCH BATCH instructions
+after identifying the relevant codebase locations.
+
+## Template
 
 FILE: <path/to/relevant/file.tsx>
 OPERATION: edit
@@ -2780,21 +3071,12 @@ DESCRIPTION: <description of change needed>
 ---NEW---
 <new code with changes>
 ---END---
-
----
-
-## Action Required
-Please update this Story with specific PATCH BATCH instructions
-after identifying the relevant codebase locations.
-
----
-*Story created by SUPERVISOR v3.2*
-*Human assistance required for PATCH BATCH specification*
 """
 
         return {
             'summary': f"Implement: {summary}",
-            'description': story_description
+            'description': story_description,
+            'patch_batch_text': patch_batch_text,  # PATCH A: Return separately
         }
 
     def step_3_story_implementation(self) -> bool:
@@ -3551,33 +3833,121 @@ This is an automated escalation from the EngineO Autonomous Execution Engine.
             return False
 
     def _process_idea(self, issue: dict) -> bool:
-        """UEP: Process a specific Idea (uses enhanced analysis)"""
+        """UEP: Process a specific Idea (uses enhanced analysis).
+
+        PATCH C: Idempotent Idea→Epic mapping to prevent duplicate Epics.
+        """
         key = issue['key']
         summary = issue['fields']['summary']
         description = self.jira.parse_adf_to_text(issue['fields'].get('description', {}))
 
         self.log("UEP", f"Processing Idea: [{key}] {summary}")
+
+        # PATCH C: Check Work Ledger for existing epic children first
+        ledger_entry = self.work_ledger.get(key)
+        if ledger_entry and ledger_entry.children:
+            existing_epic_keys = ledger_entry.children
+            self.log("UEP", f"[{key}] Found {len(existing_epic_keys)} existing Epic(s) in Work Ledger")
+
+            # Resume existing epics - don't create duplicates
+            self.jira.transition_issue(key, 'In Progress')
+            epic_list = '\n'.join([f"- {e}" for e in existing_epic_keys])
+            self.jira.add_comment(key, f"""Resuming existing Epic(s) for Idea {key}
+
+Found {len(existing_epic_keys)} Epic(s) in Work Ledger:
+{epic_list}
+
+No new Epics created (idempotency check).
+""")
+            return True
+
+        # PATCH C: Search Jira for existing mapped epics
+        self.log("UEP", f"[{key}] Searching Jira for existing mapped Epics...")
+        try:
+            existing_epics = self.jira.find_epics_for_idea(key)
+        except Exception as e:
+            # PATCH C: Fail-closed - if Jira search errors, don't create epics
+            self.log("UEP", f"[{key}] FAIL-CLOSED: Jira search error - {e}")
+            self.jira.add_comment(key, f"""## Epic creation BLOCKED
+
+Jira search failed while checking for existing Epics.
+Error: {str(e)[:200]}
+
+**ACTION REQUIRED:** Investigate Jira API error before retrying.
+No Epics created to avoid potential duplicates.
+
+---
+*Status: BLOCKED - Jira search error*
+""")
+            self.escalate("UEP", f"Idea {key} blocked - Jira search error", str(e))
+            return True  # Handled, but blocked
+
+        if existing_epics:
+            # PATCH C: Found existing epics - persist mapping and resume
+            existing_epic_keys = [e['key'] for e in existing_epics]
+            self.log("UEP", f"[{key}] Found {len(existing_epic_keys)} existing Epic(s) in Jira")
+
+            # Update Work Ledger with mapping
+            self._upsert_work_ledger_entry(
+                issue_key=key,
+                issue_type="Idea",
+                status="In Progress",
+                last_step=LastStep.UEP.value,
+                last_step_result=StepResult.SUCCESS.value,
+                children=existing_epic_keys,
+            )
+
+            self.jira.transition_issue(key, 'In Progress')
+            epic_list = '\n'.join([f"- {e['key']}: {e['fields']['summary']}" for e in existing_epics])
+            self.jira.add_comment(key, f"""Resuming existing Epic(s) for Idea {key}
+
+Found {len(existing_epic_keys)} Epic(s) in Jira:
+{epic_list}
+
+No new Epics created (idempotency check).
+""")
+            return True
+
+        # PATCH C: No existing epics found - create new ones with mapping label
         self.log("UEP", "Analyzing initiative to define business intent...")
 
         # Use enhanced UEP analysis
         epics_to_create = self._uep_analyze_idea(key, summary, description)
 
+        # PATCH C: Define mapping label for Idea→Epic tracking
+        mapping_label = f"engineo-idea-{key}"
+
         created_epics = []
         for epic_def in epics_to_create:
-            epic_key = self.jira.create_epic(epic_def['summary'], epic_def['description'])
+            # PATCH C: Include mapping label when creating epic
+            epic_key = self.jira.create_epic(
+                epic_def['summary'],
+                epic_def['description'],
+                labels=[mapping_label],  # PATCH C: Add mapping label
+            )
             if epic_key:
-                self.log("UEP", f"Created Epic: {epic_key}")
+                self.log("UEP", f"Created Epic: {epic_key} (label: {mapping_label})")
                 created_epics.append(epic_key)
 
         if created_epics:
+            # PATCH C: Persist Idea→Epic mapping to Work Ledger
+            self._upsert_work_ledger_entry(
+                issue_key=key,
+                issue_type="Idea",
+                status="In Progress",
+                last_step=LastStep.UEP.value,
+                last_step_result=StepResult.SUCCESS.value,
+                children=created_epics,
+            )
+
             self.jira.transition_issue(key, 'In Progress')
             epic_list = '\n'.join([f"- {e}" for e in created_epics])
-            self.jira.add_comment(key, f"""
-Initiative processed by UEP
+            self.jira.add_comment(key, f"""Initiative processed by UEP
 
 Created {len(created_epics)} Epic(s):
 {epic_list}
 
+Mapping label: {mapping_label}
 Business Intent Defined - Ready for Supervisor decomposition.
 """)
             return True
@@ -3664,9 +4034,32 @@ No new stories created.
             if child is None:
                 manifest.add_child(story_summary)
 
+        # PATCH A: Track story creation success/failure for PATCH B
         created_stories = []
+        failed_stories = []
+
         for story_def in stories_actually_needed:
-            story_key = self.jira.create_story(story_def['summary'], story_def['description'], key)
+            # PATCH A: Write patch batch to artifact file BEFORE story creation
+            patch_batch_text = story_def.get('patch_batch_text', '')
+            if patch_batch_text:
+                try:
+                    epic_artifact_path, _ = _write_patch_batch_artifact(
+                        self.config.repo_path, key, self.run_id, patch_batch_text
+                    )
+                    self.log("SUPERVISOR", f"Wrote patch batch artifact: {epic_artifact_path}")
+                except Exception as e:
+                    self.log("SUPERVISOR", f"Failed to write patch batch artifact: {e}")
+                    epic_artifact_path = f"reports/{key}-{self.run_id}-patch-batch.md"
+
+            # PATCH A: Use create_story_with_retry for CONTENT_LIMIT_EXCEEDED handling
+            story_key = self.jira.create_story_with_retry(
+                story_def['summary'],
+                story_def['description'],
+                epic_key=key,
+                patch_batch_file_path=f"reports/{{STORY_KEY}}-patch-batch.md",
+                verification_path=f"reports/{{STORY_KEY}}-verification.md",
+            )
+
             if story_key:
                 self.log("SUPERVISOR", f"Created Story: {story_key}")
                 created_stories.append(story_key)
@@ -3676,7 +4069,94 @@ No new stories created.
                 if child:
                     child.key = story_key
 
+                # PATCH A: Copy patch batch to story-specific file
+                if patch_batch_text:
+                    story_artifact_path = _copy_patch_batch_for_story(
+                        self.config.repo_path, epic_artifact_path, story_key
+                    )
+                    self.log("SUPERVISOR", f"Copied patch batch to: {story_artifact_path}")
+
+                    # PATCH A: Update story description with actual story key
+                    # (replace {STORY_KEY} placeholders)
+                    updated_desc = story_def['description'].replace('{STORY_KEY}', story_key)
+                    # Note: We don't update the Jira description since it was already created
+                    # The comment will have the correct paths
+
+                    # PATCH A: Add Jira comment with patch batch excerpt and verification path
+                    excerpt_lines = patch_batch_text.split('\n')[:PATCH_BATCH_EXCERPT_LINES]
+                    excerpt = '\n'.join(excerpt_lines)
+                    if len(patch_batch_text.split('\n')) > PATCH_BATCH_EXCERPT_LINES:
+                        excerpt += f"\n\n... [{len(patch_batch_text.split(chr(10))) - PATCH_BATCH_EXCERPT_LINES} more lines in {story_artifact_path}]"
+
+                    self.jira.add_comment(story_key, f"""## PATCH BATCH Details
+
+**Patch batch file:** `{story_artifact_path}`
+**Verification report:** `reports/{story_key}-verification.md`
+
+### Excerpt (first {PATCH_BATCH_EXCERPT_LINES} lines):
+
+```
+{excerpt}
+```
+
+---
+
+## Verification Checklist
+- [ ] Code implemented per PATCH BATCH specs
+- [ ] Changes are surgical and minimal
+- [ ] Existing functionality preserved
+- [ ] Tests pass
+- [ ] IMPLEMENTATION_PLAN.md updated
+- [ ] Committed to {self.config.feature_branch}
+
+---
+*Comment added by SUPERVISOR v3.2*
+""")
+            else:
+                # PATCH B: Track failed story creation
+                self.log("SUPERVISOR", f"Failed to create Story: {story_def['summary'][:50]}...")
+                failed_stories.append(story_def['summary'])
+
+        # PATCH B: Handle story creation failures properly
+        if failed_stories and not created_stories and not existing_stories:
+            # All story creations failed AND no existing stories - INCOMPLETE
+            self.log("SUPERVISOR", f"[{key}] All story creations failed - marking decomposition INCOMPLETE")
+            manifest.mark_incomplete()
+            manifest_store.save(manifest)
+
+            # Add Jira comment explaining incomplete state
+            error_reason = "CONTENT_LIMIT_EXCEEDED" if self.jira.is_content_limit_exceeded() else "Jira API error"
+            self.jira.add_comment(key, f"""## Decomposition INCOMPLETE
+
+Story creation failed for {len(failed_stories)} story(ies).
+Error: {error_reason}
+
+Decomposition will be retried on next run.
+
+Failed stories:
+{chr(10).join(['- ' + s[:80] for s in failed_stories[:5]])}
+{f'... and {len(failed_stories) - 5} more' if len(failed_stories) > 5 else ''}
+
+---
+*Status: INCOMPLETE - will retry*
+""")
+
+            # PATCH B: Do NOT set decomposition_fingerprint or children in work ledger
+            # This ensures the next run will retry
+            self._upsert_work_ledger_entry(
+                issue_key=key,
+                issue_type="Epic",
+                status=status,
+                last_step=LastStep.SUPERVISOR.value,
+                last_step_result=StepResult.FAILED.value,
+                error_text=f"Story creation failed: {error_reason}",
+            )
+            return True  # Handled, but incomplete
+
         # Save updated manifest
+        # PATCH B: Only mark COMPLETE if at least one story exists
+        if created_stories or existing_stories:
+            manifest.mark_complete()
         manifest_store.save(manifest)
 
         # Update work ledger
@@ -3695,13 +4175,14 @@ No new stories created.
             story_list = '\n'.join([f"- {s}" for s in created_stories])
 
             mode_note = "(delta mode - only new stories)" if mode == "delta" else ""
+            partial_note = f" ({len(failed_stories)} failed)" if failed_stories else ""
             self.jira.add_comment(key, f"""
-Epic decomposed by SUPERVISOR v3.2 {mode_note}
+Epic decomposed by SUPERVISOR v3.2 {mode_note}{partial_note}
 
 Created {len(created_stories)} Story(ies):
 {story_list}
 
-Codebase analyzed - PATCH BATCH instructions generated.
+Codebase analyzed - PATCH BATCH instructions stored externally.
 Ready for Developer implementation.
 """)
             return True
@@ -3723,6 +4204,52 @@ Ready for Developer implementation.
 
         # Check if docs modifications are allowed by ALLOWED FILES constraints
         allow_docs = _docs_allowed_by_constraints(description)
+
+        # PATCH A: Load patch batch from file (IMPLEMENTER access)
+        patch_batch_content, patch_batch_source = _load_patch_batch_from_file(
+            self.config.repo_path, key, description
+        )
+
+        if patch_batch_content:
+            self.log("IMPLEMENTER", f"Loaded patch batch from: {patch_batch_source}")
+            # Append patch batch to description for Claude
+            description = description + f"\n\n## PATCH BATCH (from {patch_batch_source})\n\n{patch_batch_content}"
+        else:
+            # PATCH A: Check if this is a new-style story that should have a patch batch file
+            if PATCH_BATCH_FILE_MARKER in description:
+                # Story description references a patch batch file but file is missing
+                self.log("IMPLEMENTER", f"[{key}] FAIL-CLOSED: Patch batch file missing")
+                self.jira.add_comment(key, f"""## Implementation BLOCKED
+
+Patch batch file not found.
+
+The story description references a patch batch file (via {PATCH_BATCH_FILE_MARKER}) but the file could not be located.
+
+Expected paths searched:
+- reports/{key}-patch-batch.md (preferred)
+- Path from PATCH_BATCH_FILE: marker in description
+
+**ACTION REQUIRED:** Supervisor must regenerate the patch batch file or update the story description.
+
+---
+*Status: BLOCKED - patch batch file missing*
+""")
+                # Transition to BLOCKED if available
+                self.jira.transition_issue(key, 'BLOCKED')
+
+                # Record blocked status to work ledger
+                self._upsert_work_ledger_entry(
+                    issue_key=key,
+                    issue_type="Story",
+                    status="BLOCKED",
+                    last_step=LastStep.IMPLEMENTER.value,
+                    last_step_result=StepResult.FAILED.value,
+                    error_text="Patch batch file missing",
+                )
+                return True  # Handled, but blocked
+            else:
+                # Legacy story without patch batch file marker - proceed with description only
+                self.log("IMPLEMENTER", "No patch batch file found (legacy story format)")
 
         # Transition to In Progress if not already
         if 'to do' in status:

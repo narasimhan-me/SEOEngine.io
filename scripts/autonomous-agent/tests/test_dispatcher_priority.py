@@ -62,6 +62,8 @@ class TestDispatcherPriority(unittest.TestCase):
 
             # Mock Jira client
             engine.jira = MagicMock()
+            # PATCH B: parse_adf_to_text must return string for should_decompose
+            engine.jira.parse_adf_to_text.return_value = "Epic description"
             engine.git = MagicMock()
             engine.email = MagicMock()
             engine.files = MagicMock()
@@ -174,6 +176,7 @@ class TestDispatcherPriority(unittest.TestCase):
                 'status': {'name': 'In Progress'},
                 'statusCategory': {'name': 'In Progress'},
                 'issuetype': {'name': 'Epic'},
+                'description': {},  # PATCH B: Added for should_decompose
             }
         }
         epic_b = {
@@ -183,6 +186,7 @@ class TestDispatcherPriority(unittest.TestCase):
                 'status': {'name': 'To Do'},
                 'statusCategory': {'name': 'To Do'},
                 'issuetype': {'name': 'Epic'},
+                'description': {},  # PATCH B: Added for should_decompose
             }
         }
         # Return A before B (In Progress has priority in statusCategory In Progress)
@@ -217,6 +221,7 @@ class TestDispatcherPriority(unittest.TestCase):
                 'summary': 'Test epic',
                 'status': {'name': 'To Do'},
                 'issuetype': {'name': 'Epic'},
+                'description': {},  # PATCH B: Added for should_decompose
             }
         }
         engine.jira.get_epics_for_decomposition.return_value = [epic]
@@ -242,8 +247,11 @@ class TestDispatcherPriority(unittest.TestCase):
         engine._process_epic.assert_called_once()
         engine._process_idea.assert_not_called()
 
-    def test_skip_epic_with_existing_children(self):
-        """Epic with existing children is skipped in decompose queue."""
+    def test_skip_epic_with_existing_children_and_complete_manifest(self):
+        """Epic with existing children and COMPLETE manifest is skipped in decompose queue.
+
+        PATCH B: Skip requires COMPLETE manifest + existing children.
+        """
         engine = self._create_mock_engine()
 
         # Empty higher priority queues
@@ -257,21 +265,37 @@ class TestDispatcherPriority(unittest.TestCase):
                 'summary': 'Test epic',
                 'status': {'name': 'To Do'},
                 'issuetype': {'name': 'Epic'},
+                'description': {},  # PATCH B: Added for should_decompose
             }
         }
         engine.jira.get_epics_for_decomposition.return_value = [epic]
         engine.jira.get_implement_stories_for_epic.return_value = [{'key': 'KAN-17'}]  # Has children
         engine.work_ledger.get.return_value = None
 
-        # Empty intake queue
-        engine.jira.get_ideas_todo.return_value = []
+        # PATCH B: Create a COMPLETE manifest on disk for skip to work
+        import tempfile
+        from decomposition_manifest import DecompositionManifest, DecompositionManifestStore, compute_fingerprint
 
-        # Run dispatch
-        result = engine.dispatch_once()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            engine.config.repo_path = tmpdir
+            store = DecompositionManifestStore(tmpdir)
+            manifest = DecompositionManifest(
+                epicKey="KAN-10",
+                fingerprint=compute_fingerprint("Epic description"),  # Match parse_adf_to_text mock
+            )
+            manifest.add_child("Implement: Feature A", key="KAN-17")
+            manifest.mark_complete()
+            store.save(manifest)
 
-        # Epic should be skipped due to existing children
-        self.assertFalse(result)
-        engine._process_epic.assert_not_called()
+            # Empty intake queue
+            engine.jira.get_ideas_todo.return_value = []
+
+            # Run dispatch
+            result = engine.dispatch_once()
+
+            # Epic should be skipped due to existing children + COMPLETE manifest
+            self.assertFalse(result)
+            engine._process_epic.assert_not_called()
 
     def test_idle_when_all_queues_empty(self):
         """dispatch_once returns False when all queues are empty."""

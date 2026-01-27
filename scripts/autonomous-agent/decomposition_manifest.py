@@ -3,11 +3,13 @@
 Decomposition Manifest for Idempotent Epic Decomposition.
 
 PATCH BATCH: AUTONOMOUS-AGENT-RESUME-STATE-MACHINE-RECONCILE-1 - PATCH 3
+PATCH BATCH: AUTONOMOUS-AGENT-JIRA-PAYLOAD-HARDENING-AND-IDEMPOTENCY-1 - PATCH B
 
 This module implements decomposition manifests for Epics to enable:
 - Idempotent decomposition (no duplicate Stories on repeated runs)
 - Delta mode (only create missing Stories when Epic changes)
 - Fingerprint-based change detection
+- Status tracking (INCOMPLETE vs COMPLETE) for correct skip behavior
 
 Canonical manifest path: reports/{EPIC}-decomposition.json
 """
@@ -20,6 +22,16 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, Dict, List, Any
 from dataclasses import dataclass, field, asdict
+from enum import Enum
+
+
+class ManifestStatus(str, Enum):
+    """Manifest completion status.
+
+    PATCH B: Tracks whether decomposition is complete.
+    """
+    INCOMPLETE = "INCOMPLETE"
+    COMPLETE = "COMPLETE"
 
 
 def extract_acceptance_criteria(description: str) -> str:
@@ -120,12 +132,14 @@ class DecompositionManifest:
     - epicKey: The Epic key (e.g., "KAN-10")
     - fingerprint: SHA256 of epic description + acceptance criteria
     - children: List of StoryIntent objects
+    - status: INCOMPLETE or COMPLETE (PATCH B)
     - created_at: ISO-8601 timestamp of manifest creation
     - updated_at: ISO-8601 timestamp of last update
     """
     epicKey: str
     fingerprint: str
     children: List[StoryIntent] = field(default_factory=list)
+    status: str = ManifestStatus.INCOMPLETE.value  # PATCH B: Default to INCOMPLETE
     created_at: str = ""
     updated_at: str = ""
 
@@ -134,6 +148,7 @@ class DecompositionManifest:
             'epicKey': self.epicKey,
             'fingerprint': self.fingerprint,
             'children': [c.to_dict() for c in self.children],
+            'status': self.status,  # PATCH B
             'created_at': self.created_at,
             'updated_at': self.updated_at,
         }
@@ -141,13 +156,43 @@ class DecompositionManifest:
     @classmethod
     def from_dict(cls, data: dict) -> 'DecompositionManifest':
         children = [StoryIntent.from_dict(c) for c in data.get('children', [])]
+        # PATCH B: Default to INCOMPLETE for backward compatibility
+        status = data.get('status', ManifestStatus.INCOMPLETE.value)
         return cls(
             epicKey=data.get('epicKey', ''),
             fingerprint=data.get('fingerprint', ''),
             children=children,
+            status=status,
             created_at=data.get('created_at', ''),
             updated_at=data.get('updated_at', ''),
         )
+
+    def has_all_keys(self) -> bool:
+        """Check if all children have Jira keys assigned.
+
+        PATCH B: Used for determining COMPLETE status.
+        """
+        if not self.children:
+            return False
+        return all(child.key is not None for child in self.children)
+
+    def mark_complete(self) -> None:
+        """Mark manifest as COMPLETE.
+
+        PATCH B: Should only be called when at least one story exists.
+        """
+        self.status = ManifestStatus.COMPLETE.value
+
+    def mark_incomplete(self) -> None:
+        """Mark manifest as INCOMPLETE.
+
+        PATCH B: Used when story creation fails.
+        """
+        self.status = ManifestStatus.INCOMPLETE.value
+
+    def is_complete(self) -> bool:
+        """Check if manifest is marked COMPLETE."""
+        return self.status == ManifestStatus.COMPLETE.value
 
     def add_child(self, summary: str, key: Optional[str] = None) -> StoryIntent:
         """Add a child Story intent.
@@ -298,17 +343,26 @@ def should_decompose(
     store: DecompositionManifestStore,
     epic_key: str,
     epic_description: str,
+    has_jira_implement_stories: bool = False,
 ) -> tuple:
     """Determine if decomposition is needed and what mode.
+
+    PATCH B: Updated semantics for status-aware skip behavior.
+
+    Skip is ONLY allowed when ALL are true:
+    - fingerprint unchanged AND
+    - manifest.status == COMPLETE AND
+    - (caller has at least one Jira implement story) OR (all manifest children have keys)
 
     Args:
         store: Manifest store instance.
         epic_key: The Epic key.
         epic_description: Current Epic description.
+        has_jira_implement_stories: Whether Jira has implement stories for this Epic.
 
     Returns:
         Tuple of (should_decompose: bool, mode: str, manifest: DecompositionManifest)
-        - mode is one of: "new", "delta", "skip"
+        - mode is one of: "new", "delta", "skip", "retry"
     """
     current_fingerprint = compute_fingerprint(epic_description)
     existing_manifest = store.load(epic_key)
@@ -318,12 +372,34 @@ def should_decompose(
         manifest = DecompositionManifest(
             epicKey=epic_key,
             fingerprint=current_fingerprint,
+            status=ManifestStatus.INCOMPLETE.value,
         )
         return (True, "new", manifest)
 
+    # PATCH B: Check for retry conditions (INCOMPLETE or missing keys)
+    if existing_manifest.status == ManifestStatus.INCOMPLETE.value:
+        # Manifest is INCOMPLETE - must retry
+        existing_manifest.fingerprint = current_fingerprint
+        return (True, "retry", existing_manifest)
+
+    # Check if any manifest children are missing keys
+    children_missing_keys = any(child.key is None for child in existing_manifest.children)
+    if children_missing_keys:
+        # Some intents never got Jira keys - retry
+        existing_manifest.fingerprint = current_fingerprint
+        return (True, "retry", existing_manifest)
+
+    # Check if manifest has zero children AND no Jira stories exist
+    if not existing_manifest.children and not has_jira_implement_stories:
+        # Empty manifest with no Jira stories - retry
+        existing_manifest.fingerprint = current_fingerprint
+        return (True, "retry", existing_manifest)
+
+    # PATCH B: Skip only if fingerprint unchanged AND status COMPLETE AND stories exist
     if existing_manifest.fingerprint == current_fingerprint:
-        # Fingerprint unchanged - skip decomposition
-        return (False, "skip", existing_manifest)
+        if existing_manifest.is_complete() and (has_jira_implement_stories or existing_manifest.has_all_keys()):
+            # All conditions met for skip
+            return (False, "skip", existing_manifest)
 
     # Fingerprint changed - delta mode
     existing_manifest.fingerprint = current_fingerprint

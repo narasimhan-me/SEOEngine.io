@@ -78,3 +78,6 @@ reports/*-verification.md
 
 # Decomposition manifests (generated artifacts)
 reports/*-decomposition.json
+
+# Patch batch artifacts (PATCH A: generated artifacts)
+reports/*-patch-batch.md

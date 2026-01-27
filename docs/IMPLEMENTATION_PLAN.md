@@ -4,6 +4,63 @@ This document tracks all implementation phases and their completion status.
 
 > ⚠️ **Authoritative:** `docs/IMPLEMENTATION_PLAN.md` is the single source of truth for EngineO.ai execution. The root `IMPLEMENTATION_PLAN.md` is deprecated.
 
+## AUTONOMOUS-AGENT-JIRA-PAYLOAD-HARDENING-AND-IDEMPOTENCY-1
+
+**Implemented:** 2026-01-27
+**Branch:** feature/agent
+
+### Summary:
+Comprehensive hardening for Jira payload size limits, decomposition manifest correctness, and Idea intake idempotency.
+
+### Patches:
+
+- **PATCH A**: Jira Story payload size hardening
+  - Story descriptions no longer embed full PATCH BATCH (avoids CONTENT_LIMIT_EXCEEDED)
+  - Patch batch stored externally: `reports/{STORY_KEY}-patch-batch.md`
+  - Added `create_story_with_retry()` for automatic short-mode retry
+  - IMPLEMENTER loads patch batch from file before Claude invocation
+  - Jira comment added with excerpt + verification path
+
+- **PATCH B**: Decomposition manifest correctness
+  - Added `status` field (INCOMPLETE | COMPLETE) to manifests
+  - `should_decompose()` checks status before allowing skip
+  - Engine never marks decomposition complete on story creation failure
+  - dispatch_once uses status-aware skip behavior
+
+- **PATCH C**: Idea intake idempotency (UEP duplicate prevention)
+  - Epics tagged with `engineo-idea-{IDEA_KEY}` label
+  - `find_epics_for_idea()` searches by label + fallback summary
+  - Work Ledger stores Idea→Epic mapping
+  - `_process_idea()` checks ledger/Jira before creating
+
+- **PATCH D**: Tests
+  - `test_story_payload_size_hardening.py`
+  - `test_manifest_incomplete_retry.py`
+  - `test_idea_intake_idempotency_epics.py`
+
+- **PATCH E**: Documentation
+  - Updated README.md with patch batch storage, manifest status, idempotency docs
+  - Updated ENGINE-RUN-ARTIFACTS.md with patch batch file paths and manifest status
+
+### Files Modified:
+- `scripts/autonomous-agent/engine.py`
+- `scripts/autonomous-agent/decomposition_manifest.py`
+- `scripts/autonomous-agent/.gitignore`
+- `.gitignore`
+- `scripts/autonomous-agent/README.md`
+- `scripts/autonomous-agent/reports/ENGINE-RUN-ARTIFACTS.md`
+- `scripts/autonomous-agent/tests/test_story_payload_size_hardening.py` (new)
+- `scripts/autonomous-agent/tests/test_manifest_incomplete_retry.py` (new)
+- `scripts/autonomous-agent/tests/test_idea_intake_idempotency_epics.py` (new)
+
+### Definition of Done:
+- [x] Story creation no longer fails permanently on CONTENT_LIMIT_EXCEEDED
+- [x] Decomposition manifest cannot skip if no stories were created
+- [x] Rerunning Idea intake does not create duplicate epics
+- [x] Tests added for all patches
+
+---
+
 ## AUTONOMOUS-AGENT-RUNTIME-RELIABILITY-FIXUP-2 REVIEW FIXUP-2
 
 **Implemented:** 2026-01-27 17:35 UTC
@@ -3716,3 +3773,4 @@ _None at this time._
 | 7.48    | 2026-01-24 | **ISSUES-ENGINE-REMOUNT-1 FIXUP-6**: Semantics and consistency corrections. (1) Updated page.tsx: fixed blocked chip logic to only render "Outside control" chip for actionability === 'informational' (blocked status conveyed by section + Actions pill, no chip needed); added stable sorting tie-breaker (after title comparison, sort by id for deterministic ordering); normalized Action column labels to exactly "Fix now" / "Review" / "Blocked" ("Review" for DIAGNOSTIC and "View affected" flows, "Fix now" for other actionable fix flows, preserve original meaning in title attribute); (2) Updated TripletDisplay.tsx: fixed emphasis so both count and label render as text-primary when emphasis='actionable' (not text-muted-foreground); (3) Updated ISSUES-ENGINE-REMOUNT-1.md: corrected HP-013 expected results to match actual UI semantics (Fix now action for inline/link flows, Review for View affected with title preservation). **No backend changes.** **Core files:** page.tsx, TripletDisplay.tsx. **Manual Testing:** ISSUES-ENGINE-REMOUNT-1.md (HP-013). **Critical Path:** CP-009 updated (6.53).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | 7.49    | 2026-01-24 | **ISSUES-ENGINE-REMOUNT-1 FIXUP-7**: Trust copy tightening for Issues preview Apply CTA. (1) Updated page.tsx: changed inline preview Apply button label from "Apply to Shopify" to "Apply saved draft to Shopify" for trust clarity (no behavior change; data-testid="issue-apply-to-shopify-button" preserved; disabled gating unchanged; loading label "Applying…" unchanged; title attribute already clarifies "Applies saved draft only. Does not use AI."). **Copy-only trust tightening.** **No Playwright test changes required** - tests use stable data-testid selector. **Core files:** issues/page.tsx. **Phase ISSUES-ENGINE-REMOUNT-1 now COMPLETE.**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | 7.50    | 2026-01-24 | **ISSUES-ENGINE-REMOUNT-1 FIXUP-8**: Doc/Playwright alignment + config fix. **PATCH A (Manual testing doc copy alignment):** Updated DRAFT-CLARITY-AND-ACTION-TRUST-1.md Scenario 7 to reflect new button labels (replaced "Fix next" with "Fix now" in 4 instances; replaced "Apply button" with "Apply saved draft to Shopify button" in 4 instances; Issues preview Apply button trust copy now aligned with UI from FIXUP-7). **PATCH B (Playwright selector hardening):** Replaced text-based selector `button:has-text("Fix next")` with stable data-testid selector `[data-testid="issue-fix-next-button"]` in 2 instances; updated 3 comment references from "Fix next" to "Fix now" for consistency; hardened tests against UI copy drift. **PATCH C (Config fix + regression verification):** Fixed playwright.config.ts testDir from './tests/e2e' to './tests' (corrected test discovery: 38 tests in ./tests vs 2 in ./tests/e2e); verified test execution: 14 tests discovered and ran; selector changes validated (no selector-related errors); tests blocked by missing API server (environmental; not code-related). **Core files:** draft-clarity-and-action-trust-1.spec.ts, DRAFT-CLARITY-AND-ACTION-TRUST-1.md, playwright.config.ts. **Phase ISSUES-ENGINE-REMOUNT-1 doc/test alignment complete.**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| 7.51    | 2026-01-27 | **AUTONOMOUS-AGENT-RESUME-STATE-MACHINE-RECONCILE-1**: Autonomous execution engine hardening with persistent state and reconciliation. **PATCH 1 (Work Ledger):** Created work_ledger.py with WorkLedgerEntry dataclass (issueKey, issueType, parentKey, status_last_observed, last_step, children, decomposition_fingerprint, last_commit_sha, verification_report_path, last_error_fingerprint, last_error_at) and WorkLedger class with atomic writes (temp file + os.replace), crash safety, CRUD operations. **PATCH 2 (Dispatcher Priority):** Implemented dispatch_once() priority state machine: Recover > Verify/Close > Implement > Decompose > Intake; JQL helpers for status/statusCategory queries; --once CLI flag. **PATCH 3 (Idempotent Decomposition):** Created decomposition_manifest.py with SHA256 fingerprinting, intent_id computation, three modes (new/delta/skip); canonical path reports/{EPIC}-decomposition.json. **PATCH 4 (Canonical Report Contract):** Enforced reports/{ISSUE}-verification.md as only valid path (no timestamps/run_id); fail-fast validation with near-match suggestions. **PATCH 5 (Subprocess Hardening):** Added _is_fatal_claude_output() for "No messages returned", UnhandledPromiseRejection, cli.js stack traces; bounded retries (3 attempts, exponential backoff); error fingerprint recording. **PATCH 6 (Timeout Standardization):** Default CLAUDE_TIMEOUT_SECONDS=14400 (4 hours); CLI > env > default precedence. **PATCH 7 (Role Naming):** _format_log_line() with role normalization (CLAUDE→IMPLEMENTER+tool, SYSTEM→SUPERVISOR); model/tool parameters in log(). **PATCH 8 (BLOCKED Handling):** Evidence-based auto-close (report exists + checklist complete + commit evidence); reconcile_epic()/reconcile_idea() for cascading completion; BLOCKED status included in Verify/Close queue. **Core files:** work_ledger.py (NEW), decomposition_manifest.py (NEW), engine.py, .gitignore. **Tests:** test_work_ledger.py, test_dispatcher_priority.py, test_decomposition_manifest.py, test_report_path_resolution.py, test_subprocess_fatal_terminates_and_records_ledger.py, test_timeout_default_14400.py, test_log_formatter_role_model_tool.py, test_blocked_autoclose_and_epic_reconcile.py. **Docs:** docs/agent-resume-reconcile.md. **Manual Testing:** (1) Simulate "No messages returned" - confirm no hang + bounded retries + last_error_fingerprint recorded; (2) Restart agent mid-run - confirm resume via Work Ledger recover queue; (3) Run epic decomposition twice with unchanged description - confirm zero duplicates; change description - confirm delta mode creates only missing stories; (4) Create story with complete report + commits - confirm auto-close to Done. |
