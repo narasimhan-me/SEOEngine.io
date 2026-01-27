@@ -1357,17 +1357,22 @@ class JiraClient:
         return self.search_issues(jql, ['summary', 'status', 'issuetype', 'description'])
 
     def get_epics_todo(self) -> List[dict]:
-        """Get Epics with exact 'To Do' status from software project
+        """Get Epics in To Do status category from software project.
 
-        Note: KAN project uses 'To Do' (title case), different from EA's 'TO DO'.
+        VERIFY-AUTOREPAIR-1 PATCH 3: Uses statusCategory = 'To Do' to include
+        'Backlog', 'To Do', and any custom statuses in the To Do category.
         """
-        jql = f'project = {self.config.software_project} AND issuetype = Epic AND status = "To Do" ORDER BY created ASC'
-        return self.search_issues(jql, ['summary', 'status', 'description', 'parent'])
+        jql = f"project = {self.config.software_project} AND issuetype = Epic AND statusCategory = 'To Do' ORDER BY created ASC"
+        return self.search_issues(jql, ['summary', 'status', 'statusCategory', 'description', 'parent'])
 
     def get_stories_todo(self) -> List[dict]:
-        """Get Stories with exact 'To Do' status from software project"""
-        jql = f'project = {self.config.software_project} AND issuetype = Story AND status = "To Do" ORDER BY created ASC'
-        return self.search_issues(jql, ['summary', 'status', 'description', 'parent'])
+        """Get Stories in To Do status category from software project.
+
+        VERIFY-AUTOREPAIR-1 PATCH 2: Uses statusCategory = 'To Do' to include
+        'Backlog', 'To Do', and any custom statuses in the To Do category.
+        """
+        jql = f"project = {self.config.software_project} AND issuetype = Story AND statusCategory = 'To Do' ORDER BY created ASC"
+        return self.search_issues(jql, ['summary', 'status', 'statusCategory', 'description', 'parent'])
 
     def get_stories_in_progress(self) -> List[dict]:
         """Get Stories in progress (for verification)
@@ -1413,10 +1418,11 @@ class JiraClient:
     def get_epics_for_decomposition(self) -> List[dict]:
         """Get Epics eligible for decomposition queue.
 
-        PATCH 2: status = 'To Do' OR statusCategory = 'In Progress'
+        VERIFY-AUTOREPAIR-1 PATCH 3: statusCategory = 'To Do' OR statusCategory = 'In Progress'
         Decomposition eligibility also requires no existing children (checked separately).
+        Uses statusCategory to include Backlog and custom statuses.
         """
-        jql = f"project = {self.config.software_project} AND issuetype = Epic AND (status = 'To Do' OR statusCategory = 'In Progress') ORDER BY created ASC"
+        jql = f"project = {self.config.software_project} AND issuetype = Epic AND (statusCategory = 'To Do' OR statusCategory = 'In Progress') ORDER BY created ASC"
         return self.search_issues(jql, ['summary', 'status', 'statusCategory', 'description', 'parent'])
 
     def get_ideas_in_progress(self) -> List[dict]:
@@ -2299,12 +2305,17 @@ class ExecutionEngine:
         verify_last_report_mtime: Optional[float] = None,
         verify_last_commented_reason: Optional[str] = None,
         verify_last_commented_report_hash: Optional[str] = None,
+        # VERIFY-AUTOREPAIR-1 PATCH 1: Auto-repair tracking fields
+        verify_repair_applied_at: Optional[str] = None,
+        verify_repair_last_report_hash: Optional[str] = None,
+        verify_repair_count: Optional[int] = None,
     ) -> None:
         """Upsert an entry in the work ledger.
 
         PATCH 1: Update work ledger with issue state for resumption.
         FIXUP-1 PATCH 5: Added last_step_result for terminal outcome tracking.
         PATCH 2: Added verify backoff fields for VERIFY/CLOSE gating.
+        VERIFY-AUTOREPAIR-1 PATCH 1: Added auto-repair tracking fields.
 
         Args:
             issue_key: The issue key.
@@ -2324,6 +2335,9 @@ class ExecutionEngine:
             verify_last_report_mtime: mtime of report at last failure (PATCH 2).
             verify_last_commented_reason: Last reason commented (PATCH 2).
             verify_last_commented_report_hash: Last hash commented (PATCH 2).
+            verify_repair_applied_at: ISO8601 UTC when repair applied (AUTOREPAIR-1).
+            verify_repair_last_report_hash: Pre-repair hash for dedup (AUTOREPAIR-1).
+            verify_repair_count: Cumulative repair count (AUTOREPAIR-1).
         """
         entry = self.work_ledger.get(issue_key)
         if entry is None:
@@ -2370,6 +2384,14 @@ class ExecutionEngine:
             entry.verify_last_commented_reason = verify_last_commented_reason
         if verify_last_commented_report_hash is not None:
             entry.verify_last_commented_report_hash = verify_last_commented_report_hash
+
+        # VERIFY-AUTOREPAIR-1 PATCH 1: Handle auto-repair tracking fields
+        if verify_repair_applied_at is not None:
+            entry.verify_repair_applied_at = verify_repair_applied_at
+        if verify_repair_last_report_hash is not None:
+            entry.verify_repair_last_report_hash = verify_repair_last_report_hash
+        if verify_repair_count is not None:
+            entry.verify_repair_count = verify_repair_count
 
         self.work_ledger.upsert(entry)
 
@@ -3815,23 +3837,95 @@ Error: {e}"""
             return True
 
         if "## Checklist" not in report_content:
-            self.log("SUPERVISOR", f"[{key}] Invalid report: missing ## Checklist")
+            # VERIFY-AUTOREPAIR-1 PATCH 1: Auto-repair reports missing ## Checklist
+            self.log("SUPERVISOR", f"[{key}] Report missing ## Checklist - applying auto-repair")
 
-            # PATCH 2: Compute verify failure state
-            verify_reason = "missing_checklist_header"
+            pre_hash = report_hash  # Hash of pre-repair content
             work_entry = self.work_ledger.get(key)
+            now_iso = datetime.now(timezone.utc).isoformat()
 
-            # PATCH 2: Check comment de-dup
-            if _should_post_verify_comment(work_entry, verify_reason, report_hash):
-                comment = f"""Supervisor Verification: INVALID — report missing ## Checklist header
+            # PATCH 1: Dedup repair - if already repaired for this hash, just set cooldown
+            if work_entry and work_entry.verify_repair_last_report_hash == pre_hash:
+                self.log("SUPERVISOR", f"[{key}] Repair already applied for this report hash; setting cooldown")
+                verify_reason = "auto_repair_already_applied"
+                verify_next_at = (datetime.now(timezone.utc).timestamp() + VERIFY_COOLDOWN_SECONDS)
+                verify_next_at_iso = datetime.fromtimestamp(verify_next_at, timezone.utc).isoformat()
+                self._upsert_work_ledger_entry(
+                    issue_key=key,
+                    issue_type="Story",
+                    status=status,
+                    last_step=LastStep.VERIFY.value,
+                    last_step_result=StepResult.FAILED.value,
+                    verify_next_at=verify_next_at_iso,
+                    verify_last_reason=verify_reason,
+                    verify_last_report_hash=pre_hash,
+                    verify_last_report_mtime=report_mtime,
+                )
+                return True
 
-Report: {report_path}
-Note: Verification reports MUST contain a ## Checklist section."""
-                self.jira.add_comment(key, comment)
+            # PATCH 1: Build repaired content - skeleton + appendix with original content
+            date_str = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+            parent_key = issue.get('fields', {}).get('parent', {}).get('key', 'N/A') if issue.get('fields', {}).get('parent') else 'N/A'
+            skeleton_content = VERIFICATION_REPORT_SKELETON_TEMPLATE.format(
+                issue_key=key,
+                parent_key=parent_key,
+                summary=summary[:200] if summary else 'N/A',
+                date=date_str,
+            )
 
-            # PATCH 2: Record verify backoff state
+            # Append original content under Appendix
+            repaired_content = skeleton_content + f"""
+## Appendix (previous content)
+
+The following is the original report content that was auto-repaired due to missing `## Checklist` header:
+
+---
+
+{report_content}
+"""
+
+            # PATCH 1: Write repaired content atomically
+            temp_path = report_full_path.with_suffix('.md.tmp')
+            try:
+                temp_path.write_text(repaired_content, encoding='utf-8')
+                os.replace(str(temp_path), str(report_full_path))
+                self.log("SUPERVISOR", f"[{key}] Auto-repair applied successfully")
+            except OSError as e:
+                self.log("SUPERVISOR", f"[{key}] Auto-repair write failed: {e}")
+                try:
+                    temp_path.unlink(missing_ok=True)
+                except OSError:
+                    pass
+                # Fall through to set cooldown anyway
+
+            # PATCH 1: Compute post-repair hash (or use pre_hash if read fails)
+            post_hash = _hash_file(str(report_full_path)) or pre_hash
+
+            # PATCH 1: Prepare Work Ledger update
+            verify_reason = "auto_repair_missing_checklist"
             verify_next_at = (datetime.now(timezone.utc).timestamp() + VERIFY_COOLDOWN_SECONDS)
             verify_next_at_iso = datetime.fromtimestamp(verify_next_at, timezone.utc).isoformat()
+            repair_count = (work_entry.verify_repair_count + 1) if work_entry and work_entry.verify_repair_count else 1
+
+            # PATCH 1: Post Jira comment (deduplicated)
+            should_comment = _should_post_verify_comment(work_entry, verify_reason, pre_hash)
+            if should_comment:
+                comment = f"""Supervisor Verification: AUTO-REPAIR APPLIED
+
+Report `{report_path}` was missing the required `## Checklist` header.
+
+**Action taken:**
+- Prepended canonical verification skeleton with `## Checklist` section
+- Original content preserved under `## Appendix (previous content)`
+
+**Next steps:**
+- Fill in the `## Checklist` items and mark them complete (`- [x]`)
+- Verification will retry after cooldown ({VERIFY_COOLDOWN_SECONDS}s) or when report changes
+
+*Auto-repair applied by Engine PATCH 1*"""
+                self.jira.add_comment(key, comment)
+
+            # PATCH 1: Update Work Ledger with repair tracking
             self._upsert_work_ledger_entry(
                 issue_key=key,
                 issue_type="Story",
@@ -3840,10 +3934,13 @@ Note: Verification reports MUST contain a ## Checklist section."""
                 last_step_result=StepResult.FAILED.value,
                 verify_next_at=verify_next_at_iso,
                 verify_last_reason=verify_reason,
-                verify_last_report_hash=report_hash,
+                verify_last_report_hash=post_hash,
                 verify_last_report_mtime=report_mtime,
-                verify_last_commented_reason=verify_reason,
-                verify_last_commented_report_hash=report_hash,
+                verify_last_commented_reason=verify_reason if should_comment else (work_entry.verify_last_commented_reason if work_entry else None),
+                verify_last_commented_report_hash=pre_hash if should_comment else (work_entry.verify_last_commented_report_hash if work_entry else None),
+                verify_repair_applied_at=now_iso,
+                verify_repair_last_report_hash=pre_hash,
+                verify_repair_count=repair_count,
             )
             return True
 

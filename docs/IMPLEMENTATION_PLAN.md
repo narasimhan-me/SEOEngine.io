@@ -4,6 +4,55 @@ This document tracks all implementation phases and their completion status.
 
 > ⚠️ **Authoritative:** `docs/IMPLEMENTATION_PLAN.md` is the single source of truth for EngineO.ai execution. The root `IMPLEMENTATION_PLAN.md` is deprecated.
 
+## AUTONOMOUS-AGENT-VERIFY-AUTOREPAIR-STATUSCATEGORY-JQL-1
+
+**Implemented:** 2026-01-27
+**Branch:** feature/agent
+
+### Summary:
+Verification report auto-repair for missing `## Checklist` header, and Jira JQL queries updated to use `statusCategory` for flexible status matching.
+
+### Patches:
+
+- **PATCH 1**: Verification report auto-repair
+  - When `## Checklist` is missing, prepend canonical skeleton
+  - Original content preserved under `## Appendix (previous content)`
+  - Repair de-duplication via `verify_repair_last_report_hash`
+  - Cooldown prevents hot-loop (same as VERIFY backoff)
+  - Added WorkLedgerEntry fields: `verify_repair_applied_at`, `verify_repair_last_report_hash`, `verify_repair_count`
+
+- **PATCH 2**: Implement queue uses statusCategory
+  - `get_stories_todo()` now uses `statusCategory = 'To Do'`
+  - Includes "Backlog", "To Do", and custom To Do statuses
+
+- **PATCH 3**: Decomposition queue uses statusCategory
+  - `get_epics_todo()` now uses `statusCategory = 'To Do'`
+  - `get_epics_for_decomposition()` uses `statusCategory = 'To Do' OR statusCategory = 'In Progress'`
+
+- **PATCH 4**: Documentation
+  - README.md: Added auto-repair section and Jira Status Category Queries section
+  - ENGINE-RUN-ARTIFACTS.md: Added auto-repair and statusCategory sections
+
+### Files Modified:
+- `scripts/autonomous-agent/engine.py`
+- `scripts/autonomous-agent/work_ledger.py`
+- `scripts/autonomous-agent/README.md`
+- `scripts/autonomous-agent/reports/ENGINE-RUN-ARTIFACTS.md`
+- `scripts/autonomous-agent/tests/test_verifier_autorepair_missing_checklist.py` (new)
+- `scripts/autonomous-agent/tests/test_implement_queue_statuscategory_todo.py` (new)
+
+### Definition of Done:
+- [x] Auto-repair prepends skeleton with `## Checklist` when missing
+- [x] Original content preserved in `## Appendix`
+- [x] Repair de-duplication prevents repeated rewrites
+- [x] Cooldown prevents hot-loop
+- [x] Implement queue uses `statusCategory = 'To Do'`
+- [x] Decomposition queue uses `statusCategory`
+- [x] Tests added for all patches
+- [x] All 314 tests pass
+- [x] Documentation updated
+
+---
 
 ## [KAN-25] Implement: [EA-20] EPIC 14 — ISSUE-FIX-KIND-CLARITY-1
 

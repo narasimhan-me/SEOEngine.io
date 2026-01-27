@@ -5,6 +5,7 @@ This document defines the canonical locations and naming conventions for artifac
 **PATCH BATCH: AUTONOMOUS-AGENT-RESUME-STATE-MACHINE-RECONCILE-1 FIXUP-1**
 **PATCH BATCH: AUTONOMOUS-AGENT-JIRA-PAYLOAD-HARDENING-AND-IDEMPOTENCY-1**
 **PATCH BATCH: AUTONOMOUS-AGENT-VERIFICATION-BACKOFF-FATAL-CLASSIFY-TIMEOUT-UNIFY-1**
+**PATCH BATCH: AUTONOMOUS-AGENT-VERIFY-AUTOREPAIR-STATUSCATEGORY-JQL-1**
 
 ## Canonical Directories
 
@@ -114,6 +115,64 @@ Skeleton creation uses atomic write:
 1. Write to temp file with `.tmp` suffix
 2. `os.replace()` to canonical path
 3. Cleanup temp file on failure
+
+## Verification Auto-Repair (AUTOREPAIR-1 PATCH 1)
+
+When verification encounters a report missing `## Checklist`, the engine auto-repairs it.
+
+### Repair Behavior
+
+| Step | Action |
+|------|--------|
+| 1 | Compute pre-repair hash for dedup |
+| 2 | Check if already repaired for this hash (skip if yes) |
+| 3 | Prepend canonical skeleton with `## Checklist` |
+| 4 | Move original content to `## Appendix (previous content)` |
+| 5 | Write atomically (temp + os.replace) |
+| 6 | Post Jira comment (deduplicated) |
+| 7 | Set cooldown and return (no re-verify in same pass) |
+
+### Repair De-duplication
+
+Repair is tracked in Work Ledger to prevent repeated rewrites:
+
+| Condition | Action |
+|-----------|--------|
+| `verify_repair_last_report_hash` == pre-hash | Skip rewrite, just refresh cooldown |
+| Hash differs or no previous repair | Apply repair |
+
+### Work Ledger Fields (Auto-repair)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `verify_repair_applied_at` | ISO8601 UTC | When repair was applied |
+| `verify_repair_last_report_hash` | SHA256 hex | Pre-repair hash (dedup) |
+| `verify_repair_count` | int | Cumulative repair count |
+
+## Jira Status Category Queries (AUTOREPAIR-1 PATCH 2-3)
+
+The engine uses `statusCategory` for flexible status matching.
+
+### Implement Queue
+
+| Query | JQL |
+|-------|-----|
+| Stories | `statusCategory = 'To Do'` |
+| Epics | `statusCategory = 'To Do'` |
+
+Includes: "To Do", "Backlog", "Ready for Dev", and custom To Do statuses.
+
+### Decomposition Queue
+
+| Query | JQL |
+|-------|-----|
+| Epics | `statusCategory = 'To Do' OR statusCategory = 'In Progress'` |
+
+### Verify/Close Queue
+
+| Query | JQL |
+|-------|-----|
+| Stories | `statusCategory = 'In Progress' OR status = 'BLOCKED'` |
 
 ## VERIFY/CLOSE Backoff + Comment De-dup (PATCH 2)
 

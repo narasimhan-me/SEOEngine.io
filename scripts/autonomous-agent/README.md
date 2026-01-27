@@ -220,6 +220,28 @@ The skeleton is created (if missing) at two points:
 
 **Important**: Existing files are never overwritten (idempotent behavior).
 
+### Auto-Repair for Missing Checklist
+
+When verification encounters a report missing the required `## Checklist` header, the engine automatically repairs it:
+
+1. **Prepends canonical skeleton** with `## Checklist` and required unchecked items
+2. **Preserves original content** under `## Appendix (previous content)`
+3. **Sets cooldown** to prevent hot-loop (same as VERIFY backoff)
+4. **Posts single Jira comment** (de-duplicated) explaining the repair
+
+**Repair De-duplication:**
+- Repair is tracked via `verify_repair_last_report_hash` in Work Ledger
+- If the same pre-repair hash is seen again, no rewrite occurs (just cooldown refresh)
+- This prevents repeated rewrites if the report is not manually updated
+
+**Work Ledger Fields (Auto-repair):**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `verify_repair_applied_at` | ISO8601 UTC | When repair was applied |
+| `verify_repair_last_report_hash` | SHA256 hex | Pre-repair hash (dedup) |
+| `verify_repair_count` | int | Cumulative repair count |
+
 ## VERIFY/CLOSE Backoff
 
 The engine implements backoff logic to prevent VERIFY/CLOSE thrashing and Jira comment spam.
@@ -342,3 +364,36 @@ All steps use `self.claude_timeout_seconds`:
 
 Keep `ENGINEO_CLAUDE_TIMEOUT_SECONDS` unset unless intentionally overriding.
 Setting very low values (< 300s) may cause premature timeouts during complex operations.
+
+## Jira Status Category Queries
+
+The engine uses Jira `statusCategory` for flexible status matching across different workflow configurations.
+
+### Rationale
+
+Jira workflows may have custom statuses (e.g., "Backlog", "Ready for Dev", "Waiting") that all belong to the same category. Using `statusCategory` instead of exact `status` ensures the engine picks up all relevant issues regardless of custom status names.
+
+### Implement Queue
+
+| Query | JQL |
+|-------|-----|
+| Stories to implement | `statusCategory = 'To Do'` |
+| Epics to implement | `statusCategory = 'To Do'` |
+
+**Includes:** "To Do", "Backlog", "Ready for Dev", and any custom To Do statuses.
+
+### Decomposition Queue
+
+| Query | JQL |
+|-------|-----|
+| Epics for decomposition | `statusCategory = 'To Do' OR statusCategory = 'In Progress'` |
+
+**Includes:** All To Do and In Progress epics (additional filtering for no children is applied separately).
+
+### Verify/Close Queue
+
+| Query | JQL |
+|-------|-----|
+| Stories for verification | `statusCategory = 'In Progress' OR status = 'BLOCKED'` |
+
+**Includes:** All In Progress statuses plus explicitly BLOCKED status.
