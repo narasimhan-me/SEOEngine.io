@@ -21,6 +21,7 @@ export type FixTypeLabel = 'AI' | 'Template' | 'Guidance' | 'Rule-based';
 /**
  * Recommended playbook descriptor with metadata for display in RCP and list views.
  * All fields are static/pre-computed; no runtime evaluation.
+ * [ISSUE-FIX-KIND-CLARITY-1] fixTypeLabel and fixTypeDescription are now required per EA-20 EPIC 14.
  */
 export interface RecommendedPlaybook {
   /** Canonical playbook ID (must be PlaybookId) */
@@ -33,16 +34,17 @@ export interface RecommendedPlaybook {
   affects: string;
   /** Static preconditions (non-speculative, non-evaluated) */
   preconditions: string[];
-  /** [ISSUE-FIX-KIND-CLARITY-1] Fix type label for user clarity */
-  fixTypeLabel?: FixTypeLabel;
-  /** [ISSUE-FIX-KIND-CLARITY-1] User-facing description of fix type */
-  fixTypeDescription?: string;
+  /** [ISSUE-FIX-KIND-CLARITY-1] Fix type label for user clarity (required) */
+  fixTypeLabel: FixTypeLabel;
+  /** [ISSUE-FIX-KIND-CLARITY-1] User-facing description of fix type (required) */
+  fixTypeDescription: string;
 }
 
 /**
  * Static mapping from issue type to recommended playbook(s).
  * Keys are issue.type values (or issue.id fallback).
  * [FIXUP-1] Copy safety: uses "assets within playbook scope" instead of asserting specific asset types.
+ * [ISSUE-FIX-KIND-CLARITY-1] All mappings now include fixTypeLabel and fixTypeDescription per EA-20 EPIC 14.
  */
 const ISSUE_TO_PLAYBOOK_MAP: Record<string, RecommendedPlaybook[]> = {
   missing_seo_title: [
@@ -78,6 +80,22 @@ const ISSUE_TO_PLAYBOOK_MAP: Record<string, RecommendedPlaybook[]> = {
       fixTypeLabel: 'AI',
       fixTypeDescription:
         'AI-generated suggestions that you review before applying',
+    },
+  ],
+  not_answer_ready: [
+    {
+      playbookId: 'not_answer_ready' as PlaybookId,
+      name: 'Review thin content',
+      oneLineWhatItDoes:
+        'Provides guidance on enriching thin content to make it answer-ready.',
+      affects: 'Assets within the current playbook scope with insufficient content',
+      preconditions: [
+        'This is a diagnostic issue requiring manual content enrichment.',
+        'No automated fix is available; review and manual editing required.',
+      ],
+      fixTypeLabel: 'Guidance',
+      fixTypeDescription:
+        'Step-by-step guidance for manual review and improvement',
     },
   ],
 };
