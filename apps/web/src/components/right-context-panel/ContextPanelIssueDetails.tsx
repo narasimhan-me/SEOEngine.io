@@ -241,6 +241,7 @@ export function ContextPanelIssueDetails({
 
   // [FIXUP-3][FIXUP-4] Derive actionability label and guidance
   // FIXUP-4: isActionableNow must be explicitly true to be actionable; undefined treated as blocked
+  // [ISSUE-FIX-ROUTE-INTEGRITY-1] All states include actionable guidance explaining what user can do
   const getActionabilityInfo = () => {
     if (issue.actionability === 'informational') {
       return {
@@ -258,6 +259,7 @@ export function ContextPanelIssueDetails({
       };
     }
     // FIXUP-4: Blocked label de-speculated (no "permissions" claim)
+    // [ISSUE-FIX-ROUTE-INTEGRITY-1] Blocked states include clear explanation of why action unavailable
     return {
       label: 'Blocked — not actionable in this context',
       guidance:

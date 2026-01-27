@@ -196,10 +196,12 @@ function IssueCard({
   const safeDescription = getSafeIssueDescription(issue);
 
   // [DIAGNOSTIC-GUIDANCE-1] Issues with actionability === 'informational' are outside EngineO.ai control
+  // [ISSUE-FIX-ROUTE-INTEGRITY-1] Informational issues display explanation badges, never dead CTAs
   const isOutsideEngineControl = issue.actionability === 'informational';
 
   // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Actionable = has a real href from buildIssueFixHref
   // [DIAGNOSTIC-GUIDANCE-1] Outside-control issues are never actionable (no Fix/Review CTA)
+  // [ISSUE-FIX-ROUTE-INTEGRITY-1] Ensures no dead clicks: only issues with valid fix paths are clickable
   const fixHref =
     projectId && !isOutsideEngineControl
       ? buildIssueFixHref({ projectId, issue })
@@ -260,6 +262,7 @@ function IssueCard({
             </span>
             {/* [DIAGNOSTIC-GUIDANCE-1] Outside-control issues get specific label */}
             {/* [ISSUE-TO-FIX-PATH-1] Informational badge for orphan issues (non-outside-control) */}
+            {/* [ISSUE-FIX-ROUTE-INTEGRITY-1] Blocked states visually distinguishable with explanation */}
             {!actionable && (
               <span
                 className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600 border border-gray-200"

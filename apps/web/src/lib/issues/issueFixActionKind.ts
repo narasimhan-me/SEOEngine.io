@@ -1,10 +1,17 @@
 /**
  * ISSUE-FIX-KIND-CLARITY-1 FIXUP-3: Fix Action Kind Derivation
+ * [EA-19 EPIC 13] ISSUE-FIX-ROUTE-INTEGRITY-1 Implementation
  *
  * Derives canonical "fix action kind" for Issues Engine CTAs.
  * Uses existing destination map and issue config as sources of truth.
  *
  * NO GUESSWORK: Only uses signals that are already computed and deterministic.
+ *
+ * ROUTE INTEGRITY CONTRACT:
+ * - AI_PREVIEW_FIX: Valid preview workflow available
+ * - DIRECT_FIX: Valid navigation to workspace
+ * - GUIDANCE_ONLY: Informational review (no automatic fix)
+ * - BLOCKED: No action reachable (explicit blocked state with reason)
  */
 
 import type { DeoIssueFixType } from '../deo-issues';

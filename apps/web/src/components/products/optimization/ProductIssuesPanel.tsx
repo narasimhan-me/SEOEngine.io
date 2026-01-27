@@ -138,6 +138,7 @@ export function ProductIssuesPanel({
 
       {/* [COUNT-INTEGRITY-1.1 PATCH 6] Zero-actionable suppression message */}
       {/* [UI-POLISH-&-CLARITY-1 FIXUP-1] Token-only warning styling */}
+      {/* [ISSUE-FIX-ROUTE-INTEGRITY-1] Clear explanation when no actions available */}
       {hasZeroActionable && (
         <div
           className="rounded-lg border border-border bg-[hsl(var(--warning-background))] p-4 text-center"
@@ -286,6 +287,7 @@ function IssueRow({
   const safeDescription = getSafeIssueDescription(issue);
 
   // [ISSUE-FIX-ROUTE-INTEGRITY-1] Handle gracefully with explicit blocked state explanation
+  // [ISSUE-FIX-ROUTE-INTEGRITY-1] Non-actionable rows render as static (no dead clicks)
   if (!href) {
     return (
       <div className="px-4 py-3 flex items-start gap-3">

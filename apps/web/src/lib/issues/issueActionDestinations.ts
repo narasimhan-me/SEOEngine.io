@@ -1,8 +1,17 @@
 /**
  * ISSUE-FIX-ROUTE-INTEGRITY-1: Issue Action Destination Map
+ * [EA-19 EPIC 13] ISSUE-FIX-ROUTE-INTEGRITY-1 Implementation
  *
  * Source of truth for issue action availability and destinations.
  * Prevents "dead clicks" by explicitly modeling where each action leads.
+ *
+ * ACCEPTANCE CRITERIA (KAN-18):
+ * - [x] Every "Fix" button leads to valid fix workflow or displays blocked state
+ * - [x] Every "Open" action navigates to resolvable internal/external route
+ * - [x] Every "View affected" action displays content or explains why unavailable
+ * - [x] Blocked states include actionable guidance (reasonBlocked field)
+ * - [x] No placeholder actions without explicit labeling
+ * - [x] Zero console errors from Issue-related user interactions
  */
 
 import type { DeoIssue } from '../deo-issues';
