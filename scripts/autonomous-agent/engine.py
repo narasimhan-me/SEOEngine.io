@@ -3647,9 +3647,13 @@ Examples:
 
     args = parser.parse_args()
 
-    # PATCH 1: Deterministic dotenv loading (no .zshrc sourcing)
-    # Load from scripts/autonomous-agent/.env first
+    # PATCH 1 + PATCH 3: Deterministic dotenv loading (no .zshrc sourcing)
+    # Load from scripts/autonomous-agent/.env first, fallback to repo root .env
     dotenv_count = load_dotenv(SCRIPT_DIR / '.env')
+    if dotenv_count == 0:
+        # Fallback to repo root .env (SCRIPT_DIR is scripts/autonomous-agent/)
+        repo_root = SCRIPT_DIR.parent.parent
+        dotenv_count = load_dotenv(repo_root / '.env')
     if dotenv_count > 0:
         print(f"[SETUP] Loaded {dotenv_count} variables from .env")
 

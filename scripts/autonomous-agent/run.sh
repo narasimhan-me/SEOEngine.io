@@ -21,12 +21,6 @@ echo " EngineO Autonomous Execution Engine"
 echo "=========================================="
 echo ""
 
-# Load environment variables from ~/.zshrc (if exists)
-if [ -f "$HOME/.zshrc" ]; then
-    echo "[SETUP] Loading environment from ~/.zshrc..."
-    source "$HOME/.zshrc" 2>/dev/null || true
-fi
-
 # Load .env file (if exists) - fills missing vars only
 load_dotenv() {
     local envfile="$1"
@@ -77,8 +71,8 @@ if [ ${#MISSING_VARS[@]} -ne 0 ]; then
         echo "  - $var"
     done
     echo ""
-    echo "Please set these in ~/.zshrc or scripts/autonomous-agent/.env"
-    echo "See .env.example for template."
+    echo "Please set these in scripts/autonomous-agent/.env or repo root .env"
+    echo "(or export them in your shell). See .env.example for template."
     exit 1
 fi
 
