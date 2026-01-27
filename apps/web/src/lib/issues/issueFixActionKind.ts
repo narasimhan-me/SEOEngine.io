@@ -50,6 +50,16 @@ export interface IssueFixActionKindInfo {
     | 'nav.projects'
     | 'playbook.content'
     | 'status.blocked';
+  /**
+   * [ERROR-&-BLOCKED-STATE-UX-1] Human-readable explanation for blocked state.
+   * Only populated when kind === 'BLOCKED'.
+   */
+  blockedReason?: string;
+  /**
+   * [ERROR-&-BLOCKED-STATE-UX-1] Clear next step for blocked state.
+   * Only populated when kind === 'BLOCKED'.
+   */
+  nextStep?: string;
 }
 
 /**
@@ -151,6 +161,9 @@ export function getIssueFixActionKindInfo(
         label: 'Blocked',
         sublabel: 'No action available',
         iconKey: 'status.blocked',
+        // [ERROR-&-BLOCKED-STATE-UX-1] Provide clear explanation and next step
+        blockedReason: 'This issue cannot be acted upon in the current context.',
+        nextStep: 'Review the issue details or check if related assets need attention first.',
       };
   }
 }

@@ -37,6 +37,23 @@ export interface ResolvedRowNextAction {
   secondaryAction: RowAction | null;
   /** Neutral help text for optimized state */
   helpText?: string;
+  /**
+   * [ERROR-&-BLOCKED-STATE-UX-1] Human-readable explanation of WHY the action is blocked.
+   * Displayed inline with the chip, not hidden behind tooltips.
+   */
+  blockedReason?: string;
+  /**
+   * [ERROR-&-BLOCKED-STATE-UX-1] Clear next step the user can take to resolve the blocker.
+   * Always answers "What can I do now?"
+   */
+  nextStep?: string;
+  /**
+   * [ERROR-&-BLOCKED-STATE-UX-1] Blocker category for visual distinction and screen reader context.
+   * - 'approval_required': Awaiting someone's approval (within user's control to request)
+   * - 'permission': User lacks permission (contact admin)
+   * - 'system': System limitation (wait or contact support)
+   */
+  blockerCategory?: 'approval_required' | 'permission' | 'system';
 }
 
 export interface RowNextActionInput {
@@ -129,6 +146,16 @@ export function resolveRowNextAction(
         ? requestApprovalHref || reviewDraftsHref
         : viewApprovalStatusHref || reviewDraftsHref;
 
+      // [ERROR-&-BLOCKED-STATE-UX-1] Determine blocked reason and next step based on user's ability to act
+      const blockedReason = canRequestApproval
+        ? 'Draft is awaiting approval before it can be applied.'
+        : 'Draft requires approval from a project owner.';
+      const nextStep = canRequestApproval
+        ? 'Request approval to proceed with applying this draft.'
+        : 'Contact a project owner to approve or request approval on your behalf.';
+      const blockerCategory: 'approval_required' | 'permission' =
+        canRequestApproval ? 'approval_required' : 'permission';
+
       return {
         chipLabel: '⛔ Blocked',
         primaryAction: {
@@ -139,6 +166,9 @@ export function resolveRowNextAction(
           label: 'Open',
           href: openHref,
         },
+        blockedReason,
+        nextStep,
+        blockerCategory,
       };
     }
 

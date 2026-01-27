@@ -503,7 +503,12 @@ export default function PagesAssetListPage() {
         cell: (row) => {
           const resolved = resolvedActionsById.get(row.id);
           return resolved?.chipLabel ? (
-            <RowStatusChip chipLabel={resolved.chipLabel} />
+            <RowStatusChip
+              chipLabel={resolved.chipLabel}
+              blockedReason={resolved.blockedReason}
+              nextStep={resolved.nextStep}
+              blockerCategory={resolved.blockerCategory}
+            />
           ) : (
             <span
               className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${getHealthStyles(row.health)}`}
