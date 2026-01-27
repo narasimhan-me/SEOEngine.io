@@ -78,6 +78,11 @@ class WorkLedgerEntry:
     - verify_last_report_mtime: float|null - mtime of report at last failure
     - verify_last_commented_reason: string|null - dedup: last reason commented
     - verify_last_commented_report_hash: string|null - dedup: last hash commented
+
+    VERIFY-AUTOREPAIR-1 PATCH 1 fields:
+    - verify_repair_applied_at: ISO-8601 UTC string|null - when auto-repair was applied
+    - verify_repair_last_report_hash: string|null - sha256 of pre-repair report (dedup)
+    - verify_repair_count: int - number of times repair was applied
     """
     issueKey: str
     issueType: str = "Story"
@@ -98,6 +103,10 @@ class WorkLedgerEntry:
     verify_last_report_mtime: Optional[float] = None
     verify_last_commented_reason: Optional[str] = None
     verify_last_commented_report_hash: Optional[str] = None
+    # VERIFY-AUTOREPAIR-1 PATCH 1: Auto-repair tracking fields
+    verify_repair_applied_at: Optional[str] = None
+    verify_repair_last_report_hash: Optional[str] = None
+    verify_repair_count: int = 0
 
     def to_dict(self) -> dict:
         """Convert entry to dictionary for JSON serialization."""
@@ -126,6 +135,10 @@ class WorkLedgerEntry:
             verify_last_report_mtime=data.get('verify_last_report_mtime'),
             verify_last_commented_reason=data.get('verify_last_commented_reason'),
             verify_last_commented_report_hash=data.get('verify_last_commented_report_hash'),
+            # VERIFY-AUTOREPAIR-1 PATCH 1: Auto-repair fields (backward compatible)
+            verify_repair_applied_at=data.get('verify_repair_applied_at'),
+            verify_repair_last_report_hash=data.get('verify_repair_last_report_hash'),
+            verify_repair_count=data.get('verify_repair_count', 0),
         )
 
 
