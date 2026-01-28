@@ -40,7 +40,7 @@ import time
 import subprocess
 import smtplib
 import requests
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dataclasses import dataclass, field
@@ -77,6 +77,8 @@ from decomposition_manifest import (
     compute_intent_id,
     should_decompose,
 )
+
+from blocking_escalations import BlockingEscalationsStore
 
 # Claude Code CLI is used for all personas (no API key required)
 # Model configuration per persona:
@@ -119,8 +121,11 @@ LEDGER_VERSION = 1
 # Escalation queue path (runtime-only, never tracked)
 ESCALATIONS_REL_PATH = ".engineo/escalations.json"
 
+# Blocking escalations path (runtime-only, never tracked)
+BLOCKING_ESCALATIONS_REL_PATH = ".engineo/blocking_escalations.json"
+
 # Runtime paths that must NEVER be staged/committed
-RUNTIME_IGNORED_PATHS = {LEDGER_REL_PATH, CLAUDE_LOCK_REL_PATH, ESCALATIONS_REL_PATH, WORK_LEDGER_FILENAME}
+RUNTIME_IGNORED_PATHS = {LEDGER_REL_PATH, CLAUDE_LOCK_REL_PATH, ESCALATIONS_REL_PATH, WORK_LEDGER_FILENAME, BLOCKING_ESCALATIONS_REL_PATH}
 
 # Secret env vars to redact from output (values only, not names)
 CLAUDE_SECRET_ENV_VARS = ["JIRA_TOKEN", "JIRA_API_TOKEN", "GITHUB_TOKEN"]
@@ -176,14 +181,170 @@ VERIFICATION_REPORT_SKELETON_TEMPLATE = """# {issue_key} Verification Report
 """
 
 
+def _artifact_dirname() -> str:
+    """Get the canonical repo-root artifact directory name.
+
+    Configurable via ENGINEO_ARTIFACTS_DIR. Defaults to 'reports'.
+    """
+    value = os.environ.get("ENGINEO_ARTIFACTS_DIR", "reports").strip()
+    value = value.strip("/\\")
+    return value or "reports"
+
+
+def _env_csv(name: str, default_csv: str) -> List[str]:
+    """Read a comma-separated env var into a list; default if unset/blank."""
+    raw = os.environ.get(name, "")
+    src = raw if raw.strip() else default_csv
+    parts = [p.strip() for p in src.split(",")]
+    return [p for p in parts if p]
+
+
+def _parse_positive_int(raw: str, default: int) -> int:
+    try:
+        v = int(raw)
+        return v if v > 0 else default
+    except (ValueError, TypeError):
+        return default
+
+
+def _jql_issuetype_in(types: List[str]) -> str:
+    quoted = ", ".join([f'"{t}"' for t in types])
+    return f"issuetype in ({quoted})" if quoted else "issuetype is not EMPTY"
+
+
+def _contract_idea_key_prefix() -> str:
+    return os.environ.get("ENGINEO_CONTRACT_IDEA_KEY_PREFIX", "EA-").strip() or "EA-"
+
+
+def _contract_idea_issue_types() -> List[str]:
+    return _env_csv("ENGINEO_CONTRACT_IDEA_ISSUE_TYPES", "Idea,Initiative")
+
+
+def _contract_epic_issue_types() -> List[str]:
+    return _env_csv("ENGINEO_CONTRACT_EPIC_ISSUE_TYPES", "Epic")
+
+
+def _contract_implement_issue_types() -> List[str]:
+    return _env_csv("ENGINEO_CONTRACT_IMPLEMENT_ISSUE_TYPES", "Story,Bug")
+
+
+def _contract_done_status_categories() -> List[str]:
+    return _env_csv("ENGINEO_CONTRACT_DONE_STATUS_CATEGORIES", "Done")
+
+
+def _contract_done_status_names() -> List[str]:
+    return _env_csv("ENGINEO_CONTRACT_DONE_STATUS_NAMES", "Done,Complete,Closed,Resolved")
+
+
+def _contract_terminal_child_status_names() -> List[str]:
+    return _env_csv(
+        "ENGINEO_CONTRACT_TERMINAL_CHILD_STATUS_NAMES",
+        "Done,Duplicate,Canceled,Cancelled,Closed,Resolved,Complete",
+    )
+
+
+def _is_done_status(status_name: str, status_category_name: str = "") -> bool:
+    s = (status_name or "").strip().lower()
+    c = (status_category_name or "").strip().lower()
+    done_cats = {x.lower() for x in _contract_done_status_categories()}
+    done_names = {x.lower() for x in _contract_done_status_names()}
+    return (c and c in done_cats) or (s and s in done_names)
+
+
+def _is_terminal_child_status(status_name: str, status_category_name: str = "") -> bool:
+    if _is_done_status(status_name, status_category_name):
+        return True
+    s = (status_name or "").strip().lower()
+    terminal = {x.lower() for x in _contract_terminal_child_status_names()}
+    return s in terminal
+
+
+def _infer_idea_key_from_epic_issue(epic_issue: dict) -> Optional[str]:
+    """Infer Idea key for an Epic via mapping label; fallback to summary prefix if enabled."""
+    prefix = os.environ.get("ENGINEO_CONTRACT_IDEA_LABEL_PREFIX", "engineo-idea-")
+    allow_fallback = os.environ.get(
+        "ENGINEO_CONTRACT_ALLOW_SUMMARY_IDEA_PREFIX_FALLBACK", "true"
+    ).strip().lower() in ("1", "true", "yes")
+
+    labels = epic_issue.get("fields", {}).get("labels", []) or []
+    for label in labels:
+        if isinstance(label, str) and label.startswith(prefix):
+            candidate = label[len(prefix):].strip()
+            if candidate and candidate.startswith(_contract_idea_key_prefix()):
+                return candidate
+
+    if allow_fallback:
+        summary = epic_issue.get("fields", {}).get("summary", "") or ""
+        m = re.match(r"^\[([A-Z]+-\d+)\]", summary.strip())
+        if m:
+            candidate = m.group(1)
+            if candidate.startswith(_contract_idea_key_prefix()):
+                return candidate
+
+    return None
+
+
+def _should_attempt_reconcile(
+    entry: Optional['WorkLedgerEntry'],
+    fingerprint: Optional[str],
+    now_ts: Optional[float] = None
+) -> Tuple[bool, str]:
+    """Reconcile backoff gating (loop guard).
+
+    Rules:
+    - No ledger entry: allow
+    - Fingerprint changed since last reconcile failure: allow immediately
+    - Cooldown active AND fingerprint unchanged: skip
+    """
+    if entry is None:
+        return (True, "no_ledger_entry")
+    if not fingerprint:
+        return (True, "no_fingerprint")
+
+    if entry.reconcile_last_fingerprint and entry.reconcile_last_fingerprint != fingerprint:
+        return (True, "fingerprint_changed")
+
+    if not entry.reconcile_next_at:
+        return (True, "no_cooldown")
+
+    if now_ts is None:
+        now_ts = datetime.now(timezone.utc).timestamp()
+
+    try:
+        next_at = datetime.fromisoformat(entry.reconcile_next_at)
+        if next_at.tzinfo is None:
+            next_at = next_at.replace(tzinfo=timezone.utc)
+        if next_at.timestamp() > now_ts:
+            return (False, "cooldown_active_unchanged_fingerprint")
+    except (ValueError, TypeError):
+        pass
+
+    return (True, "cooldown_elapsed")
+
+
+def _should_post_reconcile_comment(
+    entry: Optional['WorkLedgerEntry'],
+    reason: str,
+    fingerprint: Optional[str]
+) -> bool:
+    """Reconcile comment de-duplication."""
+    if entry is None:
+        return True
+    if (entry.reconcile_last_commented_reason == reason and
+        entry.reconcile_last_commented_fingerprint == fingerprint):
+        return False
+    return True
+
+
 def _canonical_verification_report_relpath(issue_key: str) -> str:
     """Get canonical verification report repo-relative path.
 
     PATCH 4: Single canonical path only (no run_id variants).
 
-    Returns: reports/{ISSUE_KEY}-verification.md (repo root level)
+    Returns: {ARTIFACTS_DIR}/{ISSUE_KEY}-verification.md (repo root level)
     """
-    return f"reports/{issue_key}-verification.md"
+    artifacts_dir = _artifact_dirname()
+    return f"{artifacts_dir}/{issue_key}-verification.md"
 
 
 def _legacy_verification_report_relpath(issue_key: str) -> str:
@@ -197,13 +358,13 @@ def _legacy_verification_report_relpath(issue_key: str) -> str:
 def _find_near_match_reports(repo_path: str, issue_key: str) -> List[str]:
     """Search for near-match verification reports for fail-fast remediation.
 
-    PATCH 4: Searches both repo root reports/ and scripts/autonomous-agent/reports/.
+    PATCH 4: Searches both repo root {ARTIFACTS_DIR}/ and scripts/autonomous-agent/reports/.
 
     Returns: List of found paths matching the issue key pattern.
     """
     near_matches = []
     search_dirs = [
-        Path(repo_path) / "reports",
+        Path(repo_path) / _artifact_dirname(),
         Path(repo_path) / "scripts" / "autonomous-agent" / "reports",
     ]
 
@@ -454,11 +615,12 @@ def _write_patch_batch_artifact(repo_path: str, epic_key: str, run_id: str, cont
         Tuple of (epic_artifact_path, story_artifact_path_pattern).
         The story_artifact_path_pattern is the pattern used for the final stable path.
     """
-    reports_dir = Path(repo_path) / "reports"
+    artifacts_dir = _artifact_dirname()
+    reports_dir = Path(repo_path) / artifacts_dir
     reports_dir.mkdir(parents=True, exist_ok=True)
 
     # Write to {EPIC_KEY}-{run_id}-patch-batch.md
-    epic_artifact_path = f"reports/{epic_key}-{run_id}-patch-batch.md"
+    epic_artifact_path = f"{artifacts_dir}/{epic_key}-{run_id}-patch-batch.md"
     full_epic_path = Path(repo_path) / epic_artifact_path
     temp_path = full_epic_path.with_suffix('.md.tmp')
 
@@ -473,7 +635,7 @@ def _write_patch_batch_artifact(repo_path: str, epic_key: str, run_id: str, cont
         raise
 
     # Return pattern for story-specific path (will be created after story key is known)
-    story_pattern = "reports/{STORY_KEY}-patch-batch.md"
+    story_pattern = f"{artifacts_dir}/{{STORY_KEY}}-patch-batch.md"
     return epic_artifact_path, story_pattern
 
 
@@ -490,7 +652,8 @@ def _copy_patch_batch_for_story(repo_path: str, epic_artifact_path: str, story_k
     Returns:
         The story-specific patch batch path.
     """
-    story_path = f"reports/{story_key}-patch-batch.md"
+    artifacts_dir = _artifact_dirname()
+    story_path = f"{artifacts_dir}/{story_key}-patch-batch.md"
     full_story_path = Path(repo_path) / story_path
     full_epic_path = Path(repo_path) / epic_artifact_path
 
@@ -524,12 +687,13 @@ def _load_patch_batch_from_file(repo_path: str, story_key: str, description: str
     Returns:
         Tuple of (patch_batch_content, source_path) or (None, None) if not found.
     """
+    artifacts_dir = _artifact_dirname()
     # Priority 1: Story-specific stable path
-    story_path = Path(repo_path) / f"reports/{story_key}-patch-batch.md"
+    story_path = Path(repo_path) / f"{artifacts_dir}/{story_key}-patch-batch.md"
     if story_path.exists():
         try:
             content = story_path.read_text(encoding='utf-8')
-            return content, f"reports/{story_key}-patch-batch.md"
+            return content, f"{artifacts_dir}/{story_key}-patch-batch.md"
         except OSError:
             pass
 
@@ -1058,15 +1222,12 @@ def _is_transient_claude_failure(text: str) -> bool:
 def choose_transition(names: List[str]) -> Optional[str]:
     """Choose best transition name from available options.
 
-    PATCH 2-B: Priority order (case-insensitive exact match):
-    1. Resolved
-    2. Done
-    3. Closed
-    4. Complete
+    Priority order is configurable via ENGINEO_CONTRACT_DONE_TRANSITIONS_PRIORITY.
+    Default (case-insensitive exact match): Resolved > Done > Closed > Complete
 
     Returns: Chosen transition name or None if no match.
     """
-    priority = ['Resolved', 'Done', 'Closed', 'Complete']
+    priority = _env_csv("ENGINEO_CONTRACT_DONE_TRANSITIONS_PRIORITY", "Resolved,Done,Closed,Complete")
     names_lower = {n.lower(): n for n in names}
 
     for target in priority:
@@ -1347,13 +1508,14 @@ class JiraClient:
         return result.get('issues', [])
 
     def get_ideas_todo(self) -> List[dict]:
-        """Get Ideas (Initiatives) with exact 'TO DO' status from Product Discovery project
+        """Get Ideas (Initiatives) with exact 'TO DO' status from Product Discovery project.
 
-        Note: We filter by status = 'TO DO' (exact match), not statusCategory = 'To Do'.
-        This ensures we only get Ideas that are explicitly marked as TO DO,
-        not those in 'Parking lot' or other statuses within the To Do category.
+        Contract: Key prefix alone is not sufficient; issuetype is authoritative.
+        Idea issuetypes are configurable via ENGINEO_CONTRACT_IDEA_ISSUE_TYPES.
         """
-        jql = f'project = {self.config.product_discovery_project} AND status = "TO DO" ORDER BY created ASC'
+        idea_types = _contract_idea_issue_types()
+        type_clause = _jql_issuetype_in(idea_types)
+        jql = f'project = {self.config.product_discovery_project} AND {type_clause} AND status = "TO DO" ORDER BY created ASC'
         return self.search_issues(jql, ['summary', 'status', 'issuetype', 'description'])
 
     def get_epics_todo(self) -> List[dict]:
@@ -1428,9 +1590,11 @@ class JiraClient:
     def get_ideas_in_progress(self) -> List[dict]:
         """Get Ideas with 'In Progress' status (for recovery/reconciliation).
 
-        PATCH 2: Enables EA-19 style Ideas to be recovered.
+        Contract: Key prefix alone is not sufficient; issuetype is authoritative.
         """
-        jql = f"project = {self.config.product_discovery_project} AND status = 'In Progress' ORDER BY created ASC"
+        idea_types = _contract_idea_issue_types()
+        type_clause = _jql_issuetype_in(idea_types)
+        jql = f"project = {self.config.product_discovery_project} AND {type_clause} AND status = 'In Progress' ORDER BY created ASC"
         return self.search_issues(jql, ['summary', 'status', 'description', 'issuetype'])
 
     def get_children_for_epic(self, epic_key: str) -> List[dict]:
@@ -1442,12 +1606,12 @@ class JiraClient:
         return self.search_issues(jql, ['summary', 'status', 'statusCategory', 'issuetype'])
 
     def get_epics_for_idea(self, idea_key: str) -> List[dict]:
-        """Get Epics associated with an Idea (by summary prefix).
+        """Get Epics associated with an Idea (stable mapping label).
 
-        PATCH 2: Used to check if all Epics under an Idea are resolved.
+        Contract: Jira parent/child links (or stable mapping) are authoritative.
+        Uses find_epics_for_idea() which prefers label engineo-idea-{IDEA_KEY}.
         """
-        jql = f'project = {self.config.software_project} AND issuetype = Epic AND summary ~ "[{idea_key}]" ORDER BY created ASC'
-        return self.search_issues(jql, ['summary', 'status', 'statusCategory', 'issuetype'])
+        return self.find_epics_for_idea(idea_key)
 
     def get_available_transition_names(self, issue_key: str) -> List[str]:
         """Get available transition names for an issue.
@@ -1579,6 +1743,9 @@ class JiraClient:
         print(f"[JIRA] CONTENT_LIMIT_EXCEEDED - retrying with short description mode")
 
         # PATCH A: Build minimal short description
+        # Fallback paths use {ARTIFACTS_DIR} placeholder if not provided
+        default_patch_path = '{ARTIFACTS_DIR}/{STORY_KEY}-patch-batch.md'
+        default_verify_path = '{ARTIFACTS_DIR}/{STORY_KEY}-verification.md'
         short_desc = f"""## Parent Epic
 {epic_key or 'N/A'}
 
@@ -1586,13 +1753,13 @@ class JiraClient:
 
 ## PATCH BATCH Location
 
-{PATCH_BATCH_FILE_MARKER} {patch_batch_file_path or 'reports/{STORY_KEY}-patch-batch.md'}
+{PATCH_BATCH_FILE_MARKER} {patch_batch_file_path or default_patch_path}
 
 ---
 
 ## Verification Report Path
 
-Canonical path: {verification_path or 'reports/{STORY_KEY}-verification.md'}
+Canonical path: {verification_path or default_verify_path}
 
 ---
 *Short description mode due to Jira content limits*
@@ -1619,14 +1786,14 @@ Canonical path: {verification_path or 'reports/{STORY_KEY}-verification.md'}
         # Primary search: label-based mapping
         label = f"engineo-idea-{idea_key}"
         jql = f'project = {self.config.software_project} AND issuetype = Epic AND labels = "{label}" ORDER BY created ASC'
-        labeled_epics = self.search_issues(jql, ['summary', 'status', 'description', 'labels'])
+        labeled_epics = self.search_issues(jql, ['summary', 'status', 'statusCategory', 'issuetype', 'description', 'labels'])
 
         if labeled_epics:
             return labeled_epics
 
         # Fallback: summary prefix match for legacy Epics
         jql_fallback = f'project = {self.config.software_project} AND issuetype = Epic AND summary ~ "[{idea_key}]" ORDER BY created ASC'
-        return self.search_issues(jql_fallback, ['summary', 'status', 'description', 'labels'])
+        return self.search_issues(jql_fallback, ['summary', 'status', 'statusCategory', 'issuetype', 'description', 'labels'])
 
     def transition_issue(self, issue_key: str, status_name: str) -> bool:
         """Transition an issue to a new status"""
@@ -2250,6 +2417,22 @@ class ExecutionEngine:
         else:
             self.log("SUPERVISOR", "Work ledger not found, will create on first update")
 
+        # CONFIGURABLE COOLDOWNS (env > .env > defaults)
+        self.verify_cooldown_seconds = _parse_positive_int(
+            os.environ.get("ENGINEO_VERIFY_COOLDOWN_SECONDS", ""),
+            VERIFY_COOLDOWN_SECONDS,
+        )
+        self.reconcile_cooldown_seconds = _parse_positive_int(
+            os.environ.get("ENGINEO_RECONCILE_COOLDOWN_SECONDS", ""),
+            600,
+        )
+        self.log("SUPERVISOR", f"Verify cooldown configured: {self.verify_cooldown_seconds}s")
+        self.log("SUPERVISOR", f"Reconcile cooldown configured: {self.reconcile_cooldown_seconds}s")
+
+        # BLOCKING ESCALATIONS (Story-scoped; runtime persistence)
+        self.blocking_escalations = BlockingEscalationsStore(self.config.repo_path)
+        self.blocking_escalations.load()
+
     def _utc_ts(self) -> str:
         """Generate UTC timestamp string for artifact naming."""
         return datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%SZ")
@@ -2274,15 +2457,10 @@ class ExecutionEngine:
     def _canonical_report_exists(self, issue_key: str) -> bool:
         """Check if canonical verification report exists for an issue.
 
-        PATCH 4: Canonical path is reports/{ISSUE_KEY}-verification.md
-
-        Args:
-            issue_key: The issue key (e.g., "KAN-17").
-
-        Returns:
-            True if canonical report exists.
+        Canonical path is {ARTIFACTS_DIR}/{ISSUE_KEY}-verification.md (artifact dir configurable).
         """
-        canonical_path = Path(self.config.repo_path) / "reports" / f"{issue_key}-verification.md"
+        rel = _canonical_verification_report_relpath(issue_key)
+        canonical_path = Path(self.config.repo_path) / rel
         return canonical_path.exists()
 
     def _upsert_work_ledger_entry(
@@ -2309,6 +2487,15 @@ class ExecutionEngine:
         verify_repair_applied_at: Optional[str] = None,
         verify_repair_last_report_hash: Optional[str] = None,
         verify_repair_count: Optional[int] = None,
+        # EA/KAN RECONCILE: backoff + comment dedup fields
+        reconcile_next_at: Optional[str] = None,
+        reconcile_last_reason: Optional[str] = None,
+        reconcile_last_fingerprint: Optional[str] = None,
+        reconcile_last_commented_reason: Optional[str] = None,
+        reconcile_last_commented_fingerprint: Optional[str] = None,
+        # EA/KAN: decomposition skip evidence (for "decomposed at least once")
+        decomposition_skipped_at: Optional[str] = None,
+        decomposition_skip_reason: Optional[str] = None,
     ) -> None:
         """Upsert an entry in the work ledger.
 
@@ -2392,6 +2579,24 @@ class ExecutionEngine:
             entry.verify_repair_last_report_hash = verify_repair_last_report_hash
         if verify_repair_count is not None:
             entry.verify_repair_count = verify_repair_count
+
+        # EA/KAN RECONCILE: backoff + comment dedup fields
+        if reconcile_next_at is not None:
+            entry.reconcile_next_at = reconcile_next_at
+        if reconcile_last_reason is not None:
+            entry.reconcile_last_reason = reconcile_last_reason
+        if reconcile_last_fingerprint is not None:
+            entry.reconcile_last_fingerprint = reconcile_last_fingerprint
+        if reconcile_last_commented_reason is not None:
+            entry.reconcile_last_commented_reason = reconcile_last_commented_reason
+        if reconcile_last_commented_fingerprint is not None:
+            entry.reconcile_last_commented_fingerprint = reconcile_last_commented_fingerprint
+
+        # EA/KAN: decomposition skip evidence
+        if decomposition_skipped_at is not None:
+            entry.decomposition_skipped_at = decomposition_skipped_at
+        if decomposition_skip_reason is not None:
+            entry.decomposition_skip_reason = decomposition_skip_reason
 
         self.work_ledger.upsert(entry)
 
@@ -2636,13 +2841,18 @@ class ExecutionEngine:
         Returns:
             True if any work was dispatched, False if idle.
         """
+        # Auto-clear resolved Story escalations (restart-safe) before dispatching work
+        if hasattr(self, "blocking_escalations") and self.blocking_escalations:
+            self.blocking_escalations.load()
+            self.blocking_escalations.auto_resolve_done_issues(self.jira, _is_done_status)
+
         # Priority 1: RECOVER
         # Check work ledger for resumable entries (errors or missing artifacts)
         resumable = self.work_ledger.get_resumable_entries(self._canonical_report_exists)
         for entry in resumable:
             self.log("SUPERVISOR", f"[RECOVER] Processing resumable entry: {entry.issueKey}")
 
-            # Fetch fresh issue data
+            # Fetch fresh issue data (Jira truth)
             issue = self.jira.get_issue(entry.issueKey)
             if not issue:
                 self.log("SUPERVISOR", f"[RECOVER] Issue {entry.issueKey} not found in Jira, clearing ledger entry")
@@ -2650,36 +2860,51 @@ class ExecutionEngine:
                 self.work_ledger.save()
                 continue
 
-            issue_type = issue['fields']['issuetype']['name'].lower()
+            status_obj = issue.get("fields", {}).get("status", {}) or {}
+            status_name = status_obj.get("name", "")
+            status_cat = (status_obj.get("statusCategory", {}) or {}).get("name", "")
 
-            # Determine recovery action based on last step
-            if entry.last_step in (LastStep.VERIFY.value, LastStep.RECONCILE.value):
-                # Re-run verification
+            # Resumability contract: if already Done in Jira, drop silently
+            if _is_done_status(status_name, status_cat):
+                self.work_ledger.delete(entry.issueKey)
+                self.work_ledger.save()
+                continue
+
+            issue_type_name = issue.get("fields", {}).get("issuetype", {}).get("name", "")
+            issue_type_lower = issue_type_name.lower().strip()
+
+            # Contract-configured issue type sets
+            epic_types = {t.lower() for t in _contract_epic_issue_types()}
+            idea_types = {t.lower() for t in _contract_idea_issue_types()}
+            implement_types = {t.lower() for t in _contract_implement_issue_types()}
+
+            # Determine recovery action based on last step (issuetype authoritative via contract config)
+            if entry.last_step == LastStep.RECONCILE.value:
+                if issue_type_lower in epic_types:
+                    if self.reconcile_epic(entry.issueKey):
+                        return True
+                elif issue_type_lower in idea_types:
+                    if self.reconcile_idea(entry.issueKey):
+                        return True
+                elif issue_type_lower in implement_types:
+                    # Fall back: if this is a Story/Bug, reconciliation is verify/close
+                    if self.verify_work_item(issue):
+                        return True
+
+            if entry.last_step == LastStep.VERIFY.value:
                 if self.verify_work_item(issue):
                     return True
             elif entry.last_step == LastStep.IMPLEMENTER.value:
-                # Re-run implementation
-                if issue_type in ('story', 'bug'):
+                if issue_type_lower in implement_types:
                     if self._process_story(issue):
                         return True
             elif entry.last_step == LastStep.SUPERVISOR.value:
-                # Re-run decomposition for epics
-                if issue_type == 'epic':
+                if issue_type_lower in epic_types:
                     if self._process_epic(issue):
                         return True
             elif entry.last_step == LastStep.UEP.value:
-                # Re-run idea processing
-                if issue_type in ('initiative', 'idea'):
+                if issue_type_lower in idea_types:
                     if self._process_idea(issue):
-                        return True
-
-            # Also check for Ideas in progress that need recovery (EA-19 case)
-            ideas_in_progress = self.jira.get_ideas_in_progress()
-            for idea in ideas_in_progress:
-                idea_key = idea['key']
-                if self.work_ledger.get(idea_key) and self.work_ledger.get(idea_key).last_error_fingerprint:
-                    self.log("SUPERVISOR", f"[RECOVER] Retrying failed Idea: {idea_key}")
-                    if self._process_idea(idea):
                         return True
 
         # Priority 2: VERIFY/CLOSE
@@ -2704,7 +2929,11 @@ class ExecutionEngine:
                 if self.verify_work_item(story):
                     return True
 
-        # Priority 3: IMPLEMENT
+        # Priority 3: RECONCILE (state-driven; before creating new work)
+        if self.reconcile_ready_parents():
+            return True
+
+        # Priority 4: IMPLEMENT
         # Stories with exact status "To Do"
         stories_todo = self.jira.get_stories_todo()
         if stories_todo:
@@ -2718,7 +2947,7 @@ class ExecutionEngine:
         epics_for_decomp = self.jira.get_epics_for_decomposition()
         if epics_for_decomp:
             # PATCH B: Use DecompositionManifestStore and should_decompose for status-aware skip
-            manifest_store = DecompositionManifestStore(self.config.repo_path)
+            manifest_store = DecompositionManifestStore(self.config.repo_path, manifest_dir=_artifact_dirname())
 
             for epic in epics_for_decomp:
                 epic_key = epic['key']
@@ -3188,6 +3417,7 @@ DESCRIPTION: Add changes per Epic requirements
 
         # PATCH A: Story description uses marker for patch batch file location
         # Pattern will be filled in after story key is known
+        artifacts_dir = _artifact_dirname()
         story_description = f"""## Parent Epic
 {epic_key}: {summary}
 
@@ -3198,7 +3428,7 @@ DESCRIPTION: Add changes per Epic requirements
 
 ## PATCH BATCH Location
 
-{PATCH_BATCH_FILE_MARKER} reports/{{STORY_KEY}}-patch-batch.md
+{PATCH_BATCH_FILE_MARKER} {artifacts_dir}/{{STORY_KEY}}-patch-batch.md
 
 Full PATCH BATCH instructions are stored in the artifact file above.
 See Jira comment for excerpt and verification checklist.
@@ -3207,7 +3437,7 @@ See Jira comment for excerpt and verification checklist.
 
 ## Verification Report Path
 
-Canonical verification report: reports/{{STORY_KEY}}-verification.md
+Canonical verification report: {artifacts_dir}/{{STORY_KEY}}-verification.md
 
 ---
 *Story created by SUPERVISOR v3.2*
@@ -3330,6 +3560,7 @@ DESCRIPTION: Add changes per Epic requirements
             impl_goal += "\n\n[...truncated for Jira limits...]"
 
         # PATCH A: Concise story description with file marker
+        artifacts_dir = _artifact_dirname()
         story_description = f"""## Parent Epic
 {epic_key}: {summary}
 
@@ -3351,7 +3582,7 @@ The Supervisor requires human assistance to:
 
 ## PATCH BATCH Location
 
-{PATCH_BATCH_FILE_MARKER} reports/{{STORY_KEY}}-patch-batch.md
+{PATCH_BATCH_FILE_MARKER} {artifacts_dir}/{{STORY_KEY}}-patch-batch.md
 
 Full PATCH BATCH instructions (placeholder template) stored in the artifact file above.
 
@@ -3359,7 +3590,7 @@ Full PATCH BATCH instructions (placeholder template) stored in the artifact file
 
 ## Verification Report Path
 
-Canonical verification report: reports/{{STORY_KEY}}-verification.md
+Canonical verification report: {artifacts_dir}/{{STORY_KEY}}-verification.md
 
 ---
 *Story created by SUPERVISOR v3.2*
@@ -3752,6 +3983,9 @@ Branch: {self.config.feature_branch}
 
         self.log("SUPERVISOR", f"Verifying [{key}] {issue_type}: {summary}")
 
+        # Configurable verify cooldown
+        cooldown_seconds = getattr(self, "verify_cooldown_seconds", VERIFY_COOLDOWN_SECONDS)
+
         # Step 1: Verify canonical report exists (FIXUP-1 PATCH 2: fail-fast remediation)
         exists, report_path, remediation = _verify_canonical_report_or_fail_fast(
             self.config.repo_path, key, log_func=lambda msg: self.log("SUPERVISOR", msg)
@@ -3774,7 +4008,7 @@ Branch: {self.config.feature_branch}
                 self.jira.add_comment(key, comment)
 
             # PATCH 2: Record verify backoff state
-            verify_next_at = (datetime.now(timezone.utc).timestamp() + VERIFY_COOLDOWN_SECONDS)
+            verify_next_at = (datetime.now(timezone.utc).timestamp() + cooldown_seconds)
             verify_next_at_iso = datetime.fromtimestamp(verify_next_at, timezone.utc).isoformat()
             self._upsert_work_ledger_entry(
                 issue_key=key,
@@ -3819,7 +4053,7 @@ Error: {e}"""
                 self.jira.add_comment(key, comment)
 
             # PATCH 2: Record verify backoff state
-            verify_next_at = (datetime.now(timezone.utc).timestamp() + VERIFY_COOLDOWN_SECONDS)
+            verify_next_at = (datetime.now(timezone.utc).timestamp() + cooldown_seconds)
             verify_next_at_iso = datetime.fromtimestamp(verify_next_at, timezone.utc).isoformat()
             self._upsert_work_ledger_entry(
                 issue_key=key,
@@ -3848,7 +4082,7 @@ Error: {e}"""
             if work_entry and work_entry.verify_repair_last_report_hash == pre_hash:
                 self.log("SUPERVISOR", f"[{key}] Repair already applied for this report hash; setting cooldown")
                 verify_reason = "auto_repair_already_applied"
-                verify_next_at = (datetime.now(timezone.utc).timestamp() + VERIFY_COOLDOWN_SECONDS)
+                verify_next_at = (datetime.now(timezone.utc).timestamp() + cooldown_seconds)
                 verify_next_at_iso = datetime.fromtimestamp(verify_next_at, timezone.utc).isoformat()
                 self._upsert_work_ledger_entry(
                     issue_key=key,
@@ -3903,7 +4137,7 @@ The following is the original report content that was auto-repaired due to missi
 
             # PATCH 1: Prepare Work Ledger update
             verify_reason = "auto_repair_missing_checklist"
-            verify_next_at = (datetime.now(timezone.utc).timestamp() + VERIFY_COOLDOWN_SECONDS)
+            verify_next_at = (datetime.now(timezone.utc).timestamp() + cooldown_seconds)
             verify_next_at_iso = datetime.fromtimestamp(verify_next_at, timezone.utc).isoformat()
             repair_count = (work_entry.verify_repair_count + 1) if work_entry and work_entry.verify_repair_count else 1
 
@@ -3920,7 +4154,7 @@ Report `{report_path}` was missing the required `## Checklist` header.
 
 **Next steps:**
 - Fill in the `## Checklist` items and mark them complete (`- [x]`)
-- Verification will retry after cooldown ({VERIFY_COOLDOWN_SECONDS}s) or when report changes
+- Verification will retry after cooldown ({cooldown_seconds}s) or when report changes
 
 *Auto-repair applied by Engine PATCH 1*"""
                 self.jira.add_comment(key, comment)
@@ -3967,7 +4201,7 @@ Note: All checklist items must be checked (- [x]) for verification to pass."""
                 self.jira.transition_issue(key, "Blocked")
 
             # PATCH 2: Record verify backoff state
-            verify_next_at = (datetime.now(timezone.utc).timestamp() + VERIFY_COOLDOWN_SECONDS)
+            verify_next_at = (datetime.now(timezone.utc).timestamp() + cooldown_seconds)
             verify_next_at_iso = datetime.fromtimestamp(verify_next_at, timezone.utc).isoformat()
             self._upsert_work_ledger_entry(
                 issue_key=key,
@@ -4031,7 +4265,7 @@ Note: Story will remain BLOCKED until commit evidence is found."""
                 self.jira.transition_issue(key, "Blocked")
 
             # PATCH 2: Record verify backoff state
-            verify_next_at = (datetime.now(timezone.utc).timestamp() + VERIFY_COOLDOWN_SECONDS)
+            verify_next_at = (datetime.now(timezone.utc).timestamp() + cooldown_seconds)
             verify_next_at_iso = datetime.fromtimestamp(verify_next_at, timezone.utc).isoformat()
             self._upsert_work_ledger_entry(
                 issue_key=key,
@@ -4049,7 +4283,46 @@ Note: Story will remain BLOCKED until commit evidence is found."""
 
             return True
 
-        # Step 3: PASSED - all evidence complete
+        # Step 3: Gate on active blocking escalations (Story-scoped, fail-closed)
+        if hasattr(self, "blocking_escalations") and self.blocking_escalations:
+            self.blocking_escalations.load()
+            if self.blocking_escalations.has_active(key):
+                verify_reason = "active_escalation"
+                causes = self.blocking_escalations.active_root_causes_for(key)
+
+                # Comment de-dup uses (reason, report_hash)
+                if _should_post_verify_comment(work_entry, verify_reason, report_hash):
+                    comment = f"""Supervisor Verification: BLOCKED — active escalation prevents auto-close
+Report: {report_path} (valid, checklist complete)
+Commit: {commit_evidence} (source: {commit_source})
+
+Active escalation(s):
+{chr(10).join([f"- {c}" for c in causes]) if causes else "- (unknown)"}
+
+Resolution required before auto-close can proceed."""
+                    self.jira.add_comment(key, comment)
+
+                if status not in ("BLOCKED", "Blocked"):
+                    self.jira.transition_issue(key, "Blocked")
+
+                verify_next_at = (datetime.now(timezone.utc).timestamp() + cooldown_seconds)
+                verify_next_at_iso = datetime.fromtimestamp(verify_next_at, timezone.utc).isoformat()
+                self._upsert_work_ledger_entry(
+                    issue_key=key,
+                    issue_type="Story",
+                    status="BLOCKED",
+                    last_step=LastStep.VERIFY.value,
+                    last_step_result=StepResult.FAILED.value,
+                    verify_next_at=verify_next_at_iso,
+                    verify_last_reason=verify_reason,
+                    verify_last_report_hash=report_hash,
+                    verify_last_report_mtime=report_mtime,
+                    verify_last_commented_reason=verify_reason,
+                    verify_last_commented_report_hash=report_hash,
+                )
+                return True
+
+        # Step 4: PASSED - all evidence complete
         self.log("SUPERVISOR", f"[{key}] Verification PASSED (commit={commit_evidence} from {commit_source})")
 
         # Update work ledger entry to mark as verified
@@ -4076,6 +4349,16 @@ Commit: {commit_evidence} (source: {commit_source})
 Available transitions: {', '.join(names) if names else 'none'}"""
             self.jira.add_comment(key, comment)
             self.log("SUPERVISOR", f"[{key}] No matching transition found: {names}")
+
+            # Create/refresh blocking escalation (idempotent)
+            if hasattr(self, "blocking_escalations") and self.blocking_escalations:
+                self.blocking_escalations.load()
+                if not self.blocking_escalations.load_error:
+                    self.blocking_escalations.upsert_active(
+                        key,
+                        "NO_DONE_TRANSITION",
+                        details=f"Available transitions: {', '.join(names) if names else 'none'}",
+                    )
         elif self.jira.transition_issue(key, chosen):
             comment = f"""Supervisor Verification: PASSED
 
@@ -4085,6 +4368,12 @@ Status: Transitioned to {chosen}"""
             self.jira.add_comment(key, comment)
             self.log("SUPERVISOR", f"[{key}] Transitioned to {chosen}")
             transitioned = True
+
+            # Auto-clear Story escalations now that Jira is Done
+            if hasattr(self, "blocking_escalations") and self.blocking_escalations:
+                self.blocking_escalations.load()
+                if not self.blocking_escalations.load_error:
+                    self.blocking_escalations.resolve_all_for_issue(key)
         else:
             comment = f"""Supervisor Verification: PASSED — auto-transition failed; manual move required
 
@@ -4093,6 +4382,16 @@ Commit: {commit_evidence} (source: {commit_source})
 Attempted transition: {chosen}"""
             self.jira.add_comment(key, comment)
             self.log("SUPERVISOR", f"[{key}] Transition to {chosen} failed")
+
+            # Create/refresh blocking escalation (idempotent)
+            if hasattr(self, "blocking_escalations") and self.blocking_escalations:
+                self.blocking_escalations.load()
+                if not self.blocking_escalations.load_error:
+                    self.blocking_escalations.upsert_active(
+                        key,
+                        "DONE_TRANSITION_FAILED",
+                        details=f"Attempted transition: {chosen}",
+                    )
 
         # FIXUP-1 PATCH 4: Reconcile wiring - best-effort after story transition
         if transitioned:
@@ -4111,99 +4410,194 @@ Attempted transition: {chosen}"""
             if parent_key:
                 self.log("SUPERVISOR", f"[{key}] Attempting Epic reconciliation for parent: {parent_key}")
                 if self.reconcile_epic(parent_key):
-                    # Epic reconciled - try to find and reconcile Idea
-                    # Idea key is inferred from Epic summary prefix [EA-XX]
+                    # Epic reconciled - try to find and reconcile Idea (label mapping)
                     epic_issue = self.jira.get_issue(parent_key)
                     if epic_issue:
-                        epic_summary = epic_issue.get('fields', {}).get('summary', '')
-                        import re
-                        idea_match = re.match(r'\[(EA-\d+)\]', epic_summary)
-                        if idea_match:
-                            idea_key = idea_match.group(1)
+                        idea_key = _infer_idea_key_from_epic_issue(epic_issue)
+                        if idea_key:
                             self.log("SUPERVISOR", f"[{key}] Attempting Idea reconciliation: {idea_key}")
                             self.reconcile_idea(idea_key)
 
         return True
 
+    def reconcile_ready_parents(self) -> bool:
+        """State-driven reconciliation sweep for Epics and Ideas.
+
+        Runs before creating new work (decompose/intake) to prevent stuck parents.
+        """
+        # Reconcile Epics first (may unlock Ideas)
+        epics = self.jira.get_epics_for_decomposition()
+        for epic in epics or []:
+            epic_key = epic.get("key", "")
+            if epic_key and self.reconcile_epic(epic_key):
+                return True
+
+        # Reconcile Ideas in progress
+        ideas = self.jira.get_ideas_in_progress()
+        for idea in ideas or []:
+            idea_key = idea.get("key", "")
+            if idea_key and self.reconcile_idea(idea_key):
+                return True
+
+        return False
+
     def reconcile_epic(self, epic_key: str) -> bool:
         """Reconcile Epic: transition to Done if all child Stories are resolved.
 
-        PATCH 8: Epic reconciliation.
-        If all child "Implement:" stories are in terminal states (Done/Duplicate/Canceled),
-        transition Epic to Done/Complete.
+        FIXUP-2 PATCH 1: Contract-driven + loop-proof Epic reconciliation.
+
+        Guards:
+        - Issuetype-authoritative: fail-closed if not in ENGINEO_CONTRACT_EPIC_ISSUE_TYPES
+        - Already Done guard: no-op if Epic already Done
+        - Decomposition contract: must have evidence (manifest, fingerprint, or skip) - auto-records skip if children exist
+        - Child status evaluation: uses _is_terminal_child_status() (configurable)
+        - Reconcile backoff: uses _should_attempt_reconcile() (fingerprint-based loop guard)
+        - Comment de-dup: uses _should_post_reconcile_comment() (avoids duplicate comments)
 
         Returns: True if Epic was reconciled, False otherwise.
         """
-        # Get all child stories for the epic
+        # === GUARD 1: Issuetype-authoritative check ===
+        epic_issue = self.jira.get_issue(epic_key)
+        if not epic_issue:
+            self.log("SUPERVISOR", f"[{epic_key}] RECONCILE skip: could not fetch issue from Jira")
+            return False
+
+        issue_type_name = (epic_issue.get("fields", {}).get("issuetype", {}) or {}).get("name", "")
+        epic_types = {t.lower() for t in _contract_epic_issue_types()}
+        if issue_type_name.lower() not in epic_types:
+            self.log("SUPERVISOR", f"[{epic_key}] RECONCILE skip: issuetype '{issue_type_name}' not in contract epic types")
+            return False
+
+        # === GUARD 2: Already Done guard ===
+        epic_status = epic_issue.get("fields", {}).get("status", {}) or {}
+        epic_status_name = epic_status.get("name", "")
+        epic_status_category = (epic_status.get("statusCategory", {}) or {}).get("name", "")
+        if _is_done_status(epic_status_name, epic_status_category):
+            self.log("SUPERVISOR", f"[{epic_key}] RECONCILE skip: already Done ({epic_status_name})")
+            return False
+
+        # === GUARD 3: Get children FIRST (needed for decomposition auto-skip) ===
         children = self.jira.get_children_for_epic(epic_key)
 
         if not children:
-            self.log("SUPERVISOR", f"[{epic_key}] No child stories found for reconciliation")
+            self.log("SUPERVISOR", f"[{epic_key}] RECONCILE skip: no child stories found")
             return False
 
-        # Check if all children are in terminal states
-        terminal_statuses = {"Done", "Duplicate", "Canceled", "Cancelled", "Closed", "Resolved"}
-        all_resolved = all(
-            child['fields']['status']['name'] in terminal_statuses
-            for child in children
-        )
+        # === GUARD 4: Decomposition contract enforcement (with auto-skip for legacy Epics) ===
+        manifest_store = DecompositionManifestStore(self.config.repo_path, manifest_dir=_artifact_dirname())
+        manifest = manifest_store.load(epic_key)
+        work_entry = self.work_ledger.get(epic_key)
 
-        if not all_resolved:
-            unresolved = [
-                c['key'] for c in children
-                if c['fields']['status']['name'] not in terminal_statuses
-            ]
-            self.log("SUPERVISOR", f"[{epic_key}] {len(unresolved)} child stories not resolved: {', '.join(unresolved[:3])}")
+        has_manifest = manifest is not None
+        has_fingerprint = work_entry and work_entry.decomposition_fingerprint
+        has_skip_evidence = work_entry and work_entry.decomposition_skipped_at
+
+        now_iso = datetime.now(timezone.utc).isoformat()
+
+        # Auto-record skip evidence for legacy Epics with children but no decomposition artifacts
+        if not (has_manifest or has_fingerprint or has_skip_evidence):
+            # Children exist but no decomposition evidence - record skip evidence and continue
+            self.log("SUPERVISOR", f"[{epic_key}] Auto-recording decomposition skip (children exist, no artifacts)")
+            self._upsert_work_ledger_entry(
+                issue_key=epic_key,
+                issue_type=issue_type_name,
+                status=epic_status_name,
+                last_step=LastStep.SUPERVISOR.value,
+                decomposition_skipped_at=now_iso,
+                decomposition_skip_reason="auto_skip_children_exist_no_decomposition_artifacts",
+            )
+            # Refresh work_entry after upsert
+            work_entry = self.work_ledger.get(epic_key)
+            has_skip_evidence = True
+
+        # === GUARD 5: Check terminal status of all children ===
+        non_terminal_children = []
+        child_statuses = []  # For fingerprint computation
+        for child in children:
+            child_key = child.get('key', '')
+            child_status = child.get('fields', {}).get('status', {}) or {}
+            child_status_name = child_status.get('name', '')
+            child_status_category = (child_status.get('statusCategory', {}) or {}).get('name', '')
+
+            child_statuses.append(f"{child_key}:{child_status_name}:{child_status_category}")
+
+            if not _is_terminal_child_status(child_status_name, child_status_category):
+                non_terminal_children.append((child_key, child_status_name))
+
+        if non_terminal_children:
+            unresolved_str = ', '.join([f"{k}({s})" for k, s in non_terminal_children[:3]])
+            self.log("SUPERVISOR", f"[{epic_key}] RECONCILE skip: {len(non_terminal_children)} non-terminal children: {unresolved_str}")
             return False
 
-        # All children resolved - transition Epic to Done
-        self.log("SUPERVISOR", f"[{epic_key}] All {len(children)} child stories resolved, reconciling Epic")
+        # === GUARD 6: Reconcile backoff (fingerprint-based loop guard) ===
+        # Compute deterministic fingerprint from current Jira truth (includes Epic status + decomposition flag)
+        decomp_flag = "D" if (has_manifest or has_fingerprint or has_skip_evidence) else "N"
+        fingerprint_data = f"{epic_status_name}:{epic_status_category}:{decomp_flag}|" + "|".join(sorted(child_statuses))
+        reconcile_fingerprint = hashlib.sha256(fingerprint_data.encode('utf-8')).hexdigest()
+
+        should_attempt, attempt_reason = _should_attempt_reconcile(work_entry, reconcile_fingerprint)
+        if not should_attempt:
+            self.log("SUPERVISOR", f"[{epic_key}] RECONCILE skip: backoff active ({attempt_reason})")
+            return False
+
+        # === All guards passed: attempt reconciliation ===
+        self.log("SUPERVISOR", f"[{epic_key}] All {len(children)} children terminal, attempting reconciliation")
 
         # Build evidence comment
         child_evidence = []
         for child in children:
-            child_key = child['key']
-            child_status = child['fields']['status']['name']
-            work_entry = self.work_ledger.get(child_key)
-            if work_entry and work_entry.verification_report_path:
-                child_evidence.append(f"- {child_key}: {child_status} (report: {work_entry.verification_report_path})")
-            elif work_entry and work_entry.last_commit_sha:
-                child_evidence.append(f"- {child_key}: {child_status} (commit: {work_entry.last_commit_sha[:8]})")
+            child_key = child.get('key', '')
+            child_status = child.get('fields', {}).get('status', {}).get('name', '')
+            child_entry = self.work_ledger.get(child_key)
+            if child_entry and child_entry.verification_report_path:
+                child_evidence.append(f"- {child_key}: {child_status} (report: {child_entry.verification_report_path})")
+            elif child_entry and child_entry.last_commit_sha:
+                child_evidence.append(f"- {child_key}: {child_status} (commit: {child_entry.last_commit_sha[:8]})")
             else:
                 child_evidence.append(f"- {child_key}: {child_status}")
 
-        # Attempt transition
+        # Attempt transition (fail-closed: only known-safe transitions)
         names = self.jira.get_available_transition_names(epic_key)
         chosen = choose_transition(names)
 
         if chosen and self.jira.transition_issue(epic_key, chosen):
+            # Success: transition completed
             comment = f"""Epic Reconciliation: COMPLETE
 
 All {len(children)} child stories resolved:
 {chr(10).join(child_evidence)}
 
 Transitioned to: {chosen}"""
-            self.jira.add_comment(epic_key, comment)
+
+            # Comment de-dup check
+            if _should_post_reconcile_comment(work_entry, "COMPLETE", reconcile_fingerprint):
+                self.jira.add_comment(epic_key, comment)
+
             self.log("SUPERVISOR", f"[{epic_key}] Transitioned to {chosen}")
 
-            # Update work ledger
+            # Update work ledger with success
             self._upsert_work_ledger_entry(
                 issue_key=epic_key,
-                issue_type="Epic",
+                issue_type=issue_type_name,
                 status=chosen,
                 last_step=LastStep.RECONCILE.value,
-                last_step_result=StepResult.SUCCESS.value,  # FIXUP-1 PATCH 5
+                last_step_result=StepResult.SUCCESS.value,
             )
+            # Clear reconcile backoff on success
+            entry = self.work_ledger.get(epic_key)
+            if entry:
+                entry.reconcile_next_at = None
+                entry.reconcile_last_reason = None
+                entry.reconcile_last_fingerprint = None
+                entry.reconcile_last_commented_reason = "COMPLETE"
+                entry.reconcile_last_commented_fingerprint = reconcile_fingerprint
+                self.work_ledger.upsert(entry)
+                self.work_ledger.save()
+
             return True
         else:
-            # Transition unavailable - still record in work ledger
-            self._upsert_work_ledger_entry(
-                issue_key=epic_key,
-                issue_type="Epic",
-                status="pending_transition",
-                last_step=LastStep.RECONCILE.value,
-                last_step_result=StepResult.FAILED.value,  # FIXUP-1 PATCH 5
-            )
+            # Transition unavailable - set backoff and record failure
+            reason = "transition_unavailable"
             comment = f"""Epic Reconciliation: All children resolved but transition unavailable
 
 All {len(children)} child stories resolved:
@@ -4211,78 +4605,247 @@ All {len(children)} child stories resolved:
 
 Available transitions: {', '.join(names) if names else 'none'}
 Manual transition required."""
-            self.jira.add_comment(epic_key, comment)
+
+            # Comment de-dup check
+            if _should_post_reconcile_comment(work_entry, reason, reconcile_fingerprint):
+                self.jira.add_comment(epic_key, comment)
+
+            # Update work ledger with failure and set backoff
+            self._upsert_work_ledger_entry(
+                issue_key=epic_key,
+                issue_type=issue_type_name,
+                status="pending_transition",
+                last_step=LastStep.RECONCILE.value,
+                last_step_result=StepResult.FAILED.value,
+            )
+            # Set reconcile backoff using unified cooldown knob
+            next_at = datetime.now(timezone.utc) + timedelta(seconds=self.reconcile_cooldown_seconds)
+
+            entry = self.work_ledger.get(epic_key)
+            if entry:
+                entry.reconcile_next_at = next_at.isoformat()
+                entry.reconcile_last_reason = reason
+                entry.reconcile_last_fingerprint = reconcile_fingerprint
+                entry.reconcile_last_commented_reason = reason
+                entry.reconcile_last_commented_fingerprint = reconcile_fingerprint
+                self.work_ledger.upsert(entry)
+                self.work_ledger.save()
+
+            self.log("SUPERVISOR", f"[{epic_key}] Reconcile failed: {reason}")
             return False
 
     def reconcile_idea(self, idea_key: str) -> bool:
         """Reconcile Idea: transition if all child Epics are Done.
 
-        PATCH 8: Idea reconciliation (workflow-adaptive).
-        If all Epics under the Idea are Done/Complete, transition accordingly.
+        FIXUP-2 PATCH 2: Contract-driven + loop-proof Idea reconciliation.
+
+        Guards:
+        - Issuetype-authoritative: fail-closed if not in ENGINEO_CONTRACT_IDEA_ISSUE_TYPES
+        - Already Done guard: no-op if Idea already Done
+        - At least one Epic required: prevents empty closure
+        - Child Epic status: ALL Epics must be Done (not just terminal)
+        - Child Epic decomposition: ALL Epics must have decomposition evidence
+        - Reconcile backoff: uses _should_attempt_reconcile() (fingerprint-based loop guard)
+        - Comment de-dup: uses _should_post_reconcile_comment() (avoids duplicate comments)
 
         Returns: True if Idea was reconciled, False otherwise.
         """
-        # Get all Epics for this Idea (by summary prefix)
+        # === GUARD 1: Issuetype-authoritative check ===
+        idea_issue = self.jira.get_issue(idea_key)
+        if not idea_issue:
+            self.log("SUPERVISOR", f"[{idea_key}] RECONCILE skip: could not fetch issue from Jira")
+            return False
+
+        issue_type_name = (idea_issue.get("fields", {}).get("issuetype", {}) or {}).get("name", "")
+        idea_types = {t.lower() for t in _contract_idea_issue_types()}
+        if issue_type_name.lower() not in idea_types:
+            self.log("SUPERVISOR", f"[{idea_key}] RECONCILE skip: issuetype '{issue_type_name}' not in contract idea types")
+            return False
+
+        # === GUARD 2: Already Done guard ===
+        idea_status = idea_issue.get("fields", {}).get("status", {}) or {}
+        idea_status_name = idea_status.get("name", "")
+        idea_status_category = (idea_status.get("statusCategory", {}) or {}).get("name", "")
+        if _is_done_status(idea_status_name, idea_status_category):
+            self.log("SUPERVISOR", f"[{idea_key}] RECONCILE skip: already Done ({idea_status_name})")
+            return False
+
+        # === GUARD 3: Get child Epics (at least one required) ===
         epics = self.jira.get_epics_for_idea(idea_key)
 
         if not epics:
-            self.log("SUPERVISOR", f"[{idea_key}] No child Epics found for reconciliation")
+            self.log("SUPERVISOR", f"[{idea_key}] RECONCILE skip: no child Epics found")
             return False
 
-        # Check if all Epics are in terminal states
-        terminal_statuses = {"Done", "Complete", "Closed", "Resolved"}
-        all_resolved = all(
-            epic['fields']['status']['name'] in terminal_statuses
-            for epic in epics
-        )
+        # === GUARD 4: ALL Epics must be Done (not just terminal) ===
+        work_entry = self.work_ledger.get(idea_key)
+        manifest_store = DecompositionManifestStore(self.config.repo_path, manifest_dir=_artifact_dirname())
 
-        if not all_resolved:
-            unresolved = [
-                e['key'] for e in epics
-                if e['fields']['status']['name'] not in terminal_statuses
-            ]
-            self.log("SUPERVISOR", f"[{idea_key}] {len(unresolved)} child Epics not resolved")
+        non_done_epics = []
+        epics_missing_decomp = []
+        epic_statuses = []  # For fingerprint computation
+
+        for epic in epics:
+            epic_key = epic.get('key', '')
+            epic_status = epic.get('fields', {}).get('status', {}) or {}
+            epic_status_name = epic_status.get('name', '')
+            epic_status_category = (epic_status.get('statusCategory', {}) or {}).get('name', '')
+
+            # Check decomposition evidence for this Epic
+            epic_manifest = manifest_store.load(epic_key)
+            epic_entry = self.work_ledger.get(epic_key)
+            has_manifest = epic_manifest is not None
+            has_fingerprint = epic_entry and epic_entry.decomposition_fingerprint
+            has_skip_evidence = epic_entry and epic_entry.decomposition_skipped_at
+            has_decomp_evidence = has_manifest or has_fingerprint or has_skip_evidence
+
+            # Include decomposition flag in fingerprint
+            decomp_flag = "D" if has_decomp_evidence else "N"
+            epic_statuses.append(f"{epic_key}:{epic_status_name}:{epic_status_category}:{decomp_flag}")
+
+            # Contract: Epics must be Done (not just terminal)
+            if not _is_done_status(epic_status_name, epic_status_category):
+                non_done_epics.append((epic_key, epic_status_name))
+
+            # Contract: Each Epic must have decomposition evidence
+            if not has_decomp_evidence:
+                epics_missing_decomp.append(epic_key)
+
+        # === GUARD 5: Check if all Epics are Done ===
+        if non_done_epics:
+            unresolved_str = ', '.join([f"{k}({s})" for k, s in non_done_epics[:3]])
+            self.log("SUPERVISOR", f"[{idea_key}] RECONCILE skip: {len(non_done_epics)} Epics not Done: {unresolved_str}")
             return False
 
-        # All Epics resolved - attempt transition
-        self.log("SUPERVISOR", f"[{idea_key}] All {len(epics)} child Epics resolved, reconciling Idea")
+        # === GUARD 6: Check if all Epics have decomposition evidence ===
+        # Compute fingerprint for backoff check
+        reconcile_fingerprint = hashlib.sha256(
+            "|".join(sorted(epic_statuses)).encode('utf-8')
+        ).hexdigest()
 
+        if epics_missing_decomp:
+            reason = "child_epic_missing_decomposition"
+            missing_str = ', '.join(epics_missing_decomp[:5])
+            self.log("SUPERVISOR", f"[{idea_key}] RECONCILE skip: Epics missing decomposition evidence: {missing_str}")
+
+            # Post deduped comment about blocking Epics
+            comment = f"""Idea Reconciliation: BLOCKED
+
+The following child Epics are missing decomposition evidence:
+{chr(10).join([f'- {k}' for k in epics_missing_decomp])}
+
+Each Epic must have a decomposition manifest, fingerprint, or explicit skip record before the Idea can be reconciled."""
+
+            if _should_post_reconcile_comment(work_entry, reason, reconcile_fingerprint):
+                self.jira.add_comment(idea_key, comment)
+
+            # Set backoff with reason
+            next_at = datetime.now(timezone.utc) + timedelta(seconds=self.reconcile_cooldown_seconds)
+
+            # Ensure work_entry exists for backoff
+            if not work_entry:
+                self._upsert_work_ledger_entry(
+                    issue_key=idea_key,
+                    issue_type=issue_type_name,
+                    status=idea_status_name,
+                    last_step=LastStep.RECONCILE.value,
+                    last_step_result=StepResult.FAILED.value,
+                )
+                work_entry = self.work_ledger.get(idea_key)
+
+            if work_entry:
+                work_entry.reconcile_next_at = next_at.isoformat()
+                work_entry.reconcile_last_reason = reason
+                work_entry.reconcile_last_fingerprint = reconcile_fingerprint
+                work_entry.reconcile_last_commented_reason = reason
+                work_entry.reconcile_last_commented_fingerprint = reconcile_fingerprint
+                self.work_ledger.upsert(work_entry)
+                self.work_ledger.save()
+
+            return False
+
+        # === GUARD 7: Reconcile backoff (fingerprint-based loop guard) ===
+        should_attempt, attempt_reason = _should_attempt_reconcile(work_entry, reconcile_fingerprint)
+        if not should_attempt:
+            self.log("SUPERVISOR", f"[{idea_key}] RECONCILE skip: backoff active ({attempt_reason})")
+            return False
+
+        # === All guards passed: attempt reconciliation ===
+        self.log("SUPERVISOR", f"[{idea_key}] All {len(epics)} child Epics Done with decomposition evidence, attempting reconciliation")
+
+        # Attempt transition (fail-closed: only known-safe transitions)
         names = self.jira.get_available_transition_names(idea_key)
         chosen = choose_transition(names)
 
         if chosen and self.jira.transition_issue(idea_key, chosen):
-            epic_list = '\n'.join([f"- {e['key']}: {e['fields']['status']['name']}" for e in epics])
+            # Success: transition completed
+            epic_list = '\n'.join([f"- {e.get('key', '')}: {e.get('fields', {}).get('status', {}).get('name', '')}" for e in epics])
             comment = f"""Idea Reconciliation: COMPLETE
 
-All {len(epics)} child Epics resolved:
+All {len(epics)} child Epics resolved with decomposition evidence:
 {epic_list}
 
 Transitioned to: {chosen}"""
-            self.jira.add_comment(idea_key, comment)
+
+            # Comment de-dup check
+            if _should_post_reconcile_comment(work_entry, "COMPLETE", reconcile_fingerprint):
+                self.jira.add_comment(idea_key, comment)
+
             self.log("SUPERVISOR", f"[{idea_key}] Transitioned to {chosen}")
 
-            # Update work ledger
+            # Update work ledger with success
             self._upsert_work_ledger_entry(
                 issue_key=idea_key,
-                issue_type="Idea",
+                issue_type=issue_type_name,
                 status=chosen,
                 last_step=LastStep.RECONCILE.value,
-                last_step_result=StepResult.SUCCESS.value,  # FIXUP-1 PATCH 5
+                last_step_result=StepResult.SUCCESS.value,
             )
+            # Clear reconcile backoff on success
+            entry = self.work_ledger.get(idea_key)
+            if entry:
+                entry.reconcile_next_at = None
+                entry.reconcile_last_reason = None
+                entry.reconcile_last_fingerprint = None
+                entry.reconcile_last_commented_reason = "COMPLETE"
+                entry.reconcile_last_commented_fingerprint = reconcile_fingerprint
+                self.work_ledger.upsert(entry)
+                self.work_ledger.save()
+
             return True
         else:
-            # Update work ledger with failed result
-            self._upsert_work_ledger_entry(
-                issue_key=idea_key,
-                issue_type="Idea",
-                status="",
-                last_step=LastStep.RECONCILE.value,
-                last_step_result=StepResult.FAILED.value,  # FIXUP-1 PATCH 5
-            )
-            comment = f"""Idea Reconciliation: All Epics resolved but no matching transition found
+            # Transition unavailable - set backoff and record failure
+            reason = "transition_unavailable"
+            comment = f"""Idea Reconciliation: All Epics Done but no matching transition found
 
 Available transitions: {', '.join(names) if names else 'none'}"""
-            self.jira.add_comment(idea_key, comment)
+
+            # Comment de-dup check
+            if _should_post_reconcile_comment(work_entry, reason, reconcile_fingerprint):
+                self.jira.add_comment(idea_key, comment)
+
+            # Update work ledger with failure and set backoff
+            self._upsert_work_ledger_entry(
+                issue_key=idea_key,
+                issue_type=issue_type_name,
+                status="",
+                last_step=LastStep.RECONCILE.value,
+                last_step_result=StepResult.FAILED.value,
+            )
+            # Set reconcile backoff using unified cooldown knob
+            next_at = datetime.now(timezone.utc) + timedelta(seconds=self.reconcile_cooldown_seconds)
+
+            entry = self.work_ledger.get(idea_key)
+            if entry:
+                entry.reconcile_next_at = next_at.isoformat()
+                entry.reconcile_last_reason = reason
+                entry.reconcile_last_fingerprint = reconcile_fingerprint
+                entry.reconcile_last_commented_reason = reason
+                entry.reconcile_last_commented_fingerprint = reconcile_fingerprint
+                self.work_ledger.upsert(entry)
+                self.work_ledger.save()
+
+            self.log("SUPERVISOR", f"[{idea_key}] Reconcile failed: {reason}")
             return False
 
     def step_4_story_verification(self) -> bool:
@@ -4496,7 +5059,7 @@ Business Intent Defined - Ready for Supervisor decomposition.
         self.log("SUPERVISOR", f"Decomposing Epic: [{key}] {summary}")
 
         # PATCH 3: Initialize manifest store
-        manifest_store = DecompositionManifestStore(self.config.repo_path)
+        manifest_store = DecompositionManifestStore(self.config.repo_path, manifest_dir=_artifact_dirname())
 
         # PATCH 3: Check manifest and fingerprint to determine decomposition mode
         should_decomp, mode, manifest = should_decompose(manifest_store, key, description)
@@ -4578,15 +5141,17 @@ No new stories created.
                     self.log("SUPERVISOR", f"Wrote patch batch artifact: {epic_artifact_path}")
                 except Exception as e:
                     self.log("SUPERVISOR", f"Failed to write patch batch artifact: {e}")
-                    epic_artifact_path = f"reports/{key}-{self.run_id}-patch-batch.md"
+                    artifacts_dir = _artifact_dirname()
+                    epic_artifact_path = f"{artifacts_dir}/{key}-{self.run_id}-patch-batch.md"
 
             # PATCH A: Use create_story_with_retry for CONTENT_LIMIT_EXCEEDED handling
+            artifacts_dir = _artifact_dirname()
             story_key = self.jira.create_story_with_retry(
                 story_def['summary'],
                 story_def['description'],
                 epic_key=key,
-                patch_batch_file_path=f"reports/{{STORY_KEY}}-patch-batch.md",
-                verification_path=f"reports/{{STORY_KEY}}-verification.md",
+                patch_batch_file_path=f"{artifacts_dir}/{{STORY_KEY}}-patch-batch.md",
+                verification_path=f"{artifacts_dir}/{{STORY_KEY}}-verification.md",
             )
 
             if story_key:
@@ -4758,6 +5323,7 @@ Ready for Developer implementation.
             if PATCH_BATCH_FILE_MARKER in description:
                 # Story description references a patch batch file but file is missing
                 self.log("IMPLEMENTER", f"[{key}] FAIL-CLOSED: Patch batch file missing")
+                artifacts_dir = _artifact_dirname()
                 self.jira.add_comment(key, f"""## Implementation BLOCKED
 
 Patch batch file not found.
@@ -4765,7 +5331,7 @@ Patch batch file not found.
 The story description references a patch batch file (via {PATCH_BATCH_FILE_MARKER}) but the file could not be located.
 
 Expected paths searched:
-- reports/{key}-patch-batch.md (preferred)
+- {artifacts_dir}/{key}-patch-batch.md (preferred)
 - Path from PATCH_BATCH_FILE: marker in description
 
 **ACTION REQUIRED:** Supervisor must regenerate the patch batch file or update the story description.
@@ -5411,6 +5977,11 @@ import argparse
 def resolve_dispatch_kind(issue_type: str) -> str:
     """Resolve issue type to dispatch kind for --issue mode.
 
+    Uses contract-configured issue type mappings:
+    - ENGINEO_CONTRACT_IMPLEMENT_ISSUE_TYPES (default: Story,Bug)
+    - ENGINEO_CONTRACT_EPIC_ISSUE_TYPES (default: Epic)
+    - ENGINEO_CONTRACT_IDEA_ISSUE_TYPES (default: Idea,Initiative)
+
     Args:
         issue_type: Raw issue type string from Jira.
 
@@ -5418,14 +5989,23 @@ def resolve_dispatch_kind(issue_type: str) -> str:
         Dispatch kind: "implement", "epic", "initiative", or "unknown".
     """
     normalized = issue_type.strip().lower()
-    if normalized in ('story', 'bug'):
+
+    # Check implement types (Story, Bug by default)
+    implement_types = {t.lower() for t in _contract_implement_issue_types()}
+    if normalized in implement_types:
         return 'implement'
-    elif normalized == 'epic':
+
+    # Check epic types (Epic by default)
+    epic_types = {t.lower() for t in _contract_epic_issue_types()}
+    if normalized in epic_types:
         return 'epic'
-    elif normalized in ('initiative', 'idea'):
+
+    # Check idea types (Idea, Initiative by default)
+    idea_types = {t.lower() for t in _contract_idea_issue_types()}
+    if normalized in idea_types:
         return 'initiative'
-    else:
-        return 'unknown'
+
+    return 'unknown'
 
 
 def main():

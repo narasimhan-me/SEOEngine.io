@@ -83,6 +83,15 @@ class WorkLedgerEntry:
     - verify_repair_applied_at: ISO-8601 UTC string|null - when auto-repair was applied
     - verify_repair_last_report_hash: string|null - sha256 of pre-repair report (dedup)
     - verify_repair_count: int - number of times repair was applied
+
+    EA/KAN RECONCILE fields:
+    - reconcile_next_at: ISO-8601 UTC string|null - cooldown gate
+    - reconcile_last_reason: string|null - last reconcile failure reason
+    - reconcile_last_fingerprint: string|null - fingerprint at last failure (for change detection)
+    - reconcile_last_commented_reason: string|null - dedup: last reason commented
+    - reconcile_last_commented_fingerprint: string|null - dedup: last fingerprint commented
+    - decomposition_skipped_at: ISO-8601 UTC string|null - when decomposition was skipped
+    - decomposition_skip_reason: string|null - reason for decomposition skip
     """
     issueKey: str
     issueType: str = "Story"
@@ -107,6 +116,15 @@ class WorkLedgerEntry:
     verify_repair_applied_at: Optional[str] = None
     verify_repair_last_report_hash: Optional[str] = None
     verify_repair_count: int = 0
+    # EA/KAN RECONCILE: backoff + comment dedup fields
+    reconcile_next_at: Optional[str] = None
+    reconcile_last_reason: Optional[str] = None
+    reconcile_last_fingerprint: Optional[str] = None
+    reconcile_last_commented_reason: Optional[str] = None
+    reconcile_last_commented_fingerprint: Optional[str] = None
+    # EA/KAN: decomposition skip evidence
+    decomposition_skipped_at: Optional[str] = None
+    decomposition_skip_reason: Optional[str] = None
 
     def to_dict(self) -> dict:
         """Convert entry to dictionary for JSON serialization."""
@@ -139,6 +157,15 @@ class WorkLedgerEntry:
             verify_repair_applied_at=data.get('verify_repair_applied_at'),
             verify_repair_last_report_hash=data.get('verify_repair_last_report_hash'),
             verify_repair_count=data.get('verify_repair_count', 0),
+            # EA/KAN RECONCILE: backoff + comment dedup fields (backward compatible)
+            reconcile_next_at=data.get('reconcile_next_at'),
+            reconcile_last_reason=data.get('reconcile_last_reason'),
+            reconcile_last_fingerprint=data.get('reconcile_last_fingerprint'),
+            reconcile_last_commented_reason=data.get('reconcile_last_commented_reason'),
+            reconcile_last_commented_fingerprint=data.get('reconcile_last_commented_fingerprint'),
+            # EA/KAN: decomposition skip evidence (backward compatible)
+            decomposition_skipped_at=data.get('decomposition_skipped_at'),
+            decomposition_skip_reason=data.get('decomposition_skip_reason'),
         )
 
 
@@ -409,13 +436,25 @@ def compute_decomposition_fingerprint(description: str, acceptance_criteria: str
     return hashlib.sha256(combined.encode('utf-8')).hexdigest()
 
 
+def _ledger_artifact_dirname() -> str:
+    """Get the canonical artifact directory name from env.
+
+    Configurable via ENGINEO_ARTIFACTS_DIR. Defaults to 'reports'.
+    """
+    value = os.environ.get("ENGINEO_ARTIFACTS_DIR", "reports").strip()
+    value = value.strip("/\\")
+    return value or "reports"
+
+
 def canonical_verification_report_path(issue_key: str) -> str:
     """Get canonical verification report path (PATCH 4 contract).
+
+    Honors ENGINEO_ARTIFACTS_DIR (default: reports).
 
     Args:
         issue_key: The issue key (e.g., "KAN-17").
 
     Returns:
-        Canonical path: reports/{ISSUE_KEY}-verification.md
+        Canonical path: {ARTIFACTS_DIR}/{ISSUE_KEY}-verification.md
     """
-    return f"reports/{issue_key}-verification.md"
+    return f"{_ledger_artifact_dirname()}/{issue_key}-verification.md"

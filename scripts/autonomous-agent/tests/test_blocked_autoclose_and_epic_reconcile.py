@@ -253,7 +253,10 @@ class TestBlockedHandling(unittest.TestCase):
 
 
 class TestEpicReconciliation(unittest.TestCase):
-    """Test Epic reconciliation when all children resolved."""
+    """Test Epic reconciliation when all children resolved.
+
+    FIXUP-2 PATCH 4: Updated for auto-skip decomposition and Done guard.
+    """
 
     def _create_mock_engine(self):
         """Create mock engine for testing."""
@@ -267,15 +270,30 @@ class TestEpicReconciliation(unittest.TestCase):
         with patch('engine.subprocess.run'), \
              patch('engine.rotate_logs'), \
              patch.object(Path, 'mkdir'), \
-             patch('engine.WorkLedger') as mock_ledger_class:
+             patch('engine.WorkLedger') as mock_ledger_class, \
+             patch('engine.DecompositionManifestStore') as mock_manifest_store_class:
 
             mock_ledger = MagicMock(spec=WorkLedger)
-            mock_ledger.get.return_value = None
+            # Provide decomposition evidence via work_ledger entry
+            mock_entry = MagicMock(spec=WorkLedgerEntry)
+            mock_entry.decomposition_fingerprint = "abc123"
+            mock_entry.decomposition_skipped_at = None
+            mock_entry.reconcile_next_at = None
+            mock_entry.reconcile_last_fingerprint = None
+            mock_entry.reconcile_last_commented_reason = None
+            mock_entry.reconcile_last_commented_fingerprint = None
+            mock_ledger.get.return_value = mock_entry
             mock_ledger_class.return_value = mock_ledger
+
+            # Mock DecompositionManifestStore to return None (no manifest)
+            mock_manifest_store = MagicMock()
+            mock_manifest_store.load.return_value = None
+            mock_manifest_store_class.return_value = mock_manifest_store
 
             engine = ExecutionEngine.__new__(ExecutionEngine)
             engine.config = mock_config
             engine.work_ledger = mock_ledger
+            engine.reconcile_cooldown_seconds = 600  # FIXUP-2: Unified cooldown
 
             engine.jira = MagicMock()
             engine.log = MagicMock()
@@ -287,10 +305,19 @@ class TestEpicReconciliation(unittest.TestCase):
         """Epic transitions to Done when all child stories are resolved."""
         engine = self._create_mock_engine()
 
-        # Mock children all resolved
+        # Mock get_issue for issuetype-authoritative guard (with statusCategory)
+        engine.jira.get_issue.return_value = {
+            'key': 'KAN-10',
+            'fields': {
+                'issuetype': {'name': 'Epic'},
+                'status': {'name': 'In Progress', 'statusCategory': {'name': 'In Progress'}},
+            }
+        }
+
+        # Mock children all resolved (with statusCategory for terminal check)
         engine.jira.get_children_for_epic.return_value = [
-            {'key': 'KAN-17', 'fields': {'status': {'name': 'Done'}, 'summary': 'Story 1'}},
-            {'key': 'KAN-18', 'fields': {'status': {'name': 'Done'}, 'summary': 'Story 2'}},
+            {'key': 'KAN-17', 'fields': {'status': {'name': 'Done', 'statusCategory': {'name': 'Done'}}, 'summary': 'Story 1'}},
+            {'key': 'KAN-18', 'fields': {'status': {'name': 'Done', 'statusCategory': {'name': 'Done'}}, 'summary': 'Story 2'}},
         ]
 
         # Mock transitions
@@ -306,10 +333,19 @@ class TestEpicReconciliation(unittest.TestCase):
         """Epic not reconciled when some children are unresolved."""
         engine = self._create_mock_engine()
 
-        # Mock children with one unresolved
+        # Mock get_issue for issuetype-authoritative guard (with statusCategory)
+        engine.jira.get_issue.return_value = {
+            'key': 'KAN-10',
+            'fields': {
+                'issuetype': {'name': 'Epic'},
+                'status': {'name': 'In Progress', 'statusCategory': {'name': 'In Progress'}},
+            }
+        }
+
+        # Mock children with one unresolved (with statusCategory for terminal check)
         engine.jira.get_children_for_epic.return_value = [
-            {'key': 'KAN-17', 'fields': {'status': {'name': 'Done'}, 'summary': 'Story 1'}},
-            {'key': 'KAN-18', 'fields': {'status': {'name': 'In Progress'}, 'summary': 'Story 2'}},
+            {'key': 'KAN-17', 'fields': {'status': {'name': 'Done', 'statusCategory': {'name': 'Done'}}, 'summary': 'Story 1'}},
+            {'key': 'KAN-18', 'fields': {'status': {'name': 'In Progress', 'statusCategory': {'name': 'In Progress'}}, 'summary': 'Story 2'}},
         ]
 
         result = engine.reconcile_epic("KAN-10")
@@ -317,13 +353,99 @@ class TestEpicReconciliation(unittest.TestCase):
         self.assertFalse(result)
         engine.jira.transition_issue.assert_not_called()
 
+    def test_epic_not_reconciled_if_wrong_issuetype(self):
+        """Epic not reconciled when issuetype doesn't match contract."""
+        engine = self._create_mock_engine()
+
+        # Mock get_issue with wrong issuetype (e.g., Story instead of Epic)
+        engine.jira.get_issue.return_value = {
+            'key': 'KAN-10',
+            'fields': {
+                'issuetype': {'name': 'Story'},  # Wrong type
+                'status': {'name': 'In Progress', 'statusCategory': {'name': 'In Progress'}},
+            }
+        }
+
+        result = engine.reconcile_epic("KAN-10")
+
+        self.assertFalse(result)
+        # Should not even check children
+        engine.jira.get_children_for_epic.assert_not_called()
+
+    def test_epic_auto_records_skip_when_children_exist_no_decomposition(self):
+        """Epic auto-records decomposition skip when children exist but no evidence."""
+        engine = self._create_mock_engine()
+
+        # Override mock to return entry without decomposition evidence
+        mock_entry = MagicMock()
+        mock_entry.decomposition_fingerprint = None
+        mock_entry.decomposition_skipped_at = None
+        mock_entry.reconcile_next_at = None
+        mock_entry.reconcile_last_fingerprint = None
+        mock_entry.reconcile_last_commented_reason = None
+        mock_entry.reconcile_last_commented_fingerprint = None
+        engine.work_ledger.get.return_value = mock_entry
+
+        # Mock get_issue for issuetype guard (with statusCategory)
+        engine.jira.get_issue.return_value = {
+            'key': 'KAN-10',
+            'fields': {
+                'issuetype': {'name': 'Epic'},
+                'status': {'name': 'In Progress', 'statusCategory': {'name': 'In Progress'}},
+            }
+        }
+
+        # Mock children exist and are terminal
+        engine.jira.get_children_for_epic.return_value = [
+            {'key': 'KAN-17', 'fields': {'status': {'name': 'Done', 'statusCategory': {'name': 'Done'}}, 'summary': 'Story 1'}},
+        ]
+
+        # Mock transitions
+        engine.jira.get_available_transition_names.return_value = ["Done"]
+        engine.jira.transition_issue.return_value = True
+
+        result = engine.reconcile_epic("KAN-10")
+
+        # FIXUP-2: Should auto-record skip and proceed with reconciliation
+        self.assertTrue(result)
+        # Should have recorded decomposition skip evidence
+        engine._upsert_work_ledger_entry.assert_called()
+
+    def test_epic_not_reconciled_if_already_done(self):
+        """Epic not reconciled when it's already Done."""
+        engine = self._create_mock_engine()
+
+        # Mock get_issue with Epic already Done
+        engine.jira.get_issue.return_value = {
+            'key': 'KAN-10',
+            'fields': {
+                'issuetype': {'name': 'Epic'},
+                'status': {'name': 'Done', 'statusCategory': {'name': 'Done'}},  # Already Done
+            }
+        }
+
+        result = engine.reconcile_epic("KAN-10")
+
+        self.assertFalse(result)
+        # Should not check children if already done
+        engine.jira.get_children_for_epic.assert_not_called()
+
 
 class TestIdeaReconciliation(unittest.TestCase):
-    """Test Idea reconciliation when all Epics resolved."""
+    """Test Idea reconciliation when all Epics resolved.
 
-    def _create_mock_engine(self):
-        """Create mock engine for testing."""
+    FIXUP-2 PATCH 4: Updated for per-Epic decomposition checks and Done-only requirement.
+    """
+
+    def _create_mock_engine(self, epic_entries=None):
+        """Create mock engine for testing.
+
+        Args:
+            epic_entries: Optional dict mapping Epic keys to mock WorkLedgerEntry objects.
+                          If None, all Epics will have decomposition_fingerprint set.
+        """
         from engine import ExecutionEngine, Config
+        from work_ledger import WorkLedger, WorkLedgerEntry
 
         mock_config = MagicMock(spec=Config)
         mock_config.repo_path = "/tmp/test-repo"
@@ -332,11 +454,47 @@ class TestIdeaReconciliation(unittest.TestCase):
         with patch('engine.subprocess.run'), \
              patch('engine.rotate_logs'), \
              patch.object(Path, 'mkdir'), \
-             patch('engine.WorkLedger') as mock_ledger_class:
+             patch('engine.WorkLedger') as mock_ledger_class, \
+             patch('engine.DecompositionManifestStore') as mock_manifest_store_class:
+
+            mock_ledger = MagicMock(spec=WorkLedger)
+
+            # Create Idea work_ledger entry
+            idea_entry = MagicMock(spec=WorkLedgerEntry)
+            idea_entry.children = ['KAN-10', 'KAN-11']
+            idea_entry.decomposition_skipped_at = None
+            idea_entry.reconcile_next_at = None
+            idea_entry.reconcile_last_fingerprint = None
+            idea_entry.reconcile_last_commented_reason = None
+            idea_entry.reconcile_last_commented_fingerprint = None
+
+            # Create default Epic entries with decomposition evidence
+            default_epic_entry = MagicMock(spec=WorkLedgerEntry)
+            default_epic_entry.decomposition_fingerprint = "abc123"
+            default_epic_entry.decomposition_skipped_at = None
+
+            # FIXUP-2: Use side_effect to return different entries for Idea vs Epic keys
+            def get_entry(key):
+                if key == "EA-19":
+                    return idea_entry
+                if epic_entries and key in epic_entries:
+                    return epic_entries[key]
+                # Default: return entry with decomposition evidence
+                return default_epic_entry
+
+            mock_ledger.get.side_effect = get_entry
+            mock_ledger_class.return_value = mock_ledger
+
+            # Mock DecompositionManifestStore to return None (no manifest)
+            # Tests use work_ledger decomposition_fingerprint as evidence
+            mock_manifest_store = MagicMock()
+            mock_manifest_store.load.return_value = None
+            mock_manifest_store_class.return_value = mock_manifest_store
 
             engine = ExecutionEngine.__new__(ExecutionEngine)
             engine.config = mock_config
-            engine.work_ledger = MagicMock()
+            engine.work_ledger = mock_ledger
+            engine.reconcile_cooldown_seconds = 600  # FIXUP-2: Unified cooldown
 
             engine.jira = MagicMock()
             engine.log = MagicMock()
@@ -345,13 +503,22 @@ class TestIdeaReconciliation(unittest.TestCase):
             return engine
 
     def test_idea_transitions_when_all_epics_done(self):
-        """Idea transitions when all child Epics are resolved."""
+        """Idea transitions when all child Epics are Done with decomposition evidence."""
         engine = self._create_mock_engine()
 
-        # Mock all Epics resolved
+        # Mock get_issue for issuetype-authoritative guard
+        engine.jira.get_issue.return_value = {
+            'key': 'EA-19',
+            'fields': {
+                'issuetype': {'name': 'Idea'},
+                'status': {'name': 'In Progress', 'statusCategory': {'name': 'In Progress'}},
+            }
+        }
+
+        # Mock all Epics Done (with statusCategory for Done check)
         engine.jira.get_epics_for_idea.return_value = [
-            {'key': 'KAN-10', 'fields': {'status': {'name': 'Done'}, 'summary': 'Epic 1'}},
-            {'key': 'KAN-11', 'fields': {'status': {'name': 'Complete'}, 'summary': 'Epic 2'}},
+            {'key': 'KAN-10', 'fields': {'status': {'name': 'Done', 'statusCategory': {'name': 'Done'}}, 'summary': 'Epic 1'}},
+            {'key': 'KAN-11', 'fields': {'status': {'name': 'Done', 'statusCategory': {'name': 'Done'}}, 'summary': 'Epic 2'}},
         ]
 
         # Mock transitions
@@ -362,6 +529,105 @@ class TestIdeaReconciliation(unittest.TestCase):
 
         self.assertTrue(result)
         engine.jira.transition_issue.assert_called()
+
+    def test_idea_not_reconciled_if_wrong_issuetype(self):
+        """Idea not reconciled when issuetype doesn't match contract."""
+        engine = self._create_mock_engine()
+
+        # Mock get_issue with wrong issuetype (e.g., Epic instead of Idea)
+        engine.jira.get_issue.return_value = {
+            'key': 'EA-19',
+            'fields': {
+                'issuetype': {'name': 'Epic'},  # Wrong type
+                'status': {'name': 'In Progress', 'statusCategory': {'name': 'In Progress'}},
+            }
+        }
+
+        result = engine.reconcile_idea("EA-19")
+
+        self.assertFalse(result)
+        # Should not even check epics
+        engine.jira.get_epics_for_idea.assert_not_called()
+
+    def test_idea_not_reconciled_with_unresolved_epics(self):
+        """Idea not reconciled when some Epics are not Done."""
+        engine = self._create_mock_engine()
+
+        # Mock get_issue for issuetype-authoritative guard
+        engine.jira.get_issue.return_value = {
+            'key': 'EA-19',
+            'fields': {
+                'issuetype': {'name': 'Idea'},
+                'status': {'name': 'In Progress', 'statusCategory': {'name': 'In Progress'}},
+            }
+        }
+
+        # Mock Epics with one not Done (In Progress)
+        engine.jira.get_epics_for_idea.return_value = [
+            {'key': 'KAN-10', 'fields': {'status': {'name': 'Done', 'statusCategory': {'name': 'Done'}}, 'summary': 'Epic 1'}},
+            {'key': 'KAN-11', 'fields': {'status': {'name': 'In Progress', 'statusCategory': {'name': 'In Progress'}}, 'summary': 'Epic 2'}},
+        ]
+
+        result = engine.reconcile_idea("EA-19")
+
+        self.assertFalse(result)
+        engine.jira.transition_issue.assert_not_called()
+
+    def test_idea_not_reconciled_if_child_epic_missing_decomposition_evidence(self):
+        """Idea not reconciled when a child Epic is missing decomposition evidence."""
+        # Create Epic entry without decomposition evidence
+        from work_ledger import WorkLedgerEntry
+        epic_without_decomp = MagicMock(spec=WorkLedgerEntry)
+        epic_without_decomp.decomposition_fingerprint = None
+        epic_without_decomp.decomposition_skipped_at = None
+
+        epic_entries = {
+            'KAN-10': MagicMock(spec=WorkLedgerEntry, decomposition_fingerprint="abc123", decomposition_skipped_at=None),
+            'KAN-11': epic_without_decomp,  # Missing decomposition evidence
+        }
+
+        engine = self._create_mock_engine(epic_entries=epic_entries)
+
+        # Mock get_issue for issuetype-authoritative guard
+        engine.jira.get_issue.return_value = {
+            'key': 'EA-19',
+            'fields': {
+                'issuetype': {'name': 'Idea'},
+                'status': {'name': 'In Progress', 'statusCategory': {'name': 'In Progress'}},
+            }
+        }
+
+        # Mock all Epics Done (but one missing decomposition evidence)
+        engine.jira.get_epics_for_idea.return_value = [
+            {'key': 'KAN-10', 'fields': {'status': {'name': 'Done', 'statusCategory': {'name': 'Done'}}, 'summary': 'Epic 1'}},
+            {'key': 'KAN-11', 'fields': {'status': {'name': 'Done', 'statusCategory': {'name': 'Done'}}, 'summary': 'Epic 2'}},
+        ]
+
+        result = engine.reconcile_idea("EA-19")
+
+        self.assertFalse(result)
+        engine.jira.transition_issue.assert_not_called()
+        # Should have posted a comment about missing decomposition
+        engine.jira.add_comment.assert_called()
+
+    def test_idea_not_reconciled_if_already_done(self):
+        """Idea not reconciled when it's already Done."""
+        engine = self._create_mock_engine()
+
+        # Mock get_issue with Idea already Done
+        engine.jira.get_issue.return_value = {
+            'key': 'EA-19',
+            'fields': {
+                'issuetype': {'name': 'Idea'},
+                'status': {'name': 'Done', 'statusCategory': {'name': 'Done'}},  # Already Done
+            }
+        }
+
+        result = engine.reconcile_idea("EA-19")
+
+        self.assertFalse(result)
+        # Should not check epics if already done
+        engine.jira.get_epics_for_idea.assert_not_called()
 
 
 if __name__ == '__main__':
