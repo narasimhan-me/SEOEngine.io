@@ -185,6 +185,7 @@ export function getIssueFixActionKindInfo(
         sublabel: 'No automatic fix available',
         iconKey: 'playbook.content',
       };
+    }
     case 'BLOCKED': {
       // [EA-16: ERROR-&-BLOCKED-STATE-UX-1] Use canonical blocked reason when provided
       const defaultReason = 'No fix destination is mapped for this issue type in the current context.';

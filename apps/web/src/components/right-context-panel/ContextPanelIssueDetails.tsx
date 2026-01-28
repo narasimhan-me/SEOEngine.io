@@ -31,6 +31,9 @@ import { PriorityRationaleSection } from '@/components/issues/PriorityRationaleS
 // [EA-30: AI-ASSIST-ENTRY-POINTS-1] Import trust loop and contextual help
 import { recordTrustLoopSignal, shouldShowAiAssistant } from '@/lib/trust-loop/trustLoopState';
 import { IssueContextualHelp } from '@/components/assistant/IssueContextualHelp';
+// [ERROR-&-BLOCKED-STATE-UX-1] Import blocked state derivation and action destinations
+import { deriveBlockedState, getBlockedStateCopy } from '@/lib/issues/blockedState';
+import { getIssueActionDestinations } from '@/lib/issues/issueActionDestinations';
 
 /**
  * [ISSUES-ENGINE-REMOUNT-1] Read-only issue details renderer for RCP.
