@@ -47,6 +47,30 @@ export {
   derivePriorityRationale,
 } from './issues/prioritizationSignals';
 
+// [EA-30: AI-ASSIST-ENTRY-POINTS-1] Re-export trust loop and AI assistant types
+export type {
+  TrustLoopSignals,
+  TrustLoopState,
+} from './trust-loop/trustLoopState';
+export {
+  loadTrustLoopState,
+  recordTrustLoopSignal,
+  shouldShowAiAssistant,
+  deriveTrustLoopComplete,
+} from './trust-loop/trustLoopState';
+export type {
+  AiAssistantVisibility,
+  AiAssistantPreferences,
+} from './trust-loop/aiAssistantPreferences';
+export {
+  loadAiAssistantPreferences,
+  setAiAssistantVisibility,
+  isAiAssistantVisible,
+  isAiAssistantMinimized,
+  dismissAiAssistantForSession,
+  isAiAssistantDismissedForContext,
+} from './trust-loop/aiAssistantPreferences';
+
 // =============================================================================
 // DEO Score Types
 // =============================================================================

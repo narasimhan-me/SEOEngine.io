@@ -52,6 +52,8 @@ import {
   checkSavedDraftInSessionStorage,
   type DraftLifecycleState,
 } from '@/lib/issues/draftLifecycleState';
+// [EA-30: AI-ASSIST-ENTRY-POINTS-1] Import trust loop signal recording
+import { recordTrustLoopSignal } from '@/lib/trust-loop/trustLoopState';
 // [ISSUE-FIX-KIND-CLARITY-1 FIXUP-3] Import Icon component for CTA icons
 import { Icon } from '@/components/icons/Icon';
 // [ISSUES-ENGINE-REMOUNT-1] DataTable + RCP integration
@@ -1091,6 +1093,9 @@ export default function IssuesPage() {
 
       const result: any = await aiApi.suggestProductMetadata(primaryProductId);
 
+      // [EA-30: AI-ASSIST-ENTRY-POINTS-1] Record trust loop signal when draft is generated
+      recordTrustLoopSignal(projectId, 'hasGeneratedDraft');
+
       const currentTitle = result?.current?.title ?? '';
       const currentDescription = result?.current?.description ?? '';
       const suggestedTitle = result?.suggested?.title ?? '';
@@ -1171,6 +1176,8 @@ export default function IssuesPage() {
       setSavedDraft(draft);
       // Persist to sessionStorage for cross-navigation persistence
       saveIssueDraftToStorage(projectId, draft);
+      // [EA-30: AI-ASSIST-ENTRY-POINTS-1] Record trust loop signal when draft is saved
+      recordTrustLoopSignal(projectId, 'hasSavedDraft');
       feedback.showSuccess('Draft saved. You can now apply it to Shopify.');
     },
     [
@@ -1230,6 +1237,8 @@ export default function IssuesPage() {
       setAppliedAt(applyTimestamp);
       // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3] Delete from sessionStorage on successful apply
       deleteIssueDraftFromStorage(projectId, issue.id, productId, fieldLabel);
+      // [EA-30: AI-ASSIST-ENTRY-POINTS-1] Record trust loop signal when fix is applied
+      recordTrustLoopSignal(projectId, 'hasAppliedFix');
       // Don't clear previewIssueId or previewValue - keep panel visible showing applied state
       await fetchIssues();
     } catch (err: unknown) {

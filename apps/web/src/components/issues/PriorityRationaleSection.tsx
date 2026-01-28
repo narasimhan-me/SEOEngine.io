@@ -105,9 +105,9 @@ export function PriorityRationaleSection({
         </div>
       )}
 
-      {/* Advisory note */}
+      {/* [EA-30: AI-ASSIST-ENTRY-POINTS-1] Advisory note with supportive language */}
       <p className="mt-3 text-[10px] text-muted-foreground/70">
-        These are suggestions based on available data. You know your business best—address issues in whatever order makes sense for you.
+        These are optional considerations based on available data. You know your business best—you might address issues in whatever order makes sense for your priorities.
       </p>
     </div>
   );

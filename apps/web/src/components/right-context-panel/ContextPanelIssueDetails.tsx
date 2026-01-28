@@ -28,6 +28,9 @@ import {
   derivePriorityRationale,
 } from '@/lib/issues/prioritizationSignals';
 import { PriorityRationaleSection } from '@/components/issues/PriorityRationaleSection';
+// [EA-30: AI-ASSIST-ENTRY-POINTS-1] Import trust loop and contextual help
+import { recordTrustLoopSignal, shouldShowAiAssistant } from '@/lib/trust-loop/trustLoopState';
+import { IssueContextualHelp } from '@/components/assistant/IssueContextualHelp';
 
 /**
  * [ISSUES-ENGINE-REMOUNT-1] Read-only issue details renderer for RCP.
@@ -245,6 +248,17 @@ export function ContextPanelIssueDetails({
   if (!issue) {
     return null;
   }
+
+  // [EA-30: AI-ASSIST-ENTRY-POINTS-1] Record trust loop signal when issue is viewed
+  // This contributes to trust loop completion (understanding phase)
+  useEffect(() => {
+    if (issue && projectId) {
+      recordTrustLoopSignal(projectId, 'hasViewedIssue');
+    }
+  }, [issue, projectId]);
+
+  // [EA-30: AI-ASSIST-ENTRY-POINTS-1] Check trust loop status for AI assistant gating
+  const trustLoopComplete = shouldShowAiAssistant(projectId);
 
   // Derive pillar label
   const pillarLabel = issue.pillarId
@@ -533,6 +547,13 @@ export function ContextPanelIssueDetails({
 
       {/* [ISSUE-TO-ACTION-GUIDANCE-1][RIGHT-CONTEXT-PANEL-AUTONOMY-1] Automation guidance section (informational only) */}
       <AutomationGuidanceSection issue={issue} />
+
+      {/* [EA-30: AI-ASSIST-ENTRY-POINTS-1] Contextual help (only after trust loop complete) */}
+      <IssueContextualHelp
+        projectId={projectId}
+        issue={issue}
+        trustLoopComplete={trustLoopComplete}
+      />
 
       {/* [FIXUP-3] Affected Assets List */}
       <div className="rounded-md border border-border bg-[hsl(var(--surface-card))] p-3">
