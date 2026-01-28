@@ -51,6 +51,13 @@ interface ContextPanelIssueDetailsProps {
   initialIssue?: DeoIssue;
   // [DRAFT-LIFECYCLE-VISIBILITY-1 PATCH 4] Optional draft lifecycle state passed from parent
   draftLifecycleState?: string;
+  // [ERROR-&-BLOCKED-STATE-UX-1 PATCH 3] Optional blocked state and integration status from table
+  blockedState?: string;
+  shopifyConnected?: string;
+  shopifyScope?: string;
+  lastCrawledAt?: string;
+  // [ERROR-&-BLOCKED-STATE-UX-1 FIXUP-2 PATCH 4] Integration status trusted flag for aligned derivation
+  integrationStatusOk?: string;
 }
 
 type LoadState = 'loading' | 'loaded' | 'not_found' | 'error';
@@ -181,6 +188,11 @@ export function ContextPanelIssueDetails({
   issueId,
   initialIssue,
   draftLifecycleState: passedDraftLifecycleState,
+  blockedState: passedBlockedState,
+  shopifyConnected: passedShopifyConnected,
+  shopifyScope: passedShopifyScope,
+  lastCrawledAt: passedLastCrawledAt,
+  integrationStatusOk: passedIntegrationStatusOk,
 }: ContextPanelIssueDetailsProps) {
   const [issue, setIssue] = useState<DeoIssue | null>(initialIssue ?? null);
   const [loadState, setLoadState] = useState<LoadState>(
@@ -246,12 +258,12 @@ export function ContextPanelIssueDetails({
     );
   }
 
-  // Error state
+  // [ERROR-&-BLOCKED-STATE-UX-1 PATCH 4] Error state with SYSTEM_ERROR-aligned copy
   if (loadState === 'error') {
     return (
       <div className="rounded-md border border-border bg-[hsl(var(--surface-card))] p-4">
         <p className="text-sm text-[hsl(var(--danger-foreground))]">
-          Failed to load issue details. Please try again.
+          This action is unavailable due to a system error. Retry, or refresh the page.
         </p>
       </div>
     );
@@ -314,6 +326,60 @@ export function ContextPanelIssueDetails({
     returnTo: `/projects/${projectId}/issues`, // Placeholder for RCP context
   });
   const fixActionSentence = getRcpActionabilitySentence(fixActionKind);
+
+  // [ERROR-&-BLOCKED-STATE-UX-1 PATCH 3] Derive blocked state using same inputs as table
+  // Get destinations for blocked state derivation
+  const destinations = getIssueActionDestinations({
+    projectId,
+    issue,
+    returnTo: `/projects/${projectId}/issues`,
+  });
+
+  // Derive draft lifecycle state for blocked state context
+  let draftStateForBlocked: DraftLifecycleState = 'NO_DRAFT';
+  const validDraftStates: DraftLifecycleState[] = ['NO_DRAFT', 'GENERATED_UNSAVED', 'SAVED_NOT_APPLIED', 'APPLIED'];
+  if (passedDraftLifecycleState && validDraftStates.includes(passedDraftLifecycleState as DraftLifecycleState)) {
+    draftStateForBlocked = passedDraftLifecycleState as DraftLifecycleState;
+  } else if (issue.primaryProductId) {
+    const hasSavedInStorage = checkSavedDraftInSessionStorage(
+      projectId,
+      issue.id,
+      issue.primaryProductId,
+      ['SEO title', 'SEO description']
+    );
+    if (hasSavedInStorage) {
+      draftStateForBlocked = 'SAVED_NOT_APPLIED';
+    }
+  }
+
+  // [ERROR-&-BLOCKED-STATE-UX-1 FIXUP-2 PATCH 4] Only consider integration-status data when trusted (ok)
+  const isIntegrationOk = passedIntegrationStatusOk === 'true';
+
+  // Derive blocked state locally
+  const derivedBlockedState = isIntegrationOk
+    ? deriveBlockedState({
+        issue,
+        destinations,
+        draftLifecycleState: draftStateForBlocked,
+        shopifyConnected: passedShopifyConnected === 'true',
+        shopifyScope: passedShopifyScope || '',
+        lastCrawledAt: passedLastCrawledAt || null, // null = known missing, undefined = unknown
+        uiErrorFlag: false,
+      })
+    : null; // Don't infer blocked state when integration data not yet trusted
+
+  // [ERROR-&-BLOCKED-STATE-UX-1 PATCH 6] Dev-time warning: RCP vs table mismatch
+  // [ERROR-&-BLOCKED-STATE-UX-1 FIXUP-3 PATCH 2] Only warn when integration status is trusted (both sides computed)
+  if (process.env.NODE_ENV !== 'production') {
+    if (isIntegrationOk && passedBlockedState && derivedBlockedState !== passedBlockedState) {
+      console.warn(
+        `[ERROR-&-BLOCKED-STATE-UX-1] RCP blocked state mismatch: table passed "${passedBlockedState}" but RCP derived "${derivedBlockedState}"`
+      );
+    }
+  }
+
+  // Get copy for blocked state display
+  const blockedCopy = derivedBlockedState ? getBlockedStateCopy(derivedBlockedState) : null;
 
   // Derive severity display
   const getSeverityClass = () => {
@@ -544,6 +610,20 @@ export function ContextPanelIssueDetails({
             </p>
           );
         })()}
+        {/* [ERROR-&-BLOCKED-STATE-UX-1 PATCH 3] "Why this is blocked" line when applicable */}
+        {blockedCopy && (
+          <div className="mt-2 border-t border-border pt-2">
+            <p className="text-xs font-medium text-muted-foreground">
+              Why this is blocked:
+            </p>
+            <p className="mt-1 text-xs text-foreground">
+              {blockedCopy.description}
+              {blockedCopy.nextStep && (
+                <span className="text-muted-foreground"> Next: {blockedCopy.nextStep}</span>
+              )}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* [ISSUE-TO-ACTION-GUIDANCE-1][RIGHT-CONTEXT-PANEL-AUTONOMY-1] Automation guidance section (informational only) */}

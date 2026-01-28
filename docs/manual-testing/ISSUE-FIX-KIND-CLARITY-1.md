@@ -283,3 +283,77 @@ The fix-action kind is derived from existing signals (no guesswork):
 - [ ] **Direct fix CTAs do NOT include "AI/Apply/Automation"** in label (dev-time warning if they do)
 - [ ] **All existing data-testid selectors preserved** (issue-fix-next-button, issue-fix-button, issue-view-affected-button, issue-blocked-chip)
 - [ ] **Icons render correctly** via Icon component (workflow.ai, nav.projects, playbook.content)
+
+---
+
+## FIXUP-4: Preview Eligibility + View Affected Label (2026-01-25)
+
+### Changes
+
+1. **AI_PREVIEW_FIX requires inline preview support** - Derivation now checks `isInlineAiPreviewSupportedIssueType()` which uses a centralized allowlist
+2. **viewAffected actions labeled as exploration** - "View affected" label instead of "Review guidance" for GUIDANCE_ONLY issues that only have viewAffected destination
+
+### Inline Preview Allowlist
+
+The inline AI preview is only available for these issue types:
+
+| Issue Type               | Inline Preview |
+| ------------------------ | -------------- |
+| `missing_seo_title`      | ✓ Supported    |
+| `missing_seo_description`| ✓ Supported    |
+| All other issue types    | ✗ Not supported |
+
+### GUIDANCE_ONLY Label Logic
+
+| Has viewAffected? | Has fix destination? | Label              | Icon           |
+| ----------------- | -------------------- | ------------------ | -------------- |
+| Yes               | No                   | "View affected"    | nav.projects   |
+| Yes/No            | Yes (DIAGNOSTIC)     | "Review guidance"  | playbook.content |
+
+### Test Scenarios (FIXUP-4)
+
+#### Scenario F4-001: AI Fix without Inline Preview Support
+
+**Route:** `/projects/{projectId}/issues`
+
+**Setup:** Issue with `fixType='aiFix'`, `fixReady=true` but NOT in inline preview allowlist
+
+1. Navigate to Issues Engine
+2. Locate an AI-fixable issue that is NOT `missing_seo_title` or `missing_seo_description`
+3. **Verify:**
+   - [ ] CTA does NOT show "Review AI fix" (should show "Fix with AI" link instead)
+   - [ ] Click navigates to workspace (does not open inline preview)
+   - [ ] Action kind derived is `DIRECT_FIX`, NOT `AI_PREVIEW_FIX`
+
+---
+
+#### Scenario F4-002: View Affected Shows Exploration Label
+
+**Route:** `/projects/{projectId}/issues`
+
+**Setup:** Issue with affected products but no fix destination
+
+1. Navigate to Issues Engine
+2. Locate an issue that has `affectedProducts` but no direct fix (viewAffected only)
+3. **Verify:**
+   - [ ] CTA shows "View affected" (NOT "Review guidance")
+   - [ ] Icon is nav.projects (inventory icon)
+   - [ ] Tooltip shows "See affected items"
+   - [ ] Click navigates to Products list with issue filter
+
+---
+
+### Dev-Time Guardrails (FIXUP-4)
+
+In development mode, console warnings appear when:
+
+1. **AI_PREVIEW_FIX derived but supportsInlineFix is false** - Indicates allowlist drift between `issueFixActionKind.ts` and `page.tsx`
+
+### Verification Checklist (FIXUP-4)
+
+- [ ] **AI preview CTA only shown for supported issue types** (`missing_seo_title`, `missing_seo_description`)
+- [ ] **Non-supported AI issues get "Fix with AI" link** (navigates to workspace)
+- [ ] **viewAffected-only issues show "View affected"** (exploration label, not guidance)
+- [ ] **DIAGNOSTIC issues still show "Review guidance"** (unchanged)
+- [ ] **Single source of truth for inline preview support** (`inlineAiPreviewSupport.ts`)
+- [ ] **No console warnings in dev mode** (allowlists are aligned)

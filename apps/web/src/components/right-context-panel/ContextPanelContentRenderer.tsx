@@ -99,33 +99,30 @@ export function ContextPanelContentRenderer({
  * [ISSUES-ENGINE-REMOUNT-1] Issue kind uses dedicated ContextPanelIssueDetails component.
  * [PLAYBOOKS-SHELL-REMOUNT-1] Playbook kind uses dedicated PlaybookDetailsContent component.
  */
-function renderDetailsView(
-  descriptor: ContextDescriptor,
-  currentProjectId: string | null
-) {
+function renderDetailsView(descriptor: ContextDescriptor, currentProjectId: string | null) {
   // Asset kinds use the new content expansion system
   if (isAssetKind(descriptor.kind)) {
-    return (
-      <AssetDetailsContent
-        descriptor={descriptor}
-        projectId={currentProjectId}
-      />
-    );
+    return <AssetDetailsContent descriptor={descriptor} projectId={currentProjectId} />;
   }
 
   // Non-asset kinds use existing renderers
   switch (descriptor.kind) {
     // [ISSUES-ENGINE-REMOUNT-1] Issue kind - read-only issue details in RCP
     // [DRAFT-LIFECYCLE-VISIBILITY-1 PATCH 4] Pass draftLifecycleState from descriptor metadata
+    // [ERROR-&-BLOCKED-STATE-UX-1 PATCH 3] Pass blockedState and integration status from descriptor metadata
+    // [ERROR-&-BLOCKED-STATE-UX-1 FIXUP-2 PATCH 4] Pass integrationStatusOk for aligned blocked state derivation
     case 'issue':
       if (currentProjectId) {
         return (
           <ContextPanelIssueDetails
             projectId={currentProjectId}
             issueId={descriptor.id}
-            draftLifecycleState={
-              descriptor.metadata?.draftLifecycleState as string | undefined
-            }
+            draftLifecycleState={descriptor.metadata?.draftLifecycleState as string | undefined}
+            blockedState={descriptor.metadata?.blockedState as string | undefined}
+            shopifyConnected={descriptor.metadata?.shopifyConnected as string | undefined}
+            shopifyScope={descriptor.metadata?.shopifyScope as string | undefined}
+            lastCrawledAt={descriptor.metadata?.lastCrawledAt as string | undefined}
+            integrationStatusOk={descriptor.metadata?.integrationStatusOk as string | undefined}
           />
         );
       }
@@ -199,10 +196,7 @@ function AssetDetailsContent({
       <ContextPanelActionPreview descriptor={descriptor} />
 
       {/* D) AI Assist Hints (optional, collapsed by default) */}
-      <ContextPanelAiAssistHints
-        descriptor={descriptor}
-        issuesCount={issuesCount}
-      />
+      <ContextPanelAiAssistHints descriptor={descriptor} issuesCount={issuesCount} />
 
       {/* Legacy SEO metadata blocks (retained for backwards compatibility) */}
       {/* SEO Title - Status + Value */}
@@ -235,12 +229,11 @@ function AssetDetailsContent({
               {metadata.seoDescriptionStatus}
             </span>
           )}
-          {metadata.metaDescription &&
-            metadata.metaDescription !== 'Not set' && (
-              <p className="mt-2 text-sm text-foreground break-words line-clamp-3">
-                {metadata.metaDescription}
-              </p>
-            )}
+          {metadata.metaDescription && metadata.metaDescription !== 'Not set' && (
+            <p className="mt-2 text-sm text-foreground break-words line-clamp-3">
+              {metadata.metaDescription}
+            </p>
+          )}
         </div>
       )}
 
@@ -319,9 +312,7 @@ function UserDetailsContent({ descriptor }: { descriptor: ContextDescriptor }) {
           <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
             Last Activity
           </p>
-          <p className="mt-1 text-sm text-foreground">
-            {metadata.lastActivity}
-          </p>
+          <p className="mt-1 text-sm text-foreground">{metadata.lastActivity}</p>
         </div>
       )}
 
@@ -331,9 +322,7 @@ function UserDetailsContent({ descriptor }: { descriptor: ContextDescriptor }) {
           <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
             Projects
           </p>
-          <p className="mt-1 text-sm text-foreground">
-            {metadata.projectsCount}
-          </p>
+          <p className="mt-1 text-sm text-foreground">{metadata.projectsCount}</p>
         </div>
       )}
 
@@ -353,9 +342,7 @@ function UserDetailsContent({ descriptor }: { descriptor: ContextDescriptor }) {
           <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
             Quota Usage
           </p>
-          <p className="mt-1 text-sm text-foreground">
-            {metadata.quotaPercent}%
-          </p>
+          <p className="mt-1 text-sm text-foreground">{metadata.quotaPercent}%</p>
         </div>
       )}
 
@@ -474,9 +461,7 @@ function WorkItemDetailsContent({
             AI Usage
           </p>
           <span className="mt-1 inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium text-foreground">
-            {metadata.aiUsage === 'NONE'
-              ? 'Does not use AI'
-              : 'AI used for drafts'}
+            {metadata.aiUsage === 'NONE' ? 'Does not use AI' : 'AI used for drafts'}
           </span>
         </div>
       )}
@@ -540,10 +525,7 @@ function PlaybookDetailsContent({
 
   // Parse preconditions from metadata (comma-separated string or already array-like)
   const preconditions = metadata.preconditions
-    ? metadata.preconditions
-        .split(',')
-        .map((p: string) => p.trim())
-        .filter(Boolean)
+    ? metadata.preconditions.split(',').map((p: string) => p.trim()).filter(Boolean)
     : [];
 
   return (
@@ -592,10 +574,7 @@ function PlaybookDetailsContent({
         {preconditions.length > 0 ? (
           <ul className="mt-1 space-y-1">
             {preconditions.map((condition: string, idx: number) => (
-              <li
-                key={idx}
-                className="text-sm text-foreground flex items-start gap-2"
-              >
+              <li key={idx} className="text-sm text-foreground flex items-start gap-2">
                 <span className="text-muted-foreground">•</span>
                 <span>{condition}</span>
               </li>
@@ -631,9 +610,7 @@ function PlaybookDetailsContent({
           History
         </p>
         {metadata.lastRunSummary ? (
-          <p className="mt-1 text-sm text-foreground">
-            {metadata.lastRunSummary}
-          </p>
+          <p className="mt-1 text-sm text-foreground">{metadata.lastRunSummary}</p>
         ) : (
           <p className="mt-1 text-sm text-muted-foreground">
             No history available.
