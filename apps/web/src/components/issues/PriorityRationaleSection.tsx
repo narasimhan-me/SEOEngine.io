@@ -107,7 +107,7 @@ export function PriorityRationaleSection({
 
       {/* Advisory note */}
       <p className="mt-3 text-[10px] text-muted-foreground/70">
-        These signals are suggestions to help you decide what to work on. You can address issues in any order.
+        These are suggestions based on available data. You know your business best—address issues in whatever order makes sense for you.
       </p>
     </div>
   );

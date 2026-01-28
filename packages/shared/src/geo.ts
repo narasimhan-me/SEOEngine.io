@@ -53,25 +53,33 @@ export const GEO_SIGNAL_LABELS: Record<GeoReadinessSignalType, string> = {
   accessibility: 'Accessibility',
 };
 
+/**
+ * [EA-28: ISSUE-EXPLANATION-QUALITY-1] GEO Issue Labels
+ * Clear, accessible labels for non-expert users.
+ */
 export const GEO_ISSUE_LABELS: Record<GeoIssueType, string> = {
-  missing_direct_answer: 'Missing direct answer',
-  answer_too_vague: 'Answer is too vague',
-  poor_answer_structure: 'Poor answer structure',
-  answer_overly_promotional: 'Answer is overly promotional',
-  missing_examples_or_facts: 'Missing examples or concrete facts',
+  missing_direct_answer: 'Answer needs a clear opening',
+  answer_too_vague: 'Answer could use more specifics',
+  poor_answer_structure: 'Answer could be easier to read',
+  answer_overly_promotional: 'Answer sounds too sales-focused',
+  missing_examples_or_facts: 'Answer could use examples or details',
 };
 
+/**
+ * [EA-28: ISSUE-EXPLANATION-QUALITY-1] GEO Issue Descriptions
+ * Clear explanations of what was detected, why it matters, and what to do.
+ */
 export const GEO_ISSUE_DESCRIPTIONS: Record<GeoIssueType, string> = {
   missing_direct_answer:
-    'The answer does not provide a concise, direct response early on.',
+    'This answer doesn't start with a clear, direct response. Starting with a straightforward answer helps AI assistants extract and share your content.',
   answer_too_vague:
-    'The answer lacks concrete details that make it verifiable and useful.',
+    'This answer could be more helpful with specific details like numbers, measurements, or examples. Concrete details make your content more useful and trustworthy.',
   poor_answer_structure:
-    'The answer is hard to scan (long blocks, weak formatting, unclear sections).',
+    'This answer is formatted as a large block of text. Breaking it into shorter paragraphs or bullet points makes it easier for customers and AI to find key information.',
   answer_overly_promotional:
-    'The answer uses marketing-heavy language that reduces neutrality and trust.',
+    'This answer uses a lot of marketing language. A more neutral, informative tone helps build trust and makes AI assistants more likely to reference your content.',
   missing_examples_or_facts:
-    'The answer would benefit from specific examples or grounded facts (without inventing new claims).',
+    'This answer would be more helpful with a specific example or concrete fact. Real details from your product information make answers more credible and useful.',
 };
 
 export interface GeoIssue {

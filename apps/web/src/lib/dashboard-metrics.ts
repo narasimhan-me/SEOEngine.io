@@ -42,48 +42,49 @@ export interface MetricDefinition {
 }
 
 /**
- * DEO Score component metrics (Content, Entities, Technical, Visibility)
+ * [EA-28: ISSUE-EXPLANATION-QUALITY-1] DEO Score component metrics
+ * All explanations use clear, accessible language without jargon.
  */
 export const DEO_COMPONENT_METRICS: Record<string, MetricDefinition> = {
   content: {
     id: 'content',
     label: 'Content Quality',
-    whatItMeasures: 'How complete, detailed, and useful your product descriptions and page content are.',
-    whyItMatters: 'Rich, detailed content helps search engines and AI assistants understand what you sell and match you with relevant customer searches.',
-    howToInterpret: '80+ is strong coverage. Below 60 means key products may lack enough detail to rank well or be cited by AI.',
+    whatItMeasures: 'How complete and detailed your product descriptions and page content are.',
+    whyItMatters: 'Detailed content helps search engines and AI assistants understand what you sell and show your pages to people looking for products like yours.',
+    howToInterpret: '80+ means your content is thorough. Below 60 means some products may need more detailed descriptions.',
     type: 'signal',
     technicalTerm: 'Content coverage, depth, and freshness',
     dataSource: 'Analysis of your product titles, descriptions, and page content',
   },
   entities: {
     id: 'entities',
-    label: 'Product Identity',
-    whatItMeasures: 'How clearly your products are identified with consistent names, categories, and attributes.',
-    whyItMatters: 'Clear product identity helps search engines confidently display your products and helps AI understand exactly what you sell.',
-    howToInterpret: '80+ means your products are well-identified. Below 60 suggests inconsistent or unclear product information.',
+    label: 'Product Information',
+    whatItMeasures: 'How clearly your products are identified with consistent names, categories, and details.',
+    whyItMatters: 'Clear, consistent product information helps both customers and search engines understand exactly what each product is.',
+    howToInterpret: '80+ means your product information is clear. Below 60 suggests some products may have incomplete or inconsistent details.',
     type: 'signal',
     technicalTerm: 'Entity coverage, accuracy, and linkage',
     dataSource: 'Analysis of product titles, categories, and structured data',
   },
   technical: {
     id: 'technical',
-    label: 'Site Health',
-    whatItMeasures: 'Whether search engines can successfully access and understand your pages.',
-    whyItMatters: 'Technical issues can prevent your pages from appearing in search results entirely, no matter how good your content is.',
-    howToInterpret: '80+ means no major access issues. Below 60 indicates problems that may be blocking search engines.',
+    label: 'Site Accessibility',
+    whatItMeasures: 'Whether search engines can successfully access and understand all your pages.',
+    whyItMatters: 'Pages that search engines can\'t access won\'t appear in search results. Keeping your site accessible ensures all your content can be found.',
+    howToInterpret: '80+ means your site is fully accessible. Below 60 means some pages may have access issues worth reviewing.',
     type: 'signal',
     technicalTerm: 'Crawl health, indexability, HTML quality',
-    dataSource: 'Automated crawl of your site checking for access issues',
+    dataSource: 'Automated scan of your site checking for access issues',
   },
   visibility: {
     id: 'visibility',
     label: 'Search Readiness',
-    whatItMeasures: 'How prepared your pages are to appear prominently in search results and AI answers.',
-    whyItMatters: 'Well-prepared pages are more likely to appear in featured snippets, AI answers, and prominent search positions.',
-    howToInterpret: '80+ means strong readiness. Below 60 suggests your pages may be missing elements that help them stand out in search.',
+    whatItMeasures: 'How well your pages are set up to appear in search results and AI-powered answers.',
+    whyItMatters: 'Pages with complete titles, descriptions, and structured content are more likely to appear prominently when customers search.',
+    howToInterpret: '80+ means your pages are well-prepared. Below 60 suggests adding titles, descriptions, or structured content could help.',
     type: 'signal',
     technicalTerm: 'SERP readiness, answer surface presence, brand navigational strength',
-    dataSource: 'Analysis of metadata, structured data, and content formatting',
+    dataSource: 'Analysis of titles, descriptions, and content structure',
   },
 };
 
@@ -228,55 +229,56 @@ export const DEO_SIGNAL_METRICS: Record<string, MetricDefinition> = {
 };
 
 /**
- * Health card metrics (issue categories)
+ * [EA-28: ISSUE-EXPLANATION-QUALITY-1] Health card metrics
+ * Non-alarmist language that empowers users to take action.
  */
 export const HEALTH_CARD_METRICS: Record<string, MetricDefinition> = {
   'missing-metadata': {
     id: 'missing-metadata',
-    label: 'Missing Page Titles & Descriptions',
-    whatItMeasures: 'Pages lacking the titles or descriptions that appear in search results.',
-    whyItMatters: 'Pages without titles and descriptions show poorly in search results, getting fewer clicks even when they rank.',
-    howToInterpret: 'Low severity is best. High severity means many pages need titles and descriptions added.',
+    label: 'Pages Missing Titles & Descriptions',
+    whatItMeasures: 'Pages that don't have titles or descriptions set for search results.',
+    whyItMatters: 'Pages with titles and descriptions look better in search results and give customers a clear preview of what they'll find.',
+    howToInterpret: 'Fewer issues is better. The count shows how many pages would benefit from adding titles and descriptions.',
     type: 'signal',
-    dataSource: 'Crawl analysis of page metadata',
+    dataSource: 'Scan of page titles and descriptions',
   },
   'thin-content': {
     id: 'thin-content',
-    label: 'Pages with Limited Content',
-    whatItMeasures: 'Pages with very little text or substance.',
-    whyItMatters: 'Pages with minimal content are often filtered out of search results or ranked below more comprehensive pages.',
-    howToInterpret: 'Low severity is best. High severity indicates many pages need more content.',
+    label: 'Pages with Brief Content',
+    whatItMeasures: 'Pages that have relatively little text content.',
+    whyItMatters: 'Pages with more detailed content can better answer customer questions and are more likely to appear for relevant searches.',
+    howToInterpret: 'Fewer issues is better. The count shows pages that may benefit from additional content.',
     type: 'signal',
-    dataSource: 'Word count and content analysis',
+    dataSource: 'Content analysis across your pages',
   },
   'weak-entities': {
     id: 'weak-entities',
-    label: 'Unclear Product Information',
-    whatItMeasures: 'Products missing clear names, categories, or identifying information.',
-    whyItMatters: 'Products without clear identification are harder for search engines to match with customer searches.',
-    howToInterpret: 'Low severity is best. High severity means products need clearer identification.',
+    label: 'Products with Incomplete Information',
+    whatItMeasures: 'Products that may be missing names, categories, or other identifying details.',
+    whyItMatters: 'Complete product information helps customers find what they're looking for and helps search engines show your products for relevant searches.',
+    howToInterpret: 'Fewer issues is better. The count shows products that could use more complete information.',
     type: 'signal',
     technicalTerm: 'Weak entity coverage',
-    dataSource: 'Analysis of product titles, headings, and metadata',
+    dataSource: 'Analysis of product titles, categories, and details',
   },
   'low-visibility': {
     id: 'low-visibility',
-    label: 'Pages Not Search-Ready',
-    whatItMeasures: 'Pages that lack the formatting and structure to appear prominently in search.',
-    whyItMatters: 'Pages without proper formatting may rank but fail to appear in featured snippets or AI answers.',
-    howToInterpret: 'Low severity is best. High severity suggests pages need optimization for better search display.',
+    label: 'Pages That Could Be More Visible',
+    whatItMeasures: 'Pages that may be missing elements that help them stand out in search results.',
+    whyItMatters: 'Pages with complete structured content are more likely to appear prominently in search results and AI-powered answers.',
+    howToInterpret: 'Fewer issues is better. The count shows pages that could be enhanced for better search visibility.',
     type: 'signal',
     technicalTerm: 'Low visibility readiness',
-    dataSource: 'Analysis of structured data and content formatting',
+    dataSource: 'Analysis of content structure and formatting',
   },
   'crawl-errors': {
     id: 'crawl-errors',
-    label: 'Pages with Access Problems',
-    whatItMeasures: 'Pages that fail to load or return errors when accessed.',
-    whyItMatters: 'Pages with errors cannot appear in search results and create poor experiences for visitors who find broken links.',
-    howToInterpret: 'Low severity is best. Any issues should be investigated and fixed promptly.',
+    label: 'Pages with Access Issues',
+    whatItMeasures: 'Pages that returned errors when we tried to access them.',
+    whyItMatters: 'Pages that can't be accessed won't appear in search results. Fixing access issues ensures all your content is available.',
+    howToInterpret: 'Zero issues is ideal. Any errors are worth investigating to ensure your content is accessible.',
     type: 'signal',
-    dataSource: 'HTTP response codes from our crawl',
+    dataSource: 'Response codes from our site scan',
   },
 };
 

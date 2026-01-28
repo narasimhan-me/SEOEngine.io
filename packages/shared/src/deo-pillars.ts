@@ -37,7 +37,8 @@ export interface DeoPillar {
 }
 
 /**
- * Canonical DEO Pillars array in display order
+ * [EA-28: ISSUE-EXPLANATION-QUALITY-1] Canonical DEO Pillars array
+ * All whyItMatters explanations use clear, accessible language for non-expert users.
  *
  * Pillars marked with comingSoon: false have full functionality implemented:
  * - metadata_snippet_quality
@@ -53,82 +54,82 @@ export interface DeoPillar {
 export const DEO_PILLARS: DeoPillar[] = [
   {
     id: 'metadata_snippet_quality',
-    label: 'Metadata & Snippet Quality',
+    label: 'Titles & Descriptions',
     shortName: 'Metadata',
     description:
-      'SEO titles, meta descriptions, and structured data that control how your pages appear in search results and AI answer engines.',
+      'The titles, descriptions, and structured information that control how your pages appear in search results.',
     whyItMatters:
-      'Well-crafted metadata improves click-through rates from search results and helps AI engines accurately summarize your content. Missing or weak metadata can cause your pages to be overlooked or misrepresented.',
+      'Good titles and descriptions help your pages stand out in search results and give customers a clear preview of what they'll find. They also help AI assistants accurately describe your content when answering questions.',
     comingSoon: false,
   },
   {
     id: 'content_commerce_signals',
-    label: 'Content & Commerce Signals',
+    label: 'Product Content',
     shortName: 'Content',
     description:
-      'Product descriptions, entity coverage, content depth, and semantic richness that help discovery engines understand your offerings.',
+      'The depth and quality of your product descriptions, including key details that help customers understand what you sell.',
     whyItMatters:
-      'Rich, entity-dense content helps search and AI engines understand what you sell and match you with relevant queries. Thin or duplicate content reduces your visibility and answer eligibility.',
+      'Detailed product content helps customers make informed decisions and helps search engines match your products with what people are looking for. Products with thorough descriptions are more likely to appear in relevant searches.',
     comingSoon: false,
   },
   {
     id: 'media_accessibility',
-    label: 'Media & Accessibility',
+    label: 'Images & Accessibility',
     shortName: 'Media',
     description:
-      'Product images, alt text coverage, and accessibility attributes that enhance discoverability across visual and AI search interfaces.',
+      'Product images and the descriptive text that helps search engines and screen readers understand your visual content.',
     whyItMatters:
-      'Images with proper alt text improve accessibility and visual/AI search rankings. Missing or generic alt text excludes you from image search, voice assistants, and AI-powered discovery experiences. Good alt text helps AI understand and recommend your products.',
+      'Product images with good descriptions can appear in image search and help AI assistants recommend your products. Descriptive image text also makes your site accessible to customers using screen readers.',
     comingSoon: false,
   },
   {
     id: 'search_intent_fit',
-    label: 'Search & Intent Fit',
+    label: 'Search Matching',
     shortName: 'Search & Intent',
     description:
-      'Query coverage analysis, missing intent detection, and Answer Block readiness for AI-powered answer engines. Identifies gaps in transactional, comparative, and informational query coverage.',
+      'How well your content matches the different ways customers search for products like yours, including questions they might ask AI assistants.',
     whyItMatters:
-      'Matching search intent increases conversion and featured snippet eligibility. Answer Blocks ensure your products are ready to be cited by AI engines like ChatGPT, Perplexity, and Google AI Overviews.',
+      'Customers search in different ways—some want to compare products, others want to solve a problem, and some are ready to buy. Content that addresses these different needs is more likely to appear when customers search.',
     comingSoon: false,
   },
   {
     id: 'competitive_positioning',
-    label: 'Competitive Positioning',
+    label: 'Competitive Completeness',
     shortName: 'Competitors',
     description:
-      'Coverage gaps vs typical competitors in your category. Identifies missing intent coverage, content sections, and trust signals that similar products typically include. Uses ethical, heuristic-based analysis — no scraping or copying competitor content.',
+      'How your product content compares to what customers typically find when shopping for similar products.',
     whyItMatters:
-      'Products that cover more search intents and include comprehensive content sections rank higher and convert better. Addressing gaps where competitors likely excel helps you compete on equal footing without copying their content.',
+      'Customers often compare products before buying. Having comprehensive information—like comparisons, use cases, and trust signals—helps your products compete when customers are researching their options.',
     comingSoon: false,
   },
   {
     id: 'offsite_signals',
-    label: 'Off-site Signals',
+    label: 'External Presence',
     shortName: 'Off-site',
     description:
-      'Brand mentions, authoritative listings, reviews, certifications, and referenceable content that build trust and authority. This pillar focuses on the presence and quality of off-site trust signals — not raw backlink counts or domain authority metrics.',
+      'Your brand's presence on external sites like review platforms, directories, and comparison sites that build credibility.',
     whyItMatters:
-      'Discovery engines and AI models use off-site trust signals to evaluate brand authority and relevance. Mentions on industry directories, review platforms, and comparison sites increase the likelihood of being cited in AI answers and improve search visibility. Strong off-site presence demonstrates credibility to both algorithms and human buyers.',
+      'When your brand appears on trusted external sites, it builds credibility with both customers and search engines. AI assistants also look at external sources when deciding which brands to recommend.',
     comingSoon: false,
   },
   {
     id: 'local_discovery',
-    label: 'Local Discovery',
+    label: 'Local Presence',
     shortName: 'Local',
     description:
-      'Local intent coverage, location clarity, and local trust signals for stores with physical presence or geographic service areas. This pillar only applies when local discovery is relevant — global-only stores see "Not Applicable" status with no penalty.',
+      'How easily local customers can find you through location-based searches. Only relevant for businesses serving specific geographic areas.',
     whyItMatters:
-      'For stores serving specific geographic areas, local signals are critical for "near me" searches, city-specific queries, and local AI recommendations. Clear location content and local trust signals help discovery engines match you with nearby customers. Non-local stores are not penalized.',
+      'If you serve specific locations, local search is how nearby customers find you. Clear location information helps you appear in "near me" searches and local recommendations. This doesn't apply to businesses that ship everywhere.',
     comingSoon: false,
   },
   {
     id: 'technical_indexability',
-    label: 'Technical & Indexability',
+    label: 'Site Accessibility',
     shortName: 'Technical',
     description:
-      'Core Web Vitals, crawl health, indexability status, structured data validation, and technical SEO foundations.',
+      'Whether search engines can successfully access, read, and understand all your pages.',
     whyItMatters:
-      'Technical issues can prevent search engines from crawling and indexing your content. Fast, accessible, and properly structured pages rank better and provide better user experiences.',
+      'Search engines need to access your pages before they can show them in results. Fast-loading, error-free pages provide better experiences for both visitors and search engines.',
     comingSoon: false,
   },
 ];

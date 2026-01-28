@@ -72,29 +72,29 @@ export function deriveImpactLevel(
 }
 
 /**
- * Get display copy for an impact level.
- * Uses collaborative language that doesn't create false urgency.
+ * [EA-28: ISSUE-EXPLANATION-QUALITY-1] Get display copy for an impact level.
+ * Uses helpful, non-prescriptive language.
  */
 export function getImpactLevelCopy(level: DeoIssueImpactLevel): ImpactLevelCopy {
   switch (level) {
     case 'high':
       return {
-        label: 'High impact',
-        description: 'Addressing this issue may significantly improve your DEO performance',
+        label: 'Higher priority',
+        description: 'Addressing this issue could meaningfully improve how customers discover your content',
         iconHint: 'arrow_upward',
         colorHint: 'high',
       };
     case 'medium':
       return {
-        label: 'Medium impact',
-        description: 'This issue has moderate potential impact on your DEO performance',
+        label: 'Worth reviewing',
+        description: 'This issue may be affecting how some customers find your content',
         iconHint: 'remove',
         colorHint: 'medium',
       };
     case 'low':
       return {
-        label: 'Low impact',
-        description: 'This issue has minor impact on your overall DEO performance',
+        label: 'Lower priority',
+        description: 'This is a smaller issue that you can address when time permits',
         iconHint: 'arrow_downward',
         colorHint: 'low',
       };
@@ -124,8 +124,8 @@ export function deriveConfidenceConsideration(
 }
 
 /**
- * Derive prioritization factors from issue data.
- * Returns transparent, explainable factors in plain language.
+ * [EA-28: ISSUE-EXPLANATION-QUALITY-1] Derive prioritization factors from issue data.
+ * Returns transparent, explainable factors using helpful, non-alarmist language.
  */
 export function derivePrioritizationFactors(issue: {
   count?: number;
@@ -142,15 +142,15 @@ export function derivePrioritizationFactors(issue: {
     if (issue.count >= 10) {
       factors.push({
         factorId: 'high_affected_count',
-        label: 'Affects many items',
-        explanation: `This issue affects ${issue.count} products or pages, so fixing it could have broad impact.`,
+        label: 'Applies to many items',
+        explanation: `This applies to ${issue.count} products or pages, so addressing it could benefit a larger portion of your catalog.`,
         direction: 'increases',
       });
     } else if (issue.count >= 3) {
       factors.push({
         factorId: 'moderate_affected_count',
-        label: 'Affects multiple items',
-        explanation: `This issue affects ${issue.count} products or pages.`,
+        label: 'Applies to several items',
+        explanation: `This applies to ${issue.count} products or pages.`,
         direction: 'increases',
       });
     }
@@ -160,8 +160,8 @@ export function derivePrioritizationFactors(issue: {
   if (issue.severity === 'critical') {
     factors.push({
       factorId: 'critical_severity',
-      label: 'Marked as critical',
-      explanation: 'This issue type is categorized as critical based on its potential impact on discoverability.',
+      label: 'Commonly addressed first',
+      explanation: 'This type of issue is typically prioritized because it can affect how customers discover your content.',
       direction: 'increases',
     });
   }
@@ -169,17 +169,17 @@ export function derivePrioritizationFactors(issue: {
   // Factor: DEO component impact
   if (issue.deoComponentKey) {
     const componentLabels: Record<string, string> = {
-      content_quality: 'content quality',
-      entity_strength: 'entity recognition',
-      technical_health: 'technical health',
-      visibility_signals: 'visibility',
-      answerability: 'AI answer potential',
+      content_quality: 'content completeness',
+      entity_strength: 'product information',
+      technical_health: 'site accessibility',
+      visibility_signals: 'search visibility',
+      answerability: 'AI recommendations',
     };
     const componentLabel = componentLabels[issue.deoComponentKey] || issue.deoComponentKey;
     factors.push({
       factorId: 'deo_component_impact',
-      label: `Impacts ${componentLabel}`,
-      explanation: `Resolving this issue may improve your ${componentLabel} score.`,
+      label: `Related to ${componentLabel}`,
+      explanation: `Addressing this may improve your ${componentLabel}.`,
       direction: 'increases',
     });
   }
@@ -189,7 +189,7 @@ export function derivePrioritizationFactors(issue: {
     factors.push({
       factorId: 'easy_to_fix',
       label: 'Quick to address',
-      explanation: 'This issue can be resolved with minimal effort using available tools.',
+      explanation: 'You can address this with a few clicks using the available tools.',
       direction: 'increases',
     });
   }
@@ -198,8 +198,8 @@ export function derivePrioritizationFactors(issue: {
   if (issue.fixCost === 'manual') {
     factors.push({
       factorId: 'manual_effort',
-      label: 'Requires manual review',
-      explanation: 'This issue may need your attention to review and address appropriately.',
+      label: 'Benefits from your review',
+      explanation: 'This works best when you review and customize the changes for your specific needs.',
       direction: 'decreases',
     });
   }
@@ -208,8 +208,8 @@ export function derivePrioritizationFactors(issue: {
 }
 
 /**
- * Derive priority rationale from issue data and factors.
- * Returns plain-language explanation of why issue is prioritized.
+ * [EA-28: ISSUE-EXPLANATION-QUALITY-1] Derive priority rationale from issue data and factors.
+ * Returns plain-language explanation using helpful, advisory tone.
  */
 export function derivePriorityRationale(
   issue: {
@@ -223,24 +223,24 @@ export function derivePriorityRationale(
 ): string {
   const parts: string[] = [];
 
-  // Start with impact-based intro
+  // Start with impact-based intro using advisory language
   const impactLevel = deriveImpactLevel(issue.deoImpactEstimate);
   if (impactLevel === 'high') {
-    parts.push('Consider addressing this issue soon');
+    parts.push('You may want to look at this');
   } else if (impactLevel === 'medium') {
-    parts.push('This issue may be worth reviewing');
+    parts.push('This could be worth reviewing');
   } else {
-    parts.push('This issue has been identified');
+    parts.push('This has been noted');
   }
 
-  // Add key factors
+  // Add key factors with natural language
   const increasingFactors = factors.filter(f => f.direction === 'increases');
   if (increasingFactors.length > 0) {
     const factorLabels = increasingFactors.slice(0, 2).map(f => f.label.toLowerCase());
     if (factorLabels.length === 1) {
-      parts.push(`because it ${factorLabels[0]}`);
+      parts.push(`since it ${factorLabels[0]}`);
     } else {
-      parts.push(`because it ${factorLabels.join(' and ')}`);
+      parts.push(`since it ${factorLabels.join(' and ')}`);
     }
   }
 

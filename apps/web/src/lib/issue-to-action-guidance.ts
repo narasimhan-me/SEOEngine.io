@@ -41,7 +41,8 @@ export interface RecommendedPlaybook {
 }
 
 /**
- * Static mapping from issue type to recommended playbook(s).
+ * [EA-28: ISSUE-EXPLANATION-QUALITY-1] Static mapping from issue type to recommended playbook(s).
+ * All guidance uses clear, accessible language.
  * Keys are issue.type values (or issue.id fallback).
  * [FIXUP-1] Copy safety: uses "assets within playbook scope" instead of asserting specific asset types.
  * [ISSUE-FIX-KIND-CLARITY-1] All mappings now include fixTypeLabel and fixTypeDescription per EA-20 EPIC 14.
@@ -50,52 +51,51 @@ const ISSUE_TO_PLAYBOOK_MAP: Record<string, RecommendedPlaybook[]> = {
   missing_seo_title: [
     {
       playbookId: 'missing_seo_title',
-      name: 'Fix missing SEO titles',
+      name: 'Add search titles',
       oneLineWhatItDoes:
-        'Generates SEO titles for assets within the playbook scope that are missing them.',
-      affects: 'Assets within the current playbook scope missing SEO titles',
+        'Suggests titles for products that are currently missing them.',
+      affects: 'Products missing search titles in the current view',
       preconditions: [
-        'Preview generation may require appropriate permissions.',
-        'No changes are applied unless you explicitly proceed to the Apply step.',
-        'Draft previews are stored temporarily and can be reviewed before application.',
+        'You'll review all suggestions before any changes are saved.',
+        'Nothing is changed until you click Apply.',
+        'You can edit suggestions before applying them.',
       ],
       fixTypeLabel: 'AI',
       fixTypeDescription:
-        'AI-generated suggestions that you review before applying',
+        'AI suggests titles for you to review, edit, and approve',
     },
   ],
   missing_seo_description: [
     {
       playbookId: 'missing_seo_description',
-      name: 'Fix missing SEO descriptions',
+      name: 'Add search descriptions',
       oneLineWhatItDoes:
-        'Generates SEO descriptions for assets within the playbook scope that are missing them.',
-      affects:
-        'Assets within the current playbook scope missing SEO descriptions',
+        'Suggests descriptions for products that are currently missing them.',
+      affects: 'Products missing search descriptions in the current view',
       preconditions: [
-        'Preview generation may require appropriate permissions.',
-        'No changes are applied unless you explicitly proceed to the Apply step.',
-        'Draft previews are stored temporarily and can be reviewed before application.',
+        'You'll review all suggestions before any changes are saved.',
+        'Nothing is changed until you click Apply.',
+        'You can edit suggestions before applying them.',
       ],
       fixTypeLabel: 'AI',
       fixTypeDescription:
-        'AI-generated suggestions that you review before applying',
+        'AI suggests descriptions for you to review, edit, and approve',
     },
   ],
   not_answer_ready: [
     {
       playbookId: 'not_answer_ready' as PlaybookId,
-      name: 'Review thin content',
+      name: 'Improve content for AI',
       oneLineWhatItDoes:
-        'Provides guidance on enriching thin content to make it answer-ready.',
-      affects: 'Assets within the current playbook scope with insufficient content',
+        'Shows which products need more detailed content to be recommended by AI assistants.',
+      affects: 'Products with brief content in the current view',
       preconditions: [
-        'This is a diagnostic issue requiring manual content enrichment.',
-        'No automated fix is available; review and manual editing required.',
+        'This identifies products that would benefit from more content.',
+        'Adding more detail is done manually in your product editor.',
       ],
       fixTypeLabel: 'Guidance',
       fixTypeDescription:
-        'Step-by-step guidance for manual review and improvement',
+        'Identifies products to improve, with tips on what to add',
     },
   ],
 };
