@@ -346,10 +346,10 @@ function LayoutShellInner({ children }: { children: ReactNode }) {
             </button>
           </div>
           <div className="flex items-center gap-2">
-            <IconButton label="Notifications — not yet available" aria-disabled="true" title="Notifications feature is planned for a future release">
+            <IconButton label="Notifications — not yet available">
               <BellIcon className="h-5 w-5 opacity-50" />
             </IconButton>
-            <IconButton label="Help & Docs — not yet available" aria-disabled="true" title="Help center is planned for a future release">
+            <IconButton label="Help & Docs — not yet available">
               <HelpIcon className="h-5 w-5 opacity-50" />
             </IconButton>
             <button
