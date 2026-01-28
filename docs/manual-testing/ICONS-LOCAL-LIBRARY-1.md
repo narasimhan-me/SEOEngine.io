@@ -2,7 +2,7 @@
 
 **Phase**: ICONS-LOCAL-LIBRARY-1
 **Date**: 2026-01-23
-**Tester**: _______________
+**Tester**: ******\_\_\_******
 
 ## Purpose
 
@@ -22,6 +22,7 @@ Validate the local SVG icon system implementation. Ensure icons render correctly
 ## 1. Offline/No-CDN Verification
 
 ### No External Icon Requests
+
 - [ ] Open DevTools Network tab
 - [ ] Filter by "fonts.googleapis.com" or "fonts.gstatic.com"
 - [ ] Navigate through the app (Dashboard, Projects, Settings, Admin)
@@ -29,6 +30,7 @@ Validate the local SVG icon system implementation. Ensure icons render correctly
 - [ ] Confirm sprite.svg is loaded from `/icons/material-symbols/sprite.svg`
 
 ### Offline Functionality
+
 - [ ] Load the app normally
 - [ ] Go offline (DevTools > Network > Offline)
 - [ ] Refresh the page
@@ -39,6 +41,7 @@ Validate the local SVG icon system implementation. Ensure icons render correctly
 ## 2. Left Rail Icon Adoption
 
 ### Icon Rendering
+
 - [ ] Navigate to /dashboard
 - [ ] Confirm left rail shows 5 nav items with icons
 - [ ] Dashboard icon renders (home)
@@ -48,11 +51,13 @@ Validate the local SVG icon system implementation. Ensure icons render correctly
 - [ ] Admin icon renders (admin_panel_settings)
 
 ### Icon Alignment
+
 - [ ] Icons are vertically centered within nav items
 - [ ] No layout shift when navigating between pages
 - [ ] Active state shows primary color treatment
 
 ### Accessibility
+
 - [ ] Each nav item has visible tooltip on hover
 - [ ] Each nav item has `aria-label` (inspect in DevTools)
 - [ ] Icons have `aria-hidden="true"` (decorative)
@@ -62,12 +67,14 @@ Validate the local SVG icon system implementation. Ensure icons render correctly
 ## 3. Search Icon Adoption
 
 ### Desktop Command Palette Trigger
+
 - [ ] On desktop (≥768px), search bar is visible in top bar
 - [ ] Search icon renders before "Search..." text
 - [ ] Icon size is 16px (h-4 w-4)
 - [ ] Icon inherits text color (muted-foreground)
 
 ### Mobile Command Palette Trigger
+
 - [ ] Resize to mobile (<768px)
 - [ ] Search icon button is visible
 - [ ] Icon size is 20px (h-5 w-5)
@@ -78,6 +85,7 @@ Validate the local SVG icon system implementation. Ensure icons render correctly
 ## 4. RowStatusChip Icon Adoption
 
 ### Icon + Label Rendering
+
 - [ ] Navigate to /projects/[id]/products
 - [ ] Find a product with status chips
 - [ ] Confirm chips show icon + clean label (no emoji prefix)
@@ -87,6 +95,7 @@ Validate the local SVG icon system implementation. Ensure icons render correctly
 - [ ] "Blocked" shows block icon + "Blocked" text
 
 ### Visual Consistency
+
 - [ ] Icons are 16px size
 - [ ] Icons inherit chip text color
 - [ ] Chips remain compact and readable
@@ -97,11 +106,13 @@ Validate the local SVG icon system implementation. Ensure icons render correctly
 ## 5. Screen Reader Accessibility
 
 ### Decorative Icons
+
 - [ ] Using screen reader, navigate left rail
 - [ ] Icons should NOT be announced (aria-hidden)
 - [ ] Nav item labels ARE announced via aria-label
 
 ### Status Chips
+
 - [ ] Navigate to a product row with status chip
 - [ ] Screen reader announces chip text (not icon)
 
@@ -110,6 +121,7 @@ Validate the local SVG icon system implementation. Ensure icons render correctly
 ## 6. Console Verification
 
 ### No Missing Icon Warnings
+
 - [ ] Open DevTools Console
 - [ ] Navigate through app (Dashboard, Projects, Settings, Admin)
 - [ ] Confirm no errors about missing icons or failed sprite loads
@@ -119,22 +131,22 @@ Validate the local SVG icon system implementation. Ensure icons render correctly
 
 ## Test Results Summary
 
-| Section | Pass | Fail | Notes |
-|---------|------|------|-------|
-| Offline/No-CDN | | | |
-| Left Rail Icons | | | |
-| Search Icon | | | |
-| RowStatusChip Icons | | | |
-| Screen Reader | | | |
-| Console | | | |
+| Section             | Pass | Fail | Notes |
+| ------------------- | ---- | ---- | ----- |
+| Offline/No-CDN      |      |      |       |
+| Left Rail Icons     |      |      |       |
+| Search Icon         |      |      |       |
+| RowStatusChip Icons |      |      |       |
+| Screen Reader       |      |      |       |
+| Console             |      |      |       |
 
 ---
 
 ## Issues Found
 
 | Issue # | Description | Severity | Screenshot |
-|---------|-------------|----------|------------|
-| | | | |
+| ------- | ----------- | -------- | ---------- |
+|         |             |          |            |
 
 ---
 
@@ -184,5 +196,5 @@ Validate the local SVG icon system implementation. Ensure icons render correctly
 - [ ] No blocking issues identified
 - [ ] Ready for phase completion
 
-**Tester Signature**: _______________
-**Date**: _______________
+**Tester Signature**: ******\_\_\_******
+**Date**: ******\_\_\_******

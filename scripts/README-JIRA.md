@@ -9,6 +9,7 @@ This directory contains scripts for interacting with Jira tickets in the EA and 
 Unified CRUD interface for all Jira operations. Use this for programmatic ticket management.
 
 **Usage:**
+
 ```bash
 # CREATE - Create a new ticket
 pnpm jira create --project EA --type Task --summary "Title" --description "Description"
@@ -45,6 +46,7 @@ pnpm jira comment <TICKET-KEY> --comment "This is a comment"
 ```
 
 **Project Guidelines:**
+
 - **EA**: Use for product ideas and feature requests
 - **KAN**: Use for Epics, Stories, Tasks, and Bugs
 
@@ -53,6 +55,7 @@ pnpm jira comment <TICKET-KEY> --comment "This is a comment"
 Creates Jira tickets from markdown files in `docs/jira/`. Useful when you have a markdown template.
 
 **Usage:**
+
 ```bash
 # Create a ticket from markdown file
 pnpm jira:create <TICKET-KEY> [--project EA|KAN]
@@ -73,6 +76,7 @@ pnpm jira:create transition EA-11 --project EA
 Reads Jira tickets from EA and KAN projects. Useful for AI agents to understand project context.
 
 **Usage:**
+
 ```bash
 # Read a specific ticket
 pnpm jira:read <TICKET-KEY>
@@ -89,6 +93,7 @@ pnpm jira:read --search "ISSUE-FIX"
 ```
 
 **Output Format:**
+
 - Single ticket: Full ticket details with description
 - List: Summary table with Key, Status, Type, Summary
 - Search: Full ticket details (without description) for matching tickets
@@ -96,6 +101,7 @@ pnpm jira:read --search "ISSUE-FIX"
 ## Environment Variables
 
 Required in `.env` file:
+
 ```
 JIRA_BASE_URL=https://engineo-ai.atlassian.net
 JIRA_EMAIL=admin@engineo.ai
@@ -132,6 +138,7 @@ pnpm jira transition EA-14 --status Done
 ### Common Operations
 
 **Create a bug ticket:**
+
 ```bash
 pnpm jira create --project KAN --type Bug --summary "Issue title" \
   --description "Issue description" --priority Medium \
@@ -139,18 +146,21 @@ pnpm jira create --project KAN --type Bug --summary "Issue title" \
 ```
 
 **Create a task/idea ticket:**
+
 ```bash
 pnpm jira create --project EA --type Task --summary "Feature idea" \
   --description "Detailed description" --priority High
 ```
 
 **Update multiple fields:**
+
 ```bash
 pnpm jira update EA-14 --summary "Updated title" \
   --description "Updated description" --labels "new,labels"
 ```
 
 **List all tickets from a project:**
+
 ```bash
 pnpm jira list --project EA
 pnpm jira list --project KAN
@@ -166,13 +176,13 @@ pnpm jira list --project ALL
 
 ## CRUD Operations Summary
 
-| Operation | Command | Description |
-|-----------|---------|-------------|
-| **Create** | `pnpm jira create --project EA --type Task --summary "Title"` | Create a new ticket |
-| **Read** | `pnpm jira read EA-14` | Read a specific ticket |
-| **List** | `pnpm jira list --project EA` | List all tickets from a project |
-| **Search** | `pnpm jira search "query"` | Search tickets across EA and KAN |
-| **Update** | `pnpm jira update EA-14 --summary "New title"` | Update ticket fields |
-| **Delete** | `pnpm jira delete EA-14` | Delete a ticket (use with caution) |
-| **Transition** | `pnpm jira transition EA-14 --status Done` | Change ticket status |
-| **Comment** | `pnpm jira comment EA-14 --comment "Text"` | Add a comment to a ticket |
+| Operation      | Command                                                       | Description                        |
+| -------------- | ------------------------------------------------------------- | ---------------------------------- |
+| **Create**     | `pnpm jira create --project EA --type Task --summary "Title"` | Create a new ticket                |
+| **Read**       | `pnpm jira read EA-14`                                        | Read a specific ticket             |
+| **List**       | `pnpm jira list --project EA`                                 | List all tickets from a project    |
+| **Search**     | `pnpm jira search "query"`                                    | Search tickets across EA and KAN   |
+| **Update**     | `pnpm jira update EA-14 --summary "New title"`                | Update ticket fields               |
+| **Delete**     | `pnpm jira delete EA-14`                                      | Delete a ticket (use with caution) |
+| **Transition** | `pnpm jira transition EA-14 --status Done`                    | Change ticket status               |
+| **Comment**    | `pnpm jira comment EA-14 --comment "Text"`                    | Add a comment to a ticket          |

@@ -561,7 +561,8 @@ export function RightContextPanelProvider({
       };
 
       // Check if we need to update
-      const needsUpdate = !isOpen || !isSameDescriptor(descriptor, autoDescriptor);
+      const needsUpdate =
+        !isOpen || !isSameDescriptor(descriptor, autoDescriptor);
 
       if (needsUpdate) {
         setDescriptor(autoDescriptor);
@@ -606,10 +607,15 @@ export function RightContextPanelProvider({
         // Check if newDescriptor has meaningful display field updates
         const hasDisplayUpdates =
           (newDescriptor.title && newDescriptor.title !== descriptor?.title) ||
-          (newDescriptor.subtitle && newDescriptor.subtitle !== descriptor?.subtitle) ||
-          (newDescriptor.openHref && newDescriptor.openHref !== descriptor?.openHref) ||
-          (newDescriptor.openHrefLabel && newDescriptor.openHrefLabel !== descriptor?.openHrefLabel) ||
-          (newDescriptor.metadata && JSON.stringify(newDescriptor.metadata) !== JSON.stringify(descriptor?.metadata));
+          (newDescriptor.subtitle &&
+            newDescriptor.subtitle !== descriptor?.subtitle) ||
+          (newDescriptor.openHref &&
+            newDescriptor.openHref !== descriptor?.openHref) ||
+          (newDescriptor.openHrefLabel &&
+            newDescriptor.openHrefLabel !== descriptor?.openHrefLabel) ||
+          (newDescriptor.metadata &&
+            JSON.stringify(newDescriptor.metadata) !==
+              JSON.stringify(descriptor?.metadata));
 
         if (!hasDisplayUpdates) {
           // True NO-OP: no meaningful display changes

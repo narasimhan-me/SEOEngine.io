@@ -210,6 +210,7 @@
 For each of the following screens, perform the checks listed below:
 
 **Screens to visit:**
+
 1. **Store Health** (`/projects/[id]`)
 2. **Work Queue** (`/projects/[id]/work-queue`)
 3. **Products List** (`/projects/[id]/products`)
@@ -221,6 +222,7 @@ For each of the following screens, perform the checks listed below:
 9. **Admin Projects** (`/admin/projects`) - if admin role
 
 **Checks per screen:**
+
 - [ ] Primary text (headings, labels) is readable
 - [ ] Secondary text (timestamps, descriptions, helper text) is readable
 - [ ] Borders/dividers are visible for card/table separation

@@ -1,0 +1,51 @@
+=== Attempt 1/3 ===
+## Summary
+
+I have completed the investigation of KAN-17. Here's what I found:
+
+### Current State
+
+The **KAN-17 implementation is already complete** and has been committed to the repository:
+
+1. **Bug Dispatch Feature** - Implemented in commit `326d91f`:
+   - The `resolve_dispatch_kind()` function in `engine.py:2564-2581` correctly maps both 'story' and 'bug' to 'implement'
+   - Bugs are routed through the same `_process_story()` pipeline as Stories
+   - Full guardrails, verification gates, and transitions apply to Bugs
+
+2. **Unit Tests** - Added in commit `326d91f`:
+   - File: `scripts/autonomous-agent/tests/test_issue_dispatch.py`
+   - 8 comprehensive test cases covering Story, Bug, Epic, Idea dispatch
+   - All tests pass successfully
+
+3. **Verification Report** - Created in commit `6060157`:
+   - File: `reports/KAN-17-verification.md`
+   - Comprehensive documentation with required "## Checklist" section
+   - Confirms all acceptance criteria met
+
+### Test Results
+
+All 8 unit tests pass:
+- ✅ `test_bug_returns_implement` - Bug → implement
+- ✅ `test_bug_lowercase_returns_implement` - bug → implement  
+- ✅ `test_story_returns_implement` - Story → implement
+- ✅ All other issue type tests pass
+
+### Acceptance Criteria Status
+
+| Criterion | Status |
+|-----------|--------|
+| ./run.sh --issue <BUG> executes implementation pipeline | ✅ COMPLETE |
+| Bug execution matches queue mode behavior | ✅ COMPLETE |
+| Stories/Epics/Ideas behavior unchanged | ✅ COMPLETE |
+| Unit test added for issue-type dispatch | ✅ COMPLETE |
+| Verification report with checklist | ✅ COMPLETE |
+
+### Constraints Compliance
+
+- ✅ SCOPE CLASS: AUTONOMOUS-AGENT-ONLY - All changes in `scripts/autonomous-agent/**`
+- ✅ ALLOWED FILES: Only modified `scripts/autonomous-agent/**`
+- ✅ DIFF BUDGET: Minimal changes (within 5 files)
+- ✅ VERIFICATION REQUIRED: `reports/KAN-17-verification.md` exists with checklist
+
+The implementation was previously completed and is production-ready. No new commits are needed as the work has already been committed under previous commit messages.
+[<u[?1004l[?2004l[?25h]9;4;0;[?25h

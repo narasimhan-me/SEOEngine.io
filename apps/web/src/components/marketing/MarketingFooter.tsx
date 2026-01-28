@@ -36,7 +36,7 @@ export default function MarketingFooter() {
               </li>
               <li>
                 <span className="cursor-default text-muted-foreground/60">
-                  Careers (coming soon)
+                  <span className="text-muted-foreground/60 cursor-not-allowed" title="Careers page is not yet available">Careers</span>
                 </span>
               </li>
             </ul>
@@ -66,12 +66,12 @@ export default function MarketingFooter() {
             <ul className="space-y-1 text-sm text-muted-foreground">
               <li>
                 <span className="cursor-default text-muted-foreground/60">
-                  Terms (coming soon)
+                  <span className="text-muted-foreground/60 cursor-not-allowed" title="Terms page is not yet available">Terms</span>
                 </span>
               </li>
               <li>
                 <span className="cursor-default text-muted-foreground/60">
-                  Privacy (coming soon)
+                  <span className="text-muted-foreground/60 cursor-not-allowed" title="Privacy page is not yet available">Privacy</span>
                 </span>
               </li>
             </ul>

@@ -204,7 +204,9 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1: Issues Page Draft Lifecycle', (
     await page.goto(`/projects/${projectId}/issues`);
 
     // Wait for issues to load - look for "Fix now" button
-    const fixNextButton = page.locator('[data-testid="issue-fix-next-button"]').first();
+    const fixNextButton = page
+      .locator('[data-testid="issue-fix-next-button"]')
+      .first();
 
     // If there are AI-fixable issues
     if (await fixNextButton.isVisible({ timeout: 10000 }).catch(() => false)) {
@@ -704,7 +706,9 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-4: No Double Prompt After 
     });
 
     // Find "Fix now" button if available
-    const fixNextButton = page.locator('[data-testid="issue-fix-next-button"]').first();
+    const fixNextButton = page
+      .locator('[data-testid="issue-fix-next-button"]')
+      .first();
     if (await fixNextButton.isVisible({ timeout: 5000 }).catch(() => false)) {
       // Click "Fix now" to trigger AI preview (creates unsaved state)
       await fixNextButton.click();
@@ -742,6 +746,91 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-4: No Double Prompt After 
           // Assert only one dialog was shown (the initial leave confirmation)
           expect(dialogCount).toBeLessThanOrEqual(1);
         }
+      }
+    }
+  });
+});
+
+test.describe('ISSUE-FIX-KIND-CLARITY-1: Fix Type Labels Visible in Draft Flow', () => {
+  test('Fix type indicator visible in issue preview panel', async ({
+    page,
+    request,
+  }) => {
+    const { projectId, accessToken } = await seedFirstDeoWinProject(request);
+
+    await page.goto('/login');
+    await page.evaluate((token) => {
+      localStorage.setItem('engineo_token', token);
+    }, accessToken);
+
+    await page.goto(`/projects/${projectId}/issues`);
+
+    // Wait for issues to load
+    const fixNextButton = page
+      .locator('[data-testid="issue-fix-next-button"]')
+      .first();
+
+    if (await fixNextButton.isVisible({ timeout: 10000 }).catch(() => false)) {
+      await fixNextButton.click();
+
+      // Wait for preview panel to load
+      await expect(
+        page.locator('[data-testid="issue-preview-draft-panel"]')
+      ).toBeVisible({ timeout: 30000 });
+
+      // [ISSUE-FIX-KIND-CLARITY-1] Verify fix type indicator is present and visible
+      const fixTypeIndicator = page.locator('[data-testid="fix-type-indicator"]');
+      await expect(fixTypeIndicator).toBeVisible({ timeout: 5000 });
+
+      const indicatorText = await fixTypeIndicator.textContent();
+      // Should show one of: AI Fix, Template, Guidance, or Rule-based
+      expect(indicatorText).toMatch(/AI|Template|Guidance|Rule-based/i);
+
+      // [ISSUE-FIX-KIND-CLARITY-1] Verify fix type description/microcopy is present
+      const fixTypeDescription = page.locator('[data-testid="fix-type-description"]');
+      if (await fixTypeDescription.isVisible().catch(() => false)) {
+        const descriptionText = await fixTypeDescription.textContent();
+        expect(descriptionText).toBeTruthy();
+        expect(descriptionText!.length).toBeGreaterThan(10);
+      }
+    }
+  });
+
+  test('Fix type indicator shows consistent terminology across surfaces', async ({
+    page,
+    request,
+  }) => {
+    const { projectId, accessToken } = await seedFirstDeoWinProject(request);
+
+    await page.goto('/login');
+    await page.evaluate((token) => {
+      localStorage.setItem('engineo_token', token);
+    }, accessToken);
+
+    await page.goto(`/projects/${projectId}/issues`);
+
+    // Wait for issues to load
+    const fixNextButton = page
+      .locator('[data-testid="issue-fix-next-button"]')
+      .first();
+
+    if (await fixNextButton.isVisible({ timeout: 10000 }).catch(() => false)) {
+      await fixNextButton.click();
+
+      // Wait for preview panel to load
+      await expect(
+        page.locator('[data-testid="issue-preview-draft-panel"]')
+      ).toBeVisible({ timeout: 30000 });
+
+      // [ISSUE-FIX-KIND-CLARITY-1] Verify consistent terminology - no variations
+      const fixTypeIndicator = page.locator('[data-testid="fix-type-indicator"]');
+      if (await fixTypeIndicator.isVisible().catch(() => false)) {
+        const indicatorText = await fixTypeIndicator.textContent();
+
+        // Should use exact terminology from locked vocabulary
+        // Valid: "AI", "Template", "Guidance", "Rule-based"
+        // Invalid variations: "AI Fix", "AI-Generated", "Automated", etc.
+        expect(indicatorText).toMatch(/^(AI|Template|Guidance|Rule-based)$/i);
       }
     }
   });

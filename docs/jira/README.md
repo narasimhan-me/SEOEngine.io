@@ -51,6 +51,7 @@ ts-node --project apps/api/tsconfig.json scripts/create-jira-ticket.ts ISSUE-ACT
 ```
 
 The script will:
+
 - Read the markdown file from `docs/jira/{TICKET-KEY}.md`
 - Parse metadata (Type, Priority, Component, Labels, etc.)
 - Create the ticket in Jira
@@ -98,18 +99,22 @@ Additional notes.
 ## Troubleshooting
 
 ### "Missing required environment variables"
+
 - Make sure you've set `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`, and optionally `JIRA_PROJECT_KEY`
 - Check that your `.env` file is in the correct location
 
 ### "Jira API error (401)"
+
 - Verify your email and API token are correct
 - Make sure your Jira account has permission to create issues in the project
 
 ### "Jira API error (404)"
+
 - Check that `JIRA_PROJECT_KEY` matches your actual Jira project key
 - Verify the project exists and you have access
 
 ### Issue Type Not Found
+
 - The script tries to match issue types by name
 - If "Bug / Tech Debt" doesn't match, it will use the first available issue type
 - You may need to adjust the issue type name in your ticket file

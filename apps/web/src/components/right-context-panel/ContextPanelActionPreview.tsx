@@ -54,7 +54,9 @@ export function ContextPanelActionPreview({
         {/* Primary action label (read-only text, not a button) */}
         {hasPrimaryAction && (
           <div className="flex items-center justify-between gap-2">
-            <span className="text-xs text-muted-foreground">Primary action</span>
+            <span className="text-xs text-muted-foreground">
+              Primary action
+            </span>
             <span className="text-sm font-medium text-foreground">
               {metadata.primaryActionLabel}
             </span>
@@ -64,7 +66,9 @@ export function ContextPanelActionPreview({
         {/* Secondary action label (read-only text, not a button) */}
         {hasSecondaryAction && (
           <div className="flex items-center justify-between gap-2">
-            <span className="text-xs text-muted-foreground">Secondary action</span>
+            <span className="text-xs text-muted-foreground">
+              Secondary action
+            </span>
             <span className="text-sm text-foreground">
               {metadata.secondaryActionLabel}
             </span>
@@ -74,7 +78,9 @@ export function ContextPanelActionPreview({
         {/* Fields affected (only when explicitly provided) */}
         {hasFieldsAffected && (
           <div className="flex items-center justify-between gap-2">
-            <span className="text-xs text-muted-foreground">Fields affected</span>
+            <span className="text-xs text-muted-foreground">
+              Fields affected
+            </span>
             <span className="text-sm text-foreground">
               {metadata.fieldsAffected}
             </span>
@@ -84,7 +90,9 @@ export function ContextPanelActionPreview({
         {/* Estimated impact (only when explicitly provided) */}
         {hasEstimatedImpact && (
           <div className="flex items-center justify-between gap-2">
-            <span className="text-xs text-muted-foreground">Estimated impact</span>
+            <span className="text-xs text-muted-foreground">
+              Estimated impact
+            </span>
             <span className="text-sm text-foreground">
               {metadata.estimatedImpact}
             </span>

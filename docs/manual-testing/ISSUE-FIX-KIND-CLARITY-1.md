@@ -177,12 +177,12 @@ This phase ensures that DIAGNOSTIC issues (informational, no direct fix availabl
 
 ### Canonical Fix-Action Kinds
 
-| Kind              | Meaning                                    | Issues CTA Label     | Icon              | Sublabel/Tooltip                   |
-| ----------------- | ------------------------------------------ | -------------------- | ----------------- | ---------------------------------- |
-| `AI_PREVIEW_FIX`  | AI fix with inline preview                 | "Review AI fix"      | workflow.ai       | "Preview changes before saving"    |
-| `DIRECT_FIX`      | Direct navigation to workspace             | "Fix in workspace"   | nav.projects      | "Manual changes required"          |
-| `GUIDANCE_ONLY`   | Diagnostic/review only, no automatic fix   | "Review guidance"    | playbook.content  | "No automatic fix available"       |
-| `BLOCKED`         | No action reachable in current UI          | "Blocked"            | status.blocked    | "No action available"              |
+| Kind             | Meaning                                  | Issues CTA Label   | Icon             | Sublabel/Tooltip                |
+| ---------------- | ---------------------------------------- | ------------------ | ---------------- | ------------------------------- |
+| `AI_PREVIEW_FIX` | AI fix with inline preview               | "Review AI fix"    | workflow.ai      | "Preview changes before saving" |
+| `DIRECT_FIX`     | Direct navigation to workspace           | "Fix in workspace" | nav.projects     | "Manual changes required"       |
+| `GUIDANCE_ONLY`  | Diagnostic/review only, no automatic fix | "Review guidance"  | playbook.content | "No automatic fix available"    |
+| `BLOCKED`        | No action reachable in current UI        | "Blocked"          | status.blocked   | "No action available"           |
 
 ### Derivation Logic
 

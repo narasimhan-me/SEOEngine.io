@@ -1,0 +1,68 @@
+=== Attempt 1/3 ===
+Perfect! Let me create a summary of findings:
+
+## Summary
+
+I have completed the investigation of KAN-17. Here are my findings:
+
+### Implementation Status: ✅ ALREADY COMPLETE
+
+The bug dispatch functionality described in KAN-17 was **already fully implemented** in previous commits:
+
+1. **Commit 326d91f** (2026-01-26): "feat(autonomous-agent): Bug dispatch support + security hardening"
+   - Added `resolve_dispatch_kind()` function that routes Bugs to 'implement' dispatch kind
+   - Routes Bugs through the same `_process_story()` pipeline as Stories
+   - Added `--type bug` option to argparse
+   - Created comprehensive unit tests in `tests/test_issue_dispatch.py`
+
+2. **Commit 6060157**: Added the verification report at `reports/KAN-17-verification.md`
+
+### Current State
+
+✅ **Bug Dispatch Logic** (`engine.py:2542`):
+```python
+if normalized in ('story', 'bug'):
+    return 'implement'
+```
+
+✅ **Main Dispatch Handler** (`engine.py:2111-2113`):
+```python
+elif dispatch_kind == 'implement':
+    # Developer implements Stories and Bugs (same pipeline)
+    return self._process_story(issue)
+```
+
+✅ **Unit Tests**: All 8 tests pass successfully
+```
+$ python3 tests/test_issue_dispatch.py
+........
+Ran 8 tests in 0.000s
+OK
+```
+
+✅ **Verification Report**: Already exists at `reports/KAN-17-verification.md` with required checklist
+
+### Acceptance Criteria Status
+
+All acceptance criteria are met:
+- ✅ `./run.sh --issue <BUG>` executes the implementation pipeline (no "unknown type" error)
+- ✅ Bug execution via --issue matches queue mode behavior
+- ✅ Stories/Epics/Ideas behavior unchanged  
+- ✅ Unit tests added for issue-type dispatch
+
+### Constraints Compliance
+
+- ✅ SCOPE CLASS: AUTONOMOUS-AGENT-ONLY (all changes in `scripts/autonomous-agent/**`)
+- ✅ ALLOWED FILES: `scripts/autonomous-agent/**`
+- ✅ DIFF BUDGET: 5 (minimal changes, already committed)
+- ✅ VERIFICATION REQUIRED: `reports/KAN-17-verification.md` exists with checklist
+
+### Conclusion
+
+**No new commit is required.** The functionality was already implemented and committed in previous work sessions. The codebase is already in the correct state with:
+- Bug dispatch working correctly
+- Comprehensive test coverage
+- Complete verification documentation
+
+All requirements of KAN-17 have been satisfied.
+[<u[?1004l[?2004l[?25h]9;4;0;[?25h

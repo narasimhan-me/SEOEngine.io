@@ -16,6 +16,7 @@ import {
   type DataTableColumn,
   type DataTableRow,
 } from '@/components/tables/DataTable';
+import { EmptyState } from '@/components/common/EmptyState';
 
 /**
  * [GOV-AUDIT-VIEWER-1] Governance Viewer Tab
@@ -274,61 +275,62 @@ function ApprovalsTab({
   const items = data?.items || [];
 
   // [TABLES-&-LISTS-ALIGNMENT-1 FIXUP-4] Define DataTable columns
-  const columns: DataTableColumn<GovernanceViewerApprovalItem & DataTableRow>[] =
-    useMemo(
-      () => [
-        {
-          key: 'resource',
-          header: 'Resource',
-          cell: (row) => (
-            <div>
-              <div className="font-medium text-foreground">
-                {formatResourceType(row.resourceType)}
-              </div>
-              <div className="text-xs text-muted-foreground truncate max-w-xs">
-                {row.resourceId}
-              </div>
+  const columns: DataTableColumn<
+    GovernanceViewerApprovalItem & DataTableRow
+  >[] = useMemo(
+    () => [
+      {
+        key: 'resource',
+        header: 'Resource',
+        cell: (row) => (
+          <div>
+            <div className="font-medium text-foreground">
+              {formatResourceType(row.resourceType)}
             </div>
-          ),
-        },
-        {
-          key: 'requestedBy',
-          header: 'Requested By',
-          cell: (row) => (
-            <span className="text-sm text-muted-foreground">
-              {row.requestedByName || 'Unknown user'}
-            </span>
-          ),
-        },
-        {
-          key: 'status',
-          header: 'Status',
-          cell: (row) => <ApprovalStatusBadge status={row.status} />,
-        },
-        {
-          key: 'date',
-          header: 'Date',
-          cell: (row) => (
-            <span className="text-sm text-muted-foreground">
-              {formatDate(row.requestedAt)}
-            </span>
-          ),
-        },
-        {
-          key: 'actions',
-          header: 'Actions',
-          cell: (row) => (
-            <button
-              onClick={() => onSelectApproval(row)}
-              className="text-sm text-primary hover:text-primary/80"
-            >
-              View details
-            </button>
-          ),
-        },
-      ],
-      [onSelectApproval]
-    );
+            <div className="text-xs text-muted-foreground truncate max-w-xs">
+              {row.resourceId}
+            </div>
+          </div>
+        ),
+      },
+      {
+        key: 'requestedBy',
+        header: 'Requested By',
+        cell: (row) => (
+          <span className="text-sm text-muted-foreground">
+            {row.requestedByName || 'Unknown user'}
+          </span>
+        ),
+      },
+      {
+        key: 'status',
+        header: 'Status',
+        cell: (row) => <ApprovalStatusBadge status={row.status} />,
+      },
+      {
+        key: 'date',
+        header: 'Date',
+        cell: (row) => (
+          <span className="text-sm text-muted-foreground">
+            {formatDate(row.requestedAt)}
+          </span>
+        ),
+      },
+      {
+        key: 'actions',
+        header: 'Actions',
+        cell: (row) => (
+          <button
+            onClick={() => onSelectApproval(row)}
+            className="text-sm text-primary hover:text-primary/80"
+          >
+            View details
+          </button>
+        ),
+      },
+    ],
+    [onSelectApproval]
+  );
 
   return (
     <div className="space-y-4">
@@ -361,7 +363,9 @@ function ApprovalsTab({
       {loading && (
         <div className="flex items-center justify-center py-12">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-          <span className="ml-3 text-muted-foreground">Loading approvals...</span>
+          <span className="ml-3 text-muted-foreground">
+            Loading approvals...
+          </span>
         </div>
       )}
 
@@ -380,30 +384,21 @@ function ApprovalsTab({
 
       {/* Empty state */}
       {!loading && !error && items.length === 0 && (
-        <div className="rounded-lg border border-border bg-[hsl(var(--surface-card))] p-8 text-center">
-          <svg
-            className="mx-auto h-12 w-12 text-muted-foreground"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-          <h3 className="mt-4 text-lg font-medium text-foreground">
-            {status === 'pending'
-              ? 'No pending approvals'
-              : 'No approval history'}
-          </h3>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {status === 'pending'
-              ? 'Approval requests will appear here when team members request changes.'
-              : 'Approved and rejected requests will appear here.'}
-          </p>
+        <div className="rounded-lg border border-border bg-[hsl(var(--surface-card))]">
+          <EmptyState
+            category={status === 'pending' ? 'success' : 'cleared'}
+            icon="check-circle"
+            title={
+              status === 'pending'
+                ? 'No pending approvals'
+                : 'No approval history'
+            }
+            message={
+              status === 'pending'
+                ? 'Approval requests will appear here when team members request changes.'
+                : 'Approved and rejected requests will appear here.'
+            }
+          />
         </div>
       )}
 
@@ -437,59 +432,60 @@ function AuditTab({
   const items = data?.items || [];
 
   // [TABLES-&-LISTS-ALIGNMENT-1 FIXUP-4] Define DataTable columns
-  const columns: DataTableColumn<GovernanceViewerAuditEventItem & DataTableRow>[] =
-    useMemo(
-      () => [
-        {
-          key: 'event',
-          header: 'Event',
-          cell: (row) => <AuditEventTypeBadge eventType={row.eventType} />,
-        },
-        {
-          key: 'actor',
-          header: 'Actor',
-          cell: (row) => (
-            <span className="text-sm text-muted-foreground">
-              {row.actorName || 'System'}
+  const columns: DataTableColumn<
+    GovernanceViewerAuditEventItem & DataTableRow
+  >[] = useMemo(
+    () => [
+      {
+        key: 'event',
+        header: 'Event',
+        cell: (row) => <AuditEventTypeBadge eventType={row.eventType} />,
+      },
+      {
+        key: 'actor',
+        header: 'Actor',
+        cell: (row) => (
+          <span className="text-sm text-muted-foreground">
+            {row.actorName || 'System'}
+          </span>
+        ),
+      },
+      {
+        key: 'resource',
+        header: 'Resource',
+        cell: (row) =>
+          row.resourceType ? (
+            <span className="text-sm text-muted-foreground truncate max-w-xs block">
+              {formatResourceType(row.resourceType)}
             </span>
+          ) : (
+            <span className="text-muted-foreground">-</span>
           ),
-        },
-        {
-          key: 'resource',
-          header: 'Resource',
-          cell: (row) =>
-            row.resourceType ? (
-              <span className="text-sm text-muted-foreground truncate max-w-xs block">
-                {formatResourceType(row.resourceType)}
-              </span>
-            ) : (
-              <span className="text-muted-foreground">-</span>
-            ),
-        },
-        {
-          key: 'time',
-          header: 'Time',
-          cell: (row) => (
-            <span className="text-sm text-muted-foreground">
-              {formatDate(row.createdAt)}
-            </span>
-          ),
-        },
-        {
-          key: 'actions',
-          header: 'Actions',
-          cell: (row) => (
-            <button
-              onClick={() => onSelectEvent(row)}
-              className="text-sm text-primary hover:text-primary/80"
-            >
-              View details
-            </button>
-          ),
-        },
-      ],
-      [onSelectEvent]
-    );
+      },
+      {
+        key: 'time',
+        header: 'Time',
+        cell: (row) => (
+          <span className="text-sm text-muted-foreground">
+            {formatDate(row.createdAt)}
+          </span>
+        ),
+      },
+      {
+        key: 'actions',
+        header: 'Actions',
+        cell: (row) => (
+          <button
+            onClick={() => onSelectEvent(row)}
+            className="text-sm text-primary hover:text-primary/80"
+          >
+            View details
+          </button>
+        ),
+      },
+    ],
+    [onSelectEvent]
+  );
 
   return (
     <div className="space-y-4">
@@ -505,7 +501,9 @@ function AuditTab({
       {loading && (
         <div className="flex items-center justify-center py-12">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-          <span className="ml-3 text-muted-foreground">Loading audit events...</span>
+          <span className="ml-3 text-muted-foreground">
+            Loading audit events...
+          </span>
         </div>
       )}
 
@@ -581,71 +579,70 @@ function SharingTab({
   const items = data?.items || [];
 
   // [TABLES-&-LISTS-ALIGNMENT-1 FIXUP-4] Define DataTable columns
-  const columns: DataTableColumn<GovernanceViewerShareLinkItem & DataTableRow>[] =
-    useMemo(
-      () => [
-        {
-          key: 'title',
-          header: 'Title / Report',
-          cell: (row) => (
-            <div>
-              <div className="font-medium text-foreground">
-                {row.title || 'Untitled'}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {row.reportType}
-              </div>
+  const columns: DataTableColumn<
+    GovernanceViewerShareLinkItem & DataTableRow
+  >[] = useMemo(
+    () => [
+      {
+        key: 'title',
+        header: 'Title / Report',
+        cell: (row) => (
+          <div>
+            <div className="font-medium text-foreground">
+              {row.title || 'Untitled'}
             </div>
-          ),
-        },
-        {
-          key: 'createdBy',
-          header: 'Created By',
-          cell: (row) => (
-            <span className="text-sm text-muted-foreground">
-              {row.createdByName || 'Unknown'}
-            </span>
-          ),
-        },
-        {
-          key: 'audience',
-          header: 'Audience',
-          cell: (row) => (
-            <AudienceBadge
-              audience={row.audience}
-              passcodeLast4={row.passcodeLast4}
-            />
-          ),
-        },
-        {
-          key: 'status',
-          header: 'Status',
-          cell: (row) => <ShareLinkStatusBadge status={row.status} />,
-        },
-        {
-          key: 'views',
-          header: 'Views',
-          cell: (row) => (
-            <span className="text-sm text-muted-foreground">
-              {row.viewCount}
-            </span>
-          ),
-        },
-        {
-          key: 'actions',
-          header: 'Actions',
-          cell: (row) => (
-            <button
-              onClick={() => onSelectLink(row)}
-              className="text-sm text-primary hover:text-primary/80"
-            >
-              View details
-            </button>
-          ),
-        },
-      ],
-      [onSelectLink]
-    );
+            <div className="text-xs text-muted-foreground">
+              {row.reportType}
+            </div>
+          </div>
+        ),
+      },
+      {
+        key: 'createdBy',
+        header: 'Created By',
+        cell: (row) => (
+          <span className="text-sm text-muted-foreground">
+            {row.createdByName || 'Unknown'}
+          </span>
+        ),
+      },
+      {
+        key: 'audience',
+        header: 'Audience',
+        cell: (row) => (
+          <AudienceBadge
+            audience={row.audience}
+            passcodeLast4={row.passcodeLast4}
+          />
+        ),
+      },
+      {
+        key: 'status',
+        header: 'Status',
+        cell: (row) => <ShareLinkStatusBadge status={row.status} />,
+      },
+      {
+        key: 'views',
+        header: 'Views',
+        cell: (row) => (
+          <span className="text-sm text-muted-foreground">{row.viewCount}</span>
+        ),
+      },
+      {
+        key: 'actions',
+        header: 'Actions',
+        cell: (row) => (
+          <button
+            onClick={() => onSelectLink(row)}
+            className="text-sm text-primary hover:text-primary/80"
+          >
+            View details
+          </button>
+        ),
+      },
+    ],
+    [onSelectLink]
+  );
 
   return (
     <div className="space-y-4">
@@ -677,7 +674,9 @@ function SharingTab({
       {loading && (
         <div className="flex items-center justify-center py-12">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-          <span className="ml-3 text-muted-foreground">Loading share links...</span>
+          <span className="ml-3 text-muted-foreground">
+            Loading share links...
+          </span>
         </div>
       )}
 

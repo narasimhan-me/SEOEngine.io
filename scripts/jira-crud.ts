@@ -1,26 +1,26 @@
 #!/usr/bin/env ts-node
 /**
  * Jira CRUD Operations for AI Agents
- * 
+ *
  * Provides Create, Read, Update, Delete operations for Jira tickets
- * 
+ *
  * Usage:
  *   CREATE:
  *     ts-node scripts/jira-crud.ts create --project EA --type Task --summary "Title" --description "Description"
  *     ts-node scripts/jira-crud.ts create --project KAN --type Bug --summary "Title" --priority High --labels "trust,issues-engine"
- *   
+ *
  *   READ:
  *     ts-node scripts/jira-crud.ts read <TICKET-KEY>
  *     ts-node scripts/jira-crud.ts list --project EA
  *     ts-node scripts/jira-crud.ts search "query"
- *   
+ *
  *   UPDATE:
  *     ts-node scripts/jira-crud.ts update <TICKET-KEY> --summary "New title" --description "New description"
  *     ts-node scripts/jira-crud.ts update <TICKET-KEY> --labels "new,labels"
- *   
+ *
  *   DELETE:
  *     ts-node scripts/jira-crud.ts delete <TICKET-KEY>
- *   
+ *
  *   TRANSITION:
  *     ts-node scripts/jira-crud.ts transition <TICKET-KEY> --status Done
  */
@@ -36,7 +36,7 @@ const envPath = join(projectRoot, '.env');
 
 if (existsSync(envPath)) {
   const envContent = readFileSync(envPath, 'utf-8');
-  envContent.split('\n').forEach(line => {
+  envContent.split('\n').forEach((line) => {
     const trimmed = line.trim();
     if (trimmed && !trimmed.startsWith('#') && trimmed.includes('=')) {
       const [key, ...valueParts] = trimmed.split('=');
@@ -99,16 +99,22 @@ class JiraCRUD {
       throw new Error('Missing required Jira environment variables');
     }
 
-    this.auth = Buffer.from(`${this.email}:${this.apiToken}`).toString('base64');
+    this.auth = Buffer.from(`${this.email}:${this.apiToken}`).toString(
+      'base64'
+    );
   }
 
-  private async request<T>(method: string, endpoint: string, body?: unknown): Promise<T> {
+  private async request<T>(
+    method: string,
+    endpoint: string,
+    body?: unknown
+  ): Promise<T> {
     const url = `${this.baseUrl}/rest/api/3${endpoint}`;
     const response = await fetch(url, {
       method,
       headers: {
-        'Authorization': `Basic ${this.auth}`,
-        'Accept': 'application/json',
+        Authorization: `Basic ${this.auth}`,
+        Accept: 'application/json',
         'Content-Type': 'application/json',
       },
       body: body ? JSON.stringify(body) : undefined,
@@ -121,7 +127,11 @@ class JiraCRUD {
 
     const contentType = response.headers.get('content-type');
     const contentLength = response.headers.get('content-length');
-    if (response.status === 204 || contentLength === '0' || !contentType?.includes('application/json')) {
+    if (
+      response.status === 204 ||
+      contentLength === '0' ||
+      !contentType?.includes('application/json')
+    ) {
       return {} as T;
     }
 
@@ -133,23 +143,32 @@ class JiraCRUD {
     return JSON.parse(text) as T;
   }
 
-  async getIssueTypes(projectKey: string): Promise<Array<{ id: string; name: string }>> {
+  async getIssueTypes(
+    projectKey: string
+  ): Promise<Array<{ id: string; name: string }>> {
     try {
-      const projectData = await this.request<{ issueTypes: Array<{ id: string; name: string }> }>(
-        'GET',
-        `/project/${projectKey}`
-      );
+      const projectData = await this.request<{
+        issueTypes: Array<{ id: string; name: string }>;
+      }>('GET', `/project/${projectKey}`);
       return projectData.issueTypes || [];
     } catch {
-      return this.request<Array<{ id: string; name: string }>>('GET', '/issuetype');
+      return this.request<Array<{ id: string; name: string }>>(
+        'GET',
+        '/issuetype'
+      );
     }
   }
 
   async getPriorities(): Promise<Array<{ id: string; name: string }>> {
-    return this.request<Array<{ id: string; name: string }>>('GET', '/priority');
+    return this.request<Array<{ id: string; name: string }>>(
+      'GET',
+      '/priority'
+    );
   }
 
-  async getComponents(projectKey: string): Promise<Array<{ id: string; name: string }>> {
+  async getComponents(
+    projectKey: string
+  ): Promise<Array<{ id: string; name: string }>> {
     try {
       const data = await this.request<Array<{ id: string; name: string }>>(
         'GET',
@@ -161,21 +180,31 @@ class JiraCRUD {
     }
   }
 
-  async createIssue(input: CreateTicketInput): Promise<{ key: string; id: string; self: string }> {
+  async createIssue(
+    input: CreateTicketInput
+  ): Promise<{ key: string; id: string; self: string }> {
     const issueTypes = await this.getIssueTypes(input.project);
-    const issueType = issueTypes.find(
-      it => it.name.toLowerCase() === input.type.toLowerCase() ||
-            (it.name.toLowerCase().includes('bug') && input.type.toLowerCase().includes('bug')) ||
-            (it.name.toLowerCase().includes('task') && input.type.toLowerCase().includes('task')) ||
-            (it.name.toLowerCase().includes('epic') && input.type.toLowerCase().includes('epic'))
-    ) || issueTypes[0];
+    const issueType =
+      issueTypes.find(
+        (it) =>
+          it.name.toLowerCase() === input.type.toLowerCase() ||
+          (it.name.toLowerCase().includes('bug') &&
+            input.type.toLowerCase().includes('bug')) ||
+          (it.name.toLowerCase().includes('task') &&
+            input.type.toLowerCase().includes('task')) ||
+          (it.name.toLowerCase().includes('epic') &&
+            input.type.toLowerCase().includes('epic'))
+      ) || issueTypes[0];
 
     const priorities = await this.getPriorities();
-    const priority = input.priority 
-      ? priorities.find(p => p.name.toLowerCase() === input.priority!.toLowerCase()) 
-        || priorities.find(p => p.name.toLowerCase() === 'medium') 
-        || priorities[2]
-      : priorities.find(p => p.name.toLowerCase() === 'medium') || priorities[2];
+    const priority = input.priority
+      ? priorities.find(
+          (p) => p.name.toLowerCase() === input.priority!.toLowerCase()
+        ) ||
+        priorities.find((p) => p.name.toLowerCase() === 'medium') ||
+        priorities[2]
+      : priorities.find((p) => p.name.toLowerCase() === 'medium') ||
+        priorities[2];
 
     // Convert description to ADF format
     const descriptionContent = this.textToAdf(input.description || '');
@@ -183,14 +212,22 @@ class JiraCRUD {
     const issue: any = {
       fields: {
         project: { key: input.project },
-        summary: input.summary.length > 255 ? input.summary.substring(0, 252) + '...' : input.summary,
+        summary:
+          input.summary.length > 255
+            ? input.summary.substring(0, 252) + '...'
+            : input.summary,
         description: {
           type: 'doc',
           version: 1,
-          content: descriptionContent.length > 0 ? descriptionContent : [{
-            type: 'paragraph',
-            content: [{ type: 'text', text: input.description || '' }],
-          }],
+          content:
+            descriptionContent.length > 0
+              ? descriptionContent
+              : [
+                  {
+                    type: 'paragraph',
+                    content: [{ type: 'text', text: input.description || '' }],
+                  },
+                ],
         },
         issuetype: { id: issueType.id },
         priority: { id: priority.id },
@@ -202,21 +239,26 @@ class JiraCRUD {
     if (input.components && input.components.length > 0) {
       const components = await this.getComponents(input.project);
       const componentIds = input.components
-        .map(compName => {
-          const comp = components.find(c => 
-            c.name.toLowerCase().includes(compName.toLowerCase()) ||
-            compName.toLowerCase().includes(c.name.toLowerCase())
+        .map((compName) => {
+          const comp = components.find(
+            (c) =>
+              c.name.toLowerCase().includes(compName.toLowerCase()) ||
+              compName.toLowerCase().includes(c.name.toLowerCase())
           );
           return comp ? { id: comp.id } : null;
         })
         .filter(Boolean);
-      
+
       if (componentIds.length > 0) {
         issue.fields.components = componentIds;
       }
     }
 
-    return this.request<{ key: string; id: string; self: string }>('POST', '/issue', issue);
+    return this.request<{ key: string; id: string; self: string }>(
+      'POST',
+      '/issue',
+      issue
+    );
   }
 
   async readIssue(issueKey: string): Promise<JiraIssue> {
@@ -226,20 +268,24 @@ class JiraCRUD {
     );
   }
 
-  async listIssues(projectKey: string, maxResults: number = 100): Promise<JiraIssue[]> {
+  async listIssues(
+    projectKey: string,
+    maxResults: number = 100
+  ): Promise<JiraIssue[]> {
     const jql = `project = ${projectKey} ORDER BY created DESC`;
     const params = new URLSearchParams({
       jql: jql,
       maxResults: maxResults.toString(),
-      fields: 'summary,description,status,issuetype,priority,labels,components,created,updated,assignee,reporter'
+      fields:
+        'summary,description,status,issuetype,priority,labels,components,created,updated,assignee,reporter',
     });
-    
+
     const url = `${this.baseUrl}/rest/api/3/search/jql?${params.toString()}`;
     const response = await fetch(url, {
       method: 'GET',
       headers: {
-        'Authorization': `Basic ${this.auth}`,
-        'Accept': 'application/json',
+        Authorization: `Basic ${this.auth}`,
+        Accept: 'application/json',
       },
     });
 
@@ -248,24 +294,28 @@ class JiraCRUD {
       throw new Error(`Jira API error (${response.status}): ${errorText}`);
     }
 
-    const result = await response.json() as JiraSearchResult;
+    const result = (await response.json()) as JiraSearchResult;
     return result.issues || [];
   }
 
-  async searchIssues(query: string, maxResults: number = 50): Promise<JiraIssue[]> {
+  async searchIssues(
+    query: string,
+    maxResults: number = 50
+  ): Promise<JiraIssue[]> {
     const jql = `(project = EA OR project = KAN) AND (summary ~ "${query}" OR description ~ "${query}") ORDER BY created DESC`;
     const params = new URLSearchParams({
       jql: jql,
       maxResults: maxResults.toString(),
-      fields: 'summary,description,status,issuetype,priority,labels,components,created,updated,assignee,reporter'
+      fields:
+        'summary,description,status,issuetype,priority,labels,components,created,updated,assignee,reporter',
     });
-    
+
     const url = `${this.baseUrl}/rest/api/3/search/jql?${params.toString()}`;
     const response = await fetch(url, {
       method: 'GET',
       headers: {
-        'Authorization': `Basic ${this.auth}`,
-        'Accept': 'application/json',
+        Authorization: `Basic ${this.auth}`,
+        Accept: 'application/json',
       },
     });
 
@@ -274,31 +324,41 @@ class JiraCRUD {
       throw new Error(`Jira API error (${response.status}): ${errorText}`);
     }
 
-    const result = await response.json() as JiraSearchResult;
+    const result = (await response.json()) as JiraSearchResult;
     return result.issues || [];
   }
 
-  async updateIssue(issueKey: string, updates: {
-    summary?: string;
-    description?: string;
-    labels?: string[];
-    priority?: string;
-  }): Promise<void> {
+  async updateIssue(
+    issueKey: string,
+    updates: {
+      summary?: string;
+      description?: string;
+      labels?: string[];
+      priority?: string;
+    }
+  ): Promise<void> {
     const fields: any = {};
 
     if (updates.summary) {
-      fields.summary = updates.summary.length > 255 
-        ? updates.summary.substring(0, 252) + '...' 
-        : updates.summary;
+      fields.summary =
+        updates.summary.length > 255
+          ? updates.summary.substring(0, 252) + '...'
+          : updates.summary;
     }
 
     if (updates.description !== undefined) {
       fields.description = {
         type: 'doc',
         version: 1,
-        content: this.textToAdf(updates.description).length > 0 
-          ? this.textToAdf(updates.description)
-          : [{ type: 'paragraph', content: [{ type: 'text', text: updates.description || '' }] }],
+        content:
+          this.textToAdf(updates.description).length > 0
+            ? this.textToAdf(updates.description)
+            : [
+                {
+                  type: 'paragraph',
+                  content: [{ type: 'text', text: updates.description || '' }],
+                },
+              ],
       };
     }
 
@@ -308,7 +368,9 @@ class JiraCRUD {
 
     if (updates.priority) {
       const priorities = await this.getPriorities();
-      const priority = priorities.find(p => p.name.toLowerCase() === updates.priority!.toLowerCase());
+      const priority = priorities.find(
+        (p) => p.name.toLowerCase() === updates.priority!.toLowerCase()
+      );
       if (priority) {
         fields.priority = { id: priority.id };
       }
@@ -321,23 +383,33 @@ class JiraCRUD {
     await this.request('DELETE', `/issue/${issueKey}`);
   }
 
-  async getTransitions(issueKey: string): Promise<Array<{ id: string; name: string; to: { id: string; name: string } }>> {
-    const data = await this.request<{ transitions: Array<{ id: string; name: string; to: { id: string; name: string } }> }>(
-      'GET',
-      `/issue/${issueKey}/transitions`
-    );
+  async getTransitions(
+    issueKey: string
+  ): Promise<
+    Array<{ id: string; name: string; to: { id: string; name: string } }>
+  > {
+    const data = await this.request<{
+      transitions: Array<{
+        id: string;
+        name: string;
+        to: { id: string; name: string };
+      }>;
+    }>('GET', `/issue/${issueKey}/transitions`);
     return data.transitions || [];
   }
 
   async transitionIssue(issueKey: string, statusName: string): Promise<void> {
     const transitions = await this.getTransitions(issueKey);
-    const transition = transitions.find(t => 
-      t.to.name.toLowerCase() === statusName.toLowerCase() ||
-      t.name.toLowerCase() === statusName.toLowerCase()
+    const transition = transitions.find(
+      (t) =>
+        t.to.name.toLowerCase() === statusName.toLowerCase() ||
+        t.name.toLowerCase() === statusName.toLowerCase()
     );
 
     if (!transition) {
-      throw new Error(`No transition found to status: ${statusName}. Available: ${transitions.map(t => t.to.name).join(', ')}`);
+      throw new Error(
+        `No transition found to status: ${statusName}. Available: ${transitions.map((t) => t.to.name).join(', ')}`
+      );
     }
 
     await this.request('POST', `/issue/${issueKey}/transitions`, {
@@ -345,7 +417,10 @@ class JiraCRUD {
     });
   }
 
-  async addComment(issueKey: string, comment: string): Promise<{ id: string; self: string }> {
+  async addComment(
+    issueKey: string,
+    comment: string
+  ): Promise<{ id: string; self: string }> {
     return this.request<{ id: string; self: string }>(
       'POST',
       `/issue/${issueKey}/comment`,
@@ -353,10 +428,12 @@ class JiraCRUD {
         body: {
           type: 'doc',
           version: 1,
-          content: [{
-            type: 'paragraph',
-            content: [{ type: 'text', text: comment }],
-          }],
+          content: [
+            {
+              type: 'paragraph',
+              content: [{ type: 'text', text: comment }],
+            },
+          ],
         },
       }
     );
@@ -364,17 +441,17 @@ class JiraCRUD {
 
   private textToAdf(text: string): any[] {
     if (!text) return [];
-    
-    const lines = text.split('\n').filter(l => l.trim());
+
+    const lines = text.split('\n').filter((l) => l.trim());
     const content: any[] = [];
-    
+
     for (const line of lines) {
       const trimmed = line.trim();
       if (!trimmed) {
         content.push({ type: 'paragraph', content: [] });
         continue;
       }
-      
+
       if (trimmed.startsWith('## ')) {
         content.push({
           type: 'heading',
@@ -383,7 +460,7 @@ class JiraCRUD {
         });
         continue;
       }
-      
+
       if (trimmed.startsWith('### ')) {
         content.push({
           type: 'heading',
@@ -392,20 +469,24 @@ class JiraCRUD {
         });
         continue;
       }
-      
+
       const paragraphContent: any[] = [];
       const tokens = trimmed.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/);
-      
+
       for (const token of tokens) {
         if (!token) continue;
-        
+
         if (token.startsWith('**') && token.endsWith('**')) {
           paragraphContent.push({
             type: 'text',
             text: token.slice(2, -2),
             marks: [{ type: 'strong' }],
           });
-        } else if (token.startsWith('*') && token.endsWith('*') && !token.startsWith('**')) {
+        } else if (
+          token.startsWith('*') &&
+          token.endsWith('*') &&
+          !token.startsWith('**')
+        ) {
           paragraphContent.push({
             type: 'text',
             text: token.slice(1, -1),
@@ -421,7 +502,7 @@ class JiraCRUD {
           paragraphContent.push({ type: 'text', text: token });
         }
       }
-      
+
       if (paragraphContent.length > 0) {
         content.push({
           type: 'paragraph',
@@ -429,12 +510,17 @@ class JiraCRUD {
         });
       }
     }
-    
-    return content.length > 0 ? content : [{ type: 'paragraph', content: [{ type: 'text', text: text }] }];
+
+    return content.length > 0
+      ? content
+      : [{ type: 'paragraph', content: [{ type: 'text', text: text }] }];
   }
 }
 
-function parseArgs(): { command: string; args: Record<string, string | string[]> } {
+function parseArgs(): {
+  command: string;
+  args: Record<string, string | string[]>;
+} {
   const args = process.argv.slice(2);
   const command = args[0];
   const parsed: Record<string, string | string[]> = {};
@@ -445,7 +531,7 @@ function parseArgs(): { command: string; args: Record<string, string | string[]>
       if (i + 1 < args.length && !args[i + 1].startsWith('--')) {
         const value = args[i + 1];
         if (key === 'labels' || key === 'components') {
-          parsed[key] = value.split(',').map(v => v.trim());
+          parsed[key] = value.split(',').map((v) => v.trim());
         } else {
           parsed[key] = value;
         }
@@ -499,7 +585,9 @@ async function main() {
 
         console.log(`✅ Created ticket: ${ticket.key}`);
         console.log(`   ID: ${ticket.id}`);
-        console.log(`   URL: ${process.env.JIRA_BASE_URL}/browse/${ticket.key}`);
+        console.log(
+          `   URL: ${process.env.JIRA_BASE_URL}/browse/${ticket.key}`
+        );
         break;
       }
 
@@ -522,8 +610,10 @@ async function main() {
         for (const projectKey of projects) {
           console.log(`\n📋 ${projectKey} Project:`);
           const issues = await client.listIssues(projectKey);
-          issues.forEach(issue => {
-            console.log(`  ${issue.key} | ${issue.fields.status.name} | ${issue.fields.summary.substring(0, 60)}...`);
+          issues.forEach((issue) => {
+            console.log(
+              `  ${issue.key} | ${issue.fields.status.name} | ${issue.fields.summary.substring(0, 60)}...`
+            );
           });
         }
         break;
@@ -538,7 +628,7 @@ async function main() {
 
         const issues = await client.searchIssues(query);
         console.log(`Found ${issues.length} ticket(s):\n`);
-        issues.forEach(issue => {
+        issues.forEach((issue) => {
           console.log(formatIssue(issue));
           console.log('');
         });
@@ -578,7 +668,7 @@ async function main() {
       case 'transition': {
         const issueKey = process.argv[3];
         const status = args.status as string;
-        
+
         if (!issueKey || !status) {
           console.error('Error: Ticket key and --status required');
           process.exit(1);
@@ -591,8 +681,9 @@ async function main() {
 
       case 'comment': {
         const issueKey = process.argv[3];
-        const comment = args.comment as string || process.argv.slice(4).join(' ');
-        
+        const comment =
+          (args.comment as string) || process.argv.slice(4).join(' ');
+
         if (!issueKey || !comment) {
           console.error('Error: Ticket key and comment required');
           process.exit(1);
@@ -605,7 +696,9 @@ async function main() {
 
       default:
         console.error(`Unknown command: ${command}`);
-        console.error('\nAvailable commands: create, read, list, search, update, delete, transition, comment');
+        console.error(
+          '\nAvailable commands: create, read, list, search, update, delete, transition, comment'
+        );
         process.exit(1);
     }
   } catch (error: any) {

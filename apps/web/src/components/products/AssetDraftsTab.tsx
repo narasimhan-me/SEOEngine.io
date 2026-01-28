@@ -18,12 +18,13 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import Link from 'next/link';
 
 import { projectsApi, type AssetScopedDraftsResponse } from '@/lib/api';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
 // [DRAFT-AI-ENTRYPOINT-CLARITY-1] AI boundary note for human-only review surface
 import { DraftAiBoundaryNote } from '@/components/common/DraftAiBoundaryNote';
+import { EmptyState } from '@/components/common/EmptyState';
+import { EmptyStatePresets } from '@/lib/empty-state-contract';
 
 /**
  * [DRAFT-FIELD-COVERAGE-1] Asset type for draft review
@@ -509,36 +510,13 @@ export function AssetDraftsTab({
             </div>
           ) : (
             /* Empty state */
-            <div
-              data-testid="drafts-tab-empty"
-              className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-8 text-center"
-            >
-              <svg
-                className="mx-auto h-12 w-12 text-gray-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                />
-              </svg>
-              <h3 className="mt-2 text-sm font-medium text-gray-900">
-                No drafts saved for this {assetLabel}.
-              </h3>
-              <div className="mt-6">
-                {/* Primary CTA: View issues - switches to Issues tab or Issues Engine */}
-                <Link
-                  href={getViewIssuesHref()}
-                  className="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                >
-                  View issues
-                </Link>
-              </div>
+            <div data-testid="drafts-tab-empty">
+              <EmptyState
+                {...EmptyStatePresets.noDraftsSaved()}
+                message={`Your draft changes for this ${assetLabel} will appear here before publishing.`}
+                actionText="View issues"
+                actionHref={getViewIssuesHref()}
+              />
             </div>
           )}
         </>

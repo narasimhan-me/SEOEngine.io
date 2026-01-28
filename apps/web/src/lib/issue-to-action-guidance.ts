@@ -13,8 +13,15 @@
 import type { PlaybookId } from './playbooks-routing';
 
 /**
+ * Fix type classification for user-facing clarity.
+ * [ISSUE-FIX-KIND-CLARITY-1] Explicit fix-type labels per EA-20 EPIC 14.
+ */
+export type FixTypeLabel = 'AI' | 'Template' | 'Guidance' | 'Rule-based';
+
+/**
  * Recommended playbook descriptor with metadata for display in RCP and list views.
  * All fields are static/pre-computed; no runtime evaluation.
+ * [ISSUE-FIX-KIND-CLARITY-1] fixTypeLabel and fixTypeDescription are now required per EA-20 EPIC 14.
  */
 export interface RecommendedPlaybook {
   /** Canonical playbook ID (must be PlaybookId) */
@@ -27,40 +34,68 @@ export interface RecommendedPlaybook {
   affects: string;
   /** Static preconditions (non-speculative, non-evaluated) */
   preconditions: string[];
+  /** [ISSUE-FIX-KIND-CLARITY-1] Fix type label for user clarity (required) */
+  fixTypeLabel: FixTypeLabel;
+  /** [ISSUE-FIX-KIND-CLARITY-1] User-facing description of fix type (required) */
+  fixTypeDescription: string;
 }
 
 /**
- * Static mapping from issue type to recommended playbook(s).
+ * [EA-28: ISSUE-EXPLANATION-QUALITY-1] Static mapping from issue type to recommended playbook(s).
+ * All guidance uses clear, accessible language.
  * Keys are issue.type values (or issue.id fallback).
  * [FIXUP-1] Copy safety: uses "assets within playbook scope" instead of asserting specific asset types.
+ * [ISSUE-FIX-KIND-CLARITY-1] All mappings now include fixTypeLabel and fixTypeDescription per EA-20 EPIC 14.
  */
 const ISSUE_TO_PLAYBOOK_MAP: Record<string, RecommendedPlaybook[]> = {
   missing_seo_title: [
     {
       playbookId: 'missing_seo_title',
-      name: 'Fix missing SEO titles',
+      name: 'Add search titles',
       oneLineWhatItDoes:
-        'Generates SEO titles for assets within the playbook scope that are missing them.',
-      affects: 'Assets within the current playbook scope missing SEO titles',
+        'Suggests titles for products that are currently missing them.',
+      affects: 'Products missing search titles in the current view',
       preconditions: [
-        'Preview generation may require appropriate permissions.',
-        'No changes are applied unless you explicitly proceed to the Apply step.',
-        'Draft previews are stored temporarily and can be reviewed before application.',
+        "You'll review all suggestions before any changes are saved.",
+        'Nothing is changed until you click Apply.',
+        'You can edit suggestions before applying them.',
       ],
+      fixTypeLabel: 'AI',
+      fixTypeDescription:
+        'AI suggests titles for you to review, edit, and approve',
     },
   ],
   missing_seo_description: [
     {
       playbookId: 'missing_seo_description',
-      name: 'Fix missing SEO descriptions',
+      name: 'Add search descriptions',
       oneLineWhatItDoes:
-        'Generates SEO descriptions for assets within the playbook scope that are missing them.',
-      affects: 'Assets within the current playbook scope missing SEO descriptions',
+        'Suggests descriptions for products that are currently missing them.',
+      affects: 'Products missing search descriptions in the current view',
       preconditions: [
-        'Preview generation may require appropriate permissions.',
-        'No changes are applied unless you explicitly proceed to the Apply step.',
-        'Draft previews are stored temporarily and can be reviewed before application.',
+        "You'll review all suggestions before any changes are saved.",
+        'Nothing is changed until you click Apply.',
+        'You can edit suggestions before applying them.',
       ],
+      fixTypeLabel: 'AI',
+      fixTypeDescription:
+        'AI suggests descriptions for you to review, edit, and approve',
+    },
+  ],
+  not_answer_ready: [
+    {
+      playbookId: 'not_answer_ready' as PlaybookId,
+      name: 'Improve content for AI',
+      oneLineWhatItDoes:
+        'Shows which products need more detailed content to be recommended by AI assistants.',
+      affects: 'Products with brief content in the current view',
+      preconditions: [
+        'This identifies products that would benefit from more content.',
+        'Adding more detail is done manually in your product editor.',
+      ],
+      fixTypeLabel: 'Guidance',
+      fixTypeDescription:
+        'Identifies products to improve, with tips on what to add',
     },
   ],
 };

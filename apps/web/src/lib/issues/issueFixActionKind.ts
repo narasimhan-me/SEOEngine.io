@@ -1,10 +1,17 @@
 /**
  * ISSUE-FIX-KIND-CLARITY-1 FIXUP-3: Fix Action Kind Derivation
+ * [EA-19 EPIC 13] ISSUE-FIX-ROUTE-INTEGRITY-1 Implementation
  *
  * Derives canonical "fix action kind" for Issues Engine CTAs.
  * Uses existing destination map and issue config as sources of truth.
  *
  * NO GUESSWORK: Only uses signals that are already computed and deterministic.
+ *
+ * ROUTE INTEGRITY CONTRACT:
+ * - AI_PREVIEW_FIX: Valid preview workflow available
+ * - DIRECT_FIX: Valid navigation to workspace
+ * - GUIDANCE_ONLY: Informational review (no automatic fix)
+ * - BLOCKED: No action reachable (explicit blocked state with reason)
  */
 
 import type { DeoIssueFixType } from '../deo-issues';
@@ -38,7 +45,21 @@ export interface IssueFixActionKindInfo {
   /** Secondary hint/sublabel */
   sublabel: string;
   /** Semantic icon key */
-  iconKey: 'workflow.ai' | 'nav.projects' | 'playbook.content' | 'status.blocked';
+  iconKey:
+    | 'workflow.ai'
+    | 'nav.projects'
+    | 'playbook.content'
+    | 'status.blocked';
+  /**
+   * [ERROR-&-BLOCKED-STATE-UX-1] Human-readable explanation for blocked state.
+   * Only populated when kind === 'BLOCKED'.
+   */
+  blockedReason?: string;
+  /**
+   * [ERROR-&-BLOCKED-STATE-UX-1] Clear next step for blocked state.
+   * Only populated when kind === 'BLOCKED'.
+   */
+  nextStep?: string;
 }
 
 /**
@@ -89,7 +110,8 @@ export function deriveIssueFixActionKind(
 
   // Case 2: No fix destination - check if viewAffected or open is available
   const hasAlternativeAction =
-    (destinations.viewAffected.kind !== 'none' && destinations.viewAffected.href) ||
+    (destinations.viewAffected.kind !== 'none' &&
+      destinations.viewAffected.href) ||
     (destinations.open.kind !== 'none' && destinations.open.href);
 
   if (hasAlternativeAction) {
@@ -104,10 +126,12 @@ export function deriveIssueFixActionKind(
  * Gets full fix action kind info including label, sublabel, and icon.
  *
  * @param params - Same params as getIssueActionDestinations
+ * @param blockedReasonOverride - [EA-16] Optional canonical blocked reason ID to override default
  * @returns IssueFixActionKindInfo with all UI metadata
  */
 export function getIssueFixActionKindInfo(
-  params: GetIssueActionDestinationsParams
+  params: GetIssueActionDestinationsParams,
+  blockedReasonOverride?: string
 ): IssueFixActionKindInfo {
   const kind = deriveIssueFixActionKind(params);
 
@@ -133,13 +157,53 @@ export function getIssueFixActionKindInfo(
         sublabel: 'No automatic fix available',
         iconKey: 'playbook.content',
       };
-    case 'BLOCKED':
+    case 'BLOCKED': {
+      // [EA-16: ERROR-&-BLOCKED-STATE-UX-1] Use canonical blocked reason when provided
+      const defaultReason = 'No fix destination is mapped for this issue type in the current context.';
+      const defaultNextStep = 'Review affected items in the Issues Engine or wait for the fix surface to become available.';
+
+      // Map canonical reason IDs to user-friendly copy
+      const canonicalReasonCopy: Record<string, { reason: string; nextStep: string }> = {
+        PERMISSIONS_MISSING: {
+          reason: 'This action requires additional permissions you do not currently have.',
+          nextStep: 'Contact a project owner to request the necessary permissions.',
+        },
+        SHOPIFY_SCOPE_MISSING: {
+          reason: 'This action requires Shopify OAuth scopes that have not been granted.',
+          nextStep: 'Re-connect your Shopify store and grant the requested permissions.',
+        },
+        DRAFT_REQUIRED: {
+          reason: 'This action requires saving a draft first.',
+          nextStep: 'Review and save your draft changes before applying.',
+        },
+        DESTINATION_UNAVAILABLE: {
+          reason: 'No valid action route exists for this issue in the current context.',
+          nextStep: 'Review the issue details in the Issues Engine for guidance.',
+        },
+        SYNC_PENDING: {
+          reason: 'Data is not yet available because a sync is currently in progress.',
+          nextStep: 'Wait for the sync to complete, then try again.',
+        },
+        SYSTEM_ERROR: {
+          reason: 'An unexpected system error prevented this action.',
+          nextStep: 'Try again later or contact support if the problem persists.',
+        },
+      };
+
+      const reasonCopy = blockedReasonOverride && canonicalReasonCopy[blockedReasonOverride]
+        ? canonicalReasonCopy[blockedReasonOverride]
+        : { reason: defaultReason, nextStep: defaultNextStep };
+
       return {
         kind,
         label: 'Blocked',
         sublabel: 'No action available',
         iconKey: 'status.blocked',
+        // [EA-16: ERROR-&-BLOCKED-STATE-UX-1] Canonical blocked reason support
+        blockedReason: reasonCopy.reason,
+        nextStep: reasonCopy.nextStep,
       };
+    }
   }
 }
 

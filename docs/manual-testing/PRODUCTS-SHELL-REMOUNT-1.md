@@ -202,7 +202,7 @@
 
 **Preconditions:**
 
-- [ ] Logged in and on a project page (/projects/[id]/*)
+- [ ] Logged in and on a project page (/projects/[id]/\*)
 - [ ] Command palette is closed
 
 **Steps:**

@@ -88,6 +88,7 @@ The panel now shows Details view only. No tab switching UI exists.
 
 Pin toggle has been removed as part of the RCP autonomy redesign.
 Panel now uses autonomous context-driven behavior:
+
 - Auto-opens on entity detail routes
 - Auto-closes on contextless routes
 - User dismissal is respected until context changes

@@ -40,6 +40,8 @@ export interface ScrollToAnchorResult {
 /**
  * Scrolls to a fix anchor element and applies a temporary highlight.
  *
+ * [ISSUE-FIX-ROUTE-INTEGRITY-1] Dev-time guardrail: warns when anchor elements don't exist.
+ *
  * @param fixAnchorTestId - The data-testid of the anchor element
  * @returns Result indicating whether the anchor was found
  */
@@ -54,6 +56,14 @@ export function scrollToFixAnchor(params: {
   );
 
   if (!element) {
+    // [ISSUE-FIX-ROUTE-INTEGRITY-1] Dev-time warning for missing anchors
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn(
+        `[ISSUE-FIX-ROUTE-INTEGRITY-1] Fix anchor not found: data-testid="${fixAnchorTestId}". ` +
+          `Users arriving via issue fix will see "Fix surface not available" message. ` +
+          `Add the anchor element or update ISSUE_FIX_PATH_MAP to use a valid testid.`
+      );
+    }
     return { found: false };
   }
 
@@ -166,7 +176,8 @@ export function getArrivalCalloutContent(
       secondaryMessage:
         'This fix surface is not yet available. Check back later.',
       showBackLink: true,
-      containerClass: 'bg-[hsl(var(--surface-raised))] border-border text-muted-foreground',
+      containerClass:
+        'bg-[hsl(var(--surface-raised))] border-border text-muted-foreground',
     };
   }
 
@@ -178,7 +189,8 @@ export function getArrivalCalloutContent(
       secondaryMessage: nextActionLabel || 'Open Shopify to make this change.',
       showBackLink: true,
       showExternalLink: true,
-      containerClass: 'bg-[hsl(var(--warning-background))] border-border text-[hsl(var(--warning-foreground))]',
+      containerClass:
+        'bg-[hsl(var(--warning-background))] border-border text-[hsl(var(--warning-foreground))]',
     };
   }
 
@@ -189,7 +201,8 @@ export function getArrivalCalloutContent(
       primaryMessage: 'No action needed — already compliant',
       secondaryMessage: `The issue "${issueTitle}" is no longer detected on this product.`,
       showBackLink: true,
-      containerClass: 'bg-[hsl(var(--success-background))] border-border text-[hsl(var(--success-foreground))]',
+      containerClass:
+        'bg-[hsl(var(--success-background))] border-border text-[hsl(var(--success-foreground))]',
     };
   }
 
@@ -204,7 +217,8 @@ export function getArrivalCalloutContent(
         'Review the analysis below. No direct fix is available for this issue.',
       showBackLink: true,
       showViewRelatedIssues: true,
-      containerClass: 'bg-[hsl(var(--info-background))] border-border text-[hsl(var(--info-foreground))]',
+      containerClass:
+        'bg-[hsl(var(--info-background))] border-border text-[hsl(var(--info-foreground))]',
     };
   }
 
@@ -217,7 +231,8 @@ export function getArrivalCalloutContent(
       secondaryMessage:
         'Fix surface not available. Use the options below or go back.',
       showBackLink: true,
-      containerClass: 'bg-[hsl(var(--warning-background))] border-border text-[hsl(var(--warning-foreground))]',
+      containerClass:
+        'bg-[hsl(var(--warning-background))] border-border text-[hsl(var(--warning-foreground))]',
     };
   }
 

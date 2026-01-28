@@ -11,7 +11,7 @@
 - **Purpose of the feature/patch:**
   - Remount the Issues Engine list from card-based layout to canonical DataTable component
   - Integrate Right Context Panel (RCP) issue details view with PANEL-DEEP-LINKS-1 deep-link support
-  - Enforce token-only styling (Design System v1.5) - no literal bg-white/bg-gray-*/text-gray-* classes
+  - Enforce token-only styling (Design System v1.5) - no literal bg-white/bg-gray-_/text-gray-_ classes
   - Preserve existing Playwright selectors and trust + navigation behavior
 
 - **High-level user impact and what "success" looks like:**
@@ -93,7 +93,7 @@
 - **UI:** Status column removed (section membership now communicates status)
 - **UI:** Hover state visible (token-based: no bg-white flashes)
 - **UI:** Focus ring visible when tabbing through rows
-- **UI:** No literal palette classes (no bg-white, bg-gray-*, text-gray-* in dark mode)
+- **UI:** No literal palette classes (no bg-white, bg-gray-_, text-gray-_ in dark mode)
 - **UI:** TripletDisplay shows "Actionable now" first with token-only highlight (bg-primary/10, text-primary)
 
 ---

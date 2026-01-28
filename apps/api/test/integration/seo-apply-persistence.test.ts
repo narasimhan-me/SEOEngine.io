@@ -131,4 +131,55 @@ describe('TEST-1 – SEO apply persistence via /shopify/update-product-seo', () 
 
     expect(res.status).toBeGreaterThanOrEqual(400);
   });
+
+  it('[EA-18] APPLY-ACTION-GOVERNANCE-1: update-product-seo enforces OWNER role', async () => {
+    // [EA-18] This test verifies that the apply action enforces OWNER-only governance.
+    // Non-owner users (EDITOR, VIEWER) must be blocked from applying changes.
+    const { user, project, products } = await seedFirstDeoWinProjectReady(
+      testPrisma,
+      {
+        userPlan: 'pro',
+      }
+    );
+    const product = products[0];
+
+    // Create a non-owner user (EDITOR role)
+    const editorUser = await testPrisma.user.create({
+      data: {
+        email: `editor-${Date.now()}@example.com`,
+        password: 'hashed-password',
+        name: 'Editor User',
+      },
+    });
+
+    // Add editor as a project member with EDITOR role
+    await testPrisma.projectMember.create({
+      data: {
+        projectId: project.id,
+        userId: editorUser.id,
+        role: 'EDITOR',
+      },
+    });
+
+    // Attempt to apply SEO change as EDITOR (should be blocked)
+    const res = await request(server)
+      .post('/shopify/update-product-seo')
+      .set(authHeader(editorUser.id))
+      .send({
+        productId: product.id,
+        seoTitle: 'Unauthorized Title',
+        seoDescription: 'Unauthorized Description',
+      });
+
+    // [EA-18] GOVERNANCE SIGNAL: Apply must be blocked for non-OWNER users
+    expect(res.status).toBe(403);
+    expect(res.body.message).toContain('Owner role is required');
+
+    // Verify product was NOT updated
+    const unchanged = await testPrisma.product.findUnique({
+      where: { id: product.id },
+    });
+    expect(unchanged?.seoTitle).not.toBe('Unauthorized Title');
+    expect(unchanged?.seoDescription).not.toBe('Unauthorized Description');
+  });
 });

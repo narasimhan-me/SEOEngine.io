@@ -39,6 +39,12 @@ interface ProductRowProps {
   secondaryAction?: RowAction | null;
   /** [LIST-ACTIONS-CLARITY-1] Help text for optimized state */
   helpText?: string;
+  /** [ERROR-&-BLOCKED-STATE-UX-1] Human-readable explanation of WHY blocked */
+  blockedReason?: string;
+  /** [ERROR-&-BLOCKED-STATE-UX-1] Clear next step the user can take */
+  nextStep?: string;
+  /** [ERROR-&-BLOCKED-STATE-UX-1] Blocker category for visual distinction */
+  blockerCategory?: 'approval_required' | 'permission' | 'system';
 }
 
 export function ProductRow({
@@ -56,6 +62,9 @@ export function ProductRow({
   primaryAction,
   secondaryAction,
   helpText,
+  blockedReason,
+  nextStep,
+  blockerCategory,
 }: ProductRowProps) {
   const workspacePath = `/projects/${projectId}/products/${product.id}`;
 
@@ -148,8 +157,14 @@ export function ProductRow({
         {/* Middle section - Status chip (visible on all sizes) */}
         <div className="flex items-center gap-3 sm:justify-center">
           {/* [LIST-ACTIONS-CLARITY-1] Use RowStatusChip if chipLabel provided, else fall back to legacy */}
+          {/* [ERROR-&-BLOCKED-STATE-UX-1] Pass blocked state props for inline explanation */}
           {chipLabel ? (
-            <RowStatusChip chipLabel={chipLabel} />
+            <RowStatusChip
+              chipLabel={chipLabel}
+              blockedReason={blockedReason}
+              nextStep={nextStep}
+              blockerCategory={blockerCategory}
+            />
           ) : (
             <span
               className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${healthPillClasses[healthState]}`}

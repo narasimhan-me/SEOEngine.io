@@ -16,6 +16,21 @@ import {
   checkSavedDraftInSessionStorage,
   type DraftLifecycleState,
 } from '@/lib/issues/draftLifecycleState';
+// [EA-16: ERROR-&-BLOCKED-STATE-UX-1] Import canonical blocked reasons
+import {
+  getCanonicalBlockedReason,
+  type CanonicalBlockedReasonId,
+} from '@/lib/issues/canonicalBlockedReasons';
+// [EA-27: PRIORITIZATION-SIGNAL-ENRICHMENT-1] Import prioritization signal helpers
+import {
+  deriveImpactLevel,
+  derivePrioritizationFactors,
+  derivePriorityRationale,
+} from '@/lib/issues/prioritizationSignals';
+import { PriorityRationaleSection } from '@/components/issues/PriorityRationaleSection';
+// [EA-30: AI-ASSIST-ENTRY-POINTS-1] Import trust loop and contextual help
+import { recordTrustLoopSignal, shouldShowAiAssistant } from '@/lib/trust-loop/trustLoopState';
+import { IssueContextualHelp } from '@/components/assistant/IssueContextualHelp';
 
 /**
  * [ISSUES-ENGINE-REMOUNT-1] Read-only issue details renderer for RCP.
@@ -49,11 +64,7 @@ type LoadState = 'loading' | 'loaded' | 'not_found' | 'error';
  * Shows playbook info when issue is actionable and has a mapping.
  * Shows "No automated action available." for informational or blocked issues.
  */
-function AutomationGuidanceSection({
-  issue,
-}: {
-  issue: DeoIssue;
-}) {
+function AutomationGuidanceSection({ issue }: { issue: DeoIssue }) {
   // Determine if we should show recommendations
   const isActionable =
     issue.actionability !== 'informational' && issue.isActionableNow === true;
@@ -117,7 +128,13 @@ function AutomationGuidanceSection({
 function PlaybookInfoBlock({
   playbook,
 }: {
-  playbook: { playbookId: string; name: string; oneLineWhatItDoes: string; affects: string; preconditions: string[] };
+  playbook: {
+    playbookId: string;
+    name: string;
+    oneLineWhatItDoes: string;
+    affects: string;
+    preconditions: string[];
+  };
 }) {
   return (
     <div className="space-y-2">
@@ -196,11 +213,26 @@ export function ContextPanelIssueDetails({
     }
   }, [initialIssue, fetchIssue]);
 
+  // [EA-30: AI-ASSIST-ENTRY-POINTS-1] Record trust loop signal when issue is viewed
+  // This contributes to trust loop completion (understanding phase)
+  // Note: Must be before early returns to comply with Rules of Hooks
+  useEffect(() => {
+    if (issue && projectId) {
+      recordTrustLoopSignal(projectId, 'hasViewedIssue');
+    }
+  }, [issue, projectId]);
+
+  // [EA-30: AI-ASSIST-ENTRY-POINTS-1] Check trust loop status for AI assistant gating
+  // Note: Must be before early returns to comply with Rules of Hooks
+  const trustLoopComplete = shouldShowAiAssistant(projectId);
+
   // Loading state
   if (loadState === 'loading') {
     return (
       <div className="rounded-md border border-border bg-[hsl(var(--surface-card))] p-4">
-        <p className="text-sm text-muted-foreground">Loading issue details...</p>
+        <p className="text-sm text-muted-foreground">
+          Loading issue details...
+        </p>
       </div>
     );
   }
@@ -237,12 +269,17 @@ export function ContextPanelIssueDetails({
 
   // [FIXUP-3][FIXUP-4] Derive actionability label and guidance
   // FIXUP-4: isActionableNow must be explicitly true to be actionable; undefined treated as blocked
+  // [EA-16: ERROR-&-BLOCKED-STATE-UX-1] Enhanced with canonical blocked reasons
   const getActionabilityInfo = () => {
     if (issue.actionability === 'informational') {
+      const blockedReason = getCanonicalBlockedReason('DESTINATION_UNAVAILABLE');
       return {
         label: 'Informational — outside EngineO.ai control',
         guidance:
           'EngineO.ai cannot take direct action on this issue. You can review the context in the Work Canvas for more information.',
+        canonicalReasonId: 'DESTINATION_UNAVAILABLE' as CanonicalBlockedReasonId,
+        blockedReason: blockedReason.reason,
+        nextStep: blockedReason.nextStep,
       };
     }
     // FIXUP-4: Only treat as actionable when explicitly true (not undefined)
@@ -251,13 +288,19 @@ export function ContextPanelIssueDetails({
         label: 'Actionable now',
         guidance:
           'Actions for this issue can be initiated from the Work Canvas where context and available options are displayed.',
+        canonicalReasonId: null,
+        blockedReason: null,
+        nextStep: null,
       };
     }
-    // FIXUP-4: Blocked label de-speculated (no "permissions" claim)
+    // [EA-16: ERROR-&-BLOCKED-STATE-UX-1] Use canonical blocked reason for blocked state
+    const blockedReason = getCanonicalBlockedReason('DESTINATION_UNAVAILABLE');
     return {
       label: 'Blocked — not actionable in this context',
-      guidance:
-        'This issue cannot be acted upon in the current context. Review the issue details in the Work Canvas for more information.',
+      guidance: blockedReason.reason,
+      canonicalReasonId: 'DESTINATION_UNAVAILABLE' as CanonicalBlockedReasonId,
+      blockedReason: blockedReason.reason,
+      nextStep: blockedReason.nextStep,
     };
   };
 
@@ -309,14 +352,16 @@ export function ContextPanelIssueDetails({
               Products
             </p>
             <ul className="space-y-1">
-              {issue.affectedProducts!.slice(0, maxItems).map((product, idx) => (
-                <li
-                  key={`product-${idx}`}
-                  className="text-sm text-foreground truncate"
-                >
-                  {product}
-                </li>
-              ))}
+              {issue
+                .affectedProducts!.slice(0, maxItems)
+                .map((product, idx) => (
+                  <li
+                    key={`product-${idx}`}
+                    className="text-sm text-foreground truncate"
+                  >
+                    {product}
+                  </li>
+                ))}
               {issue.affectedProducts!.length > maxItems && (
                 <li className="text-sm text-muted-foreground">
                   + {issue.affectedProducts!.length - maxItems} more
@@ -402,13 +447,32 @@ export function ContextPanelIssueDetails({
         )}
       </div>
 
+      {/* [EA-27: PRIORITIZATION-SIGNAL-ENRICHMENT-1] Priority Considerations Section */}
+      {(() => {
+        const impactLevel = deriveImpactLevel(issue.deoImpactEstimate);
+        const factors = derivePrioritizationFactors(issue);
+        const rationale = derivePriorityRationale(issue, factors);
+        return (
+          <PriorityRationaleSection
+            impactLevel={impactLevel}
+            priorityRationale={rationale}
+            prioritizationFactors={factors}
+            confidence={issue.confidence}
+            compact={false}
+          />
+        );
+      })()}
+
       {/* [FIXUP-3] Actionability (replaces Status) */}
-      {/* [ISSUE-FIX-KIND-CLARITY-1 FIXUP-3] Added fix-action kind sentence for copy alignment */}
+      {/* [EA-16: ERROR-&-BLOCKED-STATE-UX-1] Enhanced with canonical blocked reasons */}
       <div className="rounded-md border border-border bg-[hsl(var(--surface-card))] p-3">
         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
           Actionability
         </p>
-        <span className="mt-1 inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium text-foreground">
+        <span
+          className="mt-1 inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium text-foreground"
+          data-blocked-reason={actionabilityInfo.canonicalReasonId || undefined}
+        >
           {actionabilityInfo.label}
         </span>
         <p className="mt-2 text-xs text-muted-foreground">
@@ -418,14 +482,30 @@ export function ContextPanelIssueDetails({
         <p className="mt-1 text-xs text-muted-foreground italic">
           {fixActionSentence}
         </p>
+        {/* [EA-16: ERROR-&-BLOCKED-STATE-UX-1] Canonical blocked reason explanation */}
+        {fixActionKind === 'BLOCKED' && actionabilityInfo.nextStep && (
+          <p className="mt-1 text-xs text-muted-foreground">
+            <span className="font-medium">Next step:</span> {actionabilityInfo.nextStep}
+          </p>
+        )}
         {/* [DRAFT-LIFECYCLE-VISIBILITY-1 PATCH 4] Draft lifecycle state line
             [FIXUP-1] Always show draft line (including NO_DRAFT) for complete state visibility */}
         {(() => {
           // Prefer passed-in state when present/valid, otherwise fall back conservatively
           let draftState: DraftLifecycleState = 'NO_DRAFT';
-          const validStates: DraftLifecycleState[] = ['NO_DRAFT', 'GENERATED_UNSAVED', 'SAVED_NOT_APPLIED', 'APPLIED'];
+          const validStates: DraftLifecycleState[] = [
+            'NO_DRAFT',
+            'GENERATED_UNSAVED',
+            'SAVED_NOT_APPLIED',
+            'APPLIED',
+          ];
 
-          if (passedDraftLifecycleState && validStates.includes(passedDraftLifecycleState as DraftLifecycleState)) {
+          if (
+            passedDraftLifecycleState &&
+            validStates.includes(
+              passedDraftLifecycleState as DraftLifecycleState
+            )
+          ) {
             draftState = passedDraftLifecycleState as DraftLifecycleState;
           } else if (issue.primaryProductId) {
             // Fall back: check sessionStorage for saved drafts
@@ -441,9 +521,25 @@ export function ContextPanelIssueDetails({
           }
 
           // [FIXUP-1] Always render the draft line (removed NO_DRAFT gating)
+          // [DRAFT-LIFECYCLE-VISIBILITY-1] State-appropriate styling for visual distinction
           const draftCopy = getDraftLifecycleCopy(draftState);
+          const getDraftStateClass = () => {
+            switch (draftState) {
+              case 'GENERATED_UNSAVED':
+                return 'text-[hsl(var(--warning-foreground))]';
+              case 'SAVED_NOT_APPLIED':
+                return 'text-[hsl(var(--info-foreground))]';
+              case 'APPLIED':
+                return 'text-[hsl(var(--success-foreground))]';
+              default:
+                return 'text-muted-foreground';
+            }
+          };
           return (
-            <p className="mt-1 text-xs text-muted-foreground" title={draftCopy.description}>
+            <p
+              className={`mt-1 text-xs ${getDraftStateClass()}`}
+              title={draftCopy.description}
+            >
               Draft: {draftCopy.shortLabel}
             </p>
           );
@@ -452,6 +548,13 @@ export function ContextPanelIssueDetails({
 
       {/* [ISSUE-TO-ACTION-GUIDANCE-1][RIGHT-CONTEXT-PANEL-AUTONOMY-1] Automation guidance section (informational only) */}
       <AutomationGuidanceSection issue={issue} />
+
+      {/* [EA-30: AI-ASSIST-ENTRY-POINTS-1] Contextual help (only after trust loop complete) */}
+      <IssueContextualHelp
+        projectId={projectId}
+        issue={issue}
+        trustLoopComplete={trustLoopComplete}
+      />
 
       {/* [FIXUP-3] Affected Assets List */}
       <div className="rounded-md border border-border bg-[hsl(var(--surface-card))] p-3">

@@ -431,6 +431,8 @@ export function getIssueFixPathForProduct(
  * Includes both product-level fixes and work queue routing.
  * Returns null only if the issue is a true orphan (no deterministic destination).
  *
+ * [ISSUE-FIX-ROUTE-INTEGRITY-1] Dev-time guardrail: warns when actionable issues lack mappings.
+ *
  * @param issue - The DEO issue
  * @returns IssueFixPath if any fix destination exists, null otherwise
  */
@@ -442,6 +444,17 @@ export function getIssueFixPathForProject(
 
   // No mapping = orphan issue
   if (!fixConfig) {
+    // [ISSUE-FIX-ROUTE-INTEGRITY-1] Dev-time warning for unmapped issues
+    if (
+      typeof window !== 'undefined' &&
+      process.env.NODE_ENV !== 'production' &&
+      issue.isActionableNow === true
+    ) {
+      console.warn(
+        `[ISSUE-FIX-ROUTE-INTEGRITY-1] Orphan issue detected: "${issueKey}" has no entry in ISSUE_FIX_PATH_MAP. ` +
+          `Users cannot fix this issue. Add a mapping or mark as informational.`
+      );
+    }
     return null;
   }
 
@@ -465,6 +478,11 @@ export function getIssueFixPathForProject(
  *
  * [ISSUE-TO-FIX-PATH-1 FIXUP-1] Added optional `from` parameter to preserve navigation origin.
  * [ISSUE-FIX-NAV-AND-ANCHORS-1] Added returnTo, returnLabel, and fixAnchor support.
+ * [ISSUE-FIX-ROUTE-INTEGRITY-1] Returns null (no href) for unmapped issues to prevent dead clicks.
+ *
+ * DEV GUARDRAILS (non-production only):
+ * - Warns when issue types are not found in ISSUE_FIX_PATH_MAP
+ * - Ensures route integrity by surfacing missing mappings during development
  *
  * @param projectId - The project ID
  * @param issue - The DEO issue

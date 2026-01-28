@@ -89,7 +89,8 @@ export default function MembersPage() {
     setHeader({
       breadcrumbs: `Projects > ${projectName || projectId} > Settings`,
       title: 'Team Members',
-      description: 'Manage who has access to this project and their permissions.',
+      description:
+        'Manage who has access to this project and their permissions.',
     });
   }, [setHeader, projectName, projectId]);
 

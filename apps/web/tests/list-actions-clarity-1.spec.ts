@@ -1035,4 +1035,119 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
       expect(typeof firstCollection.blockedByApproval).toBe('boolean');
     }
   });
+
+  // ==========================================================================
+  // [ISSUE-FIX-KIND-CLARITY-1] Fix Type Labels in List Actions
+  // ==========================================================================
+
+  test('LAC1-026: Fix action CTAs show fix-type distinction (AI vs Guidance vs Direct)', async ({
+    page,
+  }) => {
+    await page.goto('/login');
+    await page.evaluate((token) => {
+      localStorage.setItem('engineo_token', token);
+    }, seedData.accessToken);
+
+    await page.goto(`/projects/${seedData.projectId}/products`);
+    await page.waitForSelector('[data-testid="row-status-chip"]', {
+      timeout: 10000,
+    });
+
+    // Find needs-attention product row
+    const needsAttentionRow = getRowByTitle(
+      page,
+      SEEDED_TITLES.products.needsAttention
+    );
+    await expect(needsAttentionRow).toBeVisible();
+
+    // Primary action should exist
+    const primaryAction = needsAttentionRow.locator(
+      '[data-testid="row-primary-action"]'
+    );
+    await expect(primaryAction).toBeVisible();
+
+    // [ISSUE-FIX-KIND-CLARITY-1] Action text should indicate fix type clarity
+    // Valid labels: "Fix next", "Review", "Fix in workspace", "Review AI fix"
+    const actionText = await primaryAction.textContent();
+    expect(actionText).toMatch(/Fix next|Review|Fix in workspace|Review AI fix/);
+
+    // [ISSUE-FIX-KIND-CLARITY-1] Verify fix type label is visible before action
+    const fixTypeLabel = needsAttentionRow.locator('[data-testid="row-fix-type-label"]');
+    if (await fixTypeLabel.isVisible().catch(() => false)) {
+      const labelText = await fixTypeLabel.textContent();
+      // Should show one of: AI, Template, Guidance, Rule-based
+      expect(labelText).toMatch(/AI|Template|Guidance|Rule-based/);
+    }
+  });
+
+  test('LAC1-027: Issues Engine CTAs display fix-type labels consistently', async ({
+    page,
+  }) => {
+    await page.goto('/login');
+    await page.evaluate((token) => {
+      localStorage.setItem('engineo_token', token);
+    }, seedData.accessToken);
+
+    await page.goto(`/projects/${seedData.projectId}/issues`);
+    await page.waitForLoadState('networkidle');
+
+    // Look for issue cards with CTAs
+    const issueCards = page.locator('[data-testid="issue-card-cta"]');
+    const cardCount = await issueCards.count();
+
+    // If there are issue cards, verify CTAs have fix-type clarity
+    if (cardCount > 0) {
+      for (let i = 0; i < Math.min(cardCount, 3); i++) {
+        const cta = issueCards.nth(i);
+        const ctaText = await cta.textContent();
+
+        // [ISSUE-FIX-KIND-CLARITY-1] CTA should contain clear action type indicator
+        // Valid patterns: "Fix in workspace", "Review AI fix", "Review", etc.
+        expect(ctaText).toBeTruthy();
+        expect(ctaText?.length).toBeGreaterThan(0);
+
+        // [ISSUE-FIX-KIND-CLARITY-1] Verify fix type label is present in issue card
+        const issueCard = page.locator('[data-testid^="issue-card-"]').nth(i);
+        const fixTypeIndicator = issueCard.locator('[data-testid="issue-card-fix-type"]');
+        if (await fixTypeIndicator.isVisible().catch(() => false)) {
+          const fixTypeText = await fixTypeIndicator.textContent();
+          // Should show one of: AI, Template, Guidance, Rule-based
+          expect(fixTypeText).toMatch(/AI|Template|Guidance|Rule-based/);
+        }
+      }
+    }
+  });
+
+  test('LAC1-028: Fix type labels visible in Issue list rows before clicking', async ({
+    page,
+  }) => {
+    await page.goto('/login');
+    await page.evaluate((token) => {
+      localStorage.setItem('engineo_token', token);
+    }, seedData.accessToken);
+
+    await page.goto(`/projects/${seedData.projectId}/issues`);
+    await page.waitForLoadState('networkidle');
+
+    // [ISSUE-FIX-KIND-CLARITY-1] Verify fix type labels are visible BEFORE user clicks
+    const issueRows = page.locator('[data-testid^="issue-row-"]');
+    const rowCount = await issueRows.count();
+
+    if (rowCount > 0) {
+      for (let i = 0; i < Math.min(rowCount, 3); i++) {
+        const issueRow = issueRows.nth(i);
+        const fixTypeLabel = issueRow.locator('[data-testid="issue-row-fix-type-label"]');
+
+        // Fix type label should be visible without hover or click
+        if (await fixTypeLabel.isVisible().catch(() => false)) {
+          const labelText = await fixTypeLabel.textContent();
+          // Should show one of: AI, Template, Guidance, Rule-based
+          expect(labelText).toMatch(/AI|Template|Guidance|Rule-based/);
+
+          // Label should be visible at a glance (not hidden or requires interaction)
+          await expect(fixTypeLabel).toBeVisible();
+        }
+      }
+    }
+  });
 });

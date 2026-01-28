@@ -17,6 +17,7 @@ Two semantic gaps remain after ISSUE-FIX-KIND-CLARITY-1 that can cause misleadin
 ## Context
 
 ISSUE-FIX-KIND-CLARITY-1 successfully introduced canonical fix kinds:
+
 - AI Preview Fix
 - Direct Fix
 - Guidance Only
@@ -33,6 +34,7 @@ This ticket explicitly captures those gaps so they can be fixed deliberately in 
 ### Current Behavior
 
 AI_PREVIEW_FIX is derived when:
+
 - `fixType === 'aiFix'`
 - `fixReady === true`
 - `primaryProductId` exists
@@ -42,6 +44,7 @@ This does not verify whether the issue actually supports the inline AI preview U
 ### Risk
 
 Some AI-fix issues may:
+
 - Be labeled "Review AI fix"
 - But actually navigate to another surface (no preview)
 
@@ -54,9 +57,11 @@ The UI promises a preview, but the user is routed instead.
 AI_PREVIEW_FIX should be used only when the inline AI preview experience is truly available for that issue kind.
 
 If inline preview is not supported:
+
 - The fix kind should fall back to DIRECT_FIX or GUIDANCE_ONLY, depending on destination.
 
 ### Notes
+
 - This is a frontend-only correction.
 - Must reuse the same condition already used by the Issues UI to decide whether inline preview is shown.
 - No backend changes required.
@@ -68,11 +73,13 @@ If inline preview is not supported:
 ### Current Behavior
 
 When the best available action is `viewAffected` (navigates to a filtered list of affected items):
+
 - The CTA label is "Review guidance"
 
 ### Issue
 
 This action is not guidance:
+
 - It navigates to a concrete list of affected entities.
 - Labeling it as guidance blurs the distinction between:
   - Informational guidance
@@ -81,9 +88,11 @@ This action is not guidance:
 ### Expected Behavior
 
 When the primary action is `viewAffected`:
+
 - CTA label should reflect exploration, not instruction.
 
 Examples (choose one):
+
 - "View affected"
 - "Review affected items"
 
@@ -121,6 +130,7 @@ This ticket exists to ensure they are not forgotten.
 ## Notes for Supervisor
 
 This ticket is suitable for:
+
 - A small, isolated PATCH BATCH
 - Frontend-only changes
 - Low risk, high trust payoff

@@ -14,6 +14,8 @@ import type {
 import { WORK_QUEUE_ACTION_LABELS } from '@/lib/work-queue';
 import { ActionBundleCard } from '@/components/work-queue/ActionBundleCard';
 import { WorkQueueTabs } from '@/components/work-queue/WorkQueueTabs';
+import { EmptyState } from '@/components/common/EmptyState';
+import { EmptyStatePresets } from '@/lib/empty-state-contract';
 // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Import from lib module
 import { ISSUE_UI_CONFIG } from '@/lib/issue-ui-config';
 // [ISSUE-FIX-NAV-AND-ANCHORS-1] Import navigation utilities
@@ -460,30 +462,15 @@ export default function WorkQueuePage() {
 
       {/* Empty state */}
       {!loading && !error && items.length === 0 && (
-        <div className="rounded-lg border border-gray-200 bg-gray-50 p-8 text-center">
-          <svg
-            className="mx-auto h-12 w-12 text-gray-400"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+        <div className="rounded-lg border border-gray-200 bg-gray-50">
+          {currentTab === 'AppliedRecently' ? (
+            <EmptyState {...EmptyStatePresets.noRecentActivity()} />
+          ) : (
+            <EmptyState
+              {...EmptyStatePresets.allCaughtUp()}
+              message="No action items in this category. Check other tabs or come back later."
             />
-          </svg>
-          <h3 className="mt-4 text-lg font-medium text-gray-900">
-            {currentTab === 'AppliedRecently'
-              ? 'No recently applied actions'
-              : 'All caught up!'}
-          </h3>
-          <p className="mt-2 text-sm text-gray-500">
-            {currentTab === 'AppliedRecently'
-              ? 'Actions you apply will appear here for 7 days.'
-              : 'No action items in this category. Check other tabs or come back later.'}
-          </p>
+          )}
         </div>
       )}
 

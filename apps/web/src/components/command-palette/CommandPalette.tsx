@@ -103,7 +103,9 @@ export function CommandPalette() {
         label: 'Go to Overview',
         section: 'Navigation',
         action: () =>
-          navigateWithGuard(projectId ? `/projects/${projectId}/overview` : '/dashboard'),
+          navigateWithGuard(
+            projectId ? `/projects/${projectId}/overview` : '/dashboard'
+          ),
       },
       {
         id: 'nav-assets',
@@ -147,7 +149,9 @@ export function CommandPalette() {
         section: 'Navigation',
         action: () =>
           navigateWithGuard(
-            projectId ? `/projects/${projectId}/settings/governance` : '/projects'
+            projectId
+              ? `/projects/${projectId}/settings/governance`
+              : '/projects'
           ),
       },
       {

@@ -70,7 +70,7 @@
 
 **Preconditions:**
 
-- [ ] Logged in and on /projects/[id]/* page
+- [ ] Logged in and on /projects/[id]/\* page
 
 **Steps:**
 
@@ -189,7 +189,7 @@
 
 **Preconditions:**
 
-- [ ] On /projects/[id]/* page
+- [ ] On /projects/[id]/\* page
 - [ ] Browser resized to <768px (mobile)
 
 **Steps:**

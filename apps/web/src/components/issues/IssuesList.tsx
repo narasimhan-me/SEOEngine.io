@@ -18,6 +18,19 @@ import {
   withRouteContext,
   type RouteFrom,
 } from '@/lib/route-context';
+import { EmptyState } from '@/components/common/EmptyState';
+import { EmptyStatePresets } from '@/lib/empty-state-contract';
+import {
+  getCanonicalBlockedReason,
+  type CanonicalBlockedReasonId,
+} from '@/lib/issues/canonicalBlockedReasons';
+// [EA-27: PRIORITIZATION-SIGNAL-ENRICHMENT-1] Import prioritization signal helpers
+import {
+  deriveImpactLevel,
+  derivePrioritizationFactors,
+  derivePriorityRationale,
+} from '@/lib/issues/prioritizationSignals';
+import { ImpactIndicator } from './ImpactIndicator';
 
 // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Re-export ISSUE_UI_CONFIG for backwards compatibility
 export { ISSUE_UI_CONFIG } from '@/lib/issue-ui-config';
@@ -74,12 +87,11 @@ export function IssuesList({
   // Non-grouped view: show "No issues detected" if empty
   if (!groupByPillar && (!issues || issues.length === 0)) {
     return (
-      <div className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">
-        <span className="font-medium">No issues detected</span>
-        <span className="ml-1">
-          Your project looks healthy based on the latest crawl and DEO analysis.
-        </span>
-      </div>
+      <EmptyState
+        {...EmptyStatePresets.noIssuesDetected()}
+        message="Your project looks healthy based on the latest crawl and DEO analysis."
+        compact={false}
+      />
     );
   }
 
@@ -133,9 +145,7 @@ export function IssuesList({
                   ))}
                 </div>
               ) : (
-                <div className="rounded-md bg-gray-50 px-3 py-2 text-sm text-gray-500">
-                  Not analyzed yet
-                </div>
+                <EmptyState {...EmptyStatePresets.notAnalyzedYet()} />
               )}
             </div>
           );
@@ -196,10 +206,12 @@ function IssueCard({
   const safeDescription = getSafeIssueDescription(issue);
 
   // [DIAGNOSTIC-GUIDANCE-1] Issues with actionability === 'informational' are outside EngineO.ai control
+  // [ISSUE-FIX-ROUTE-INTEGRITY-1] Informational issues display explanation badges, never dead CTAs
   const isOutsideEngineControl = issue.actionability === 'informational';
 
   // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Actionable = has a real href from buildIssueFixHref
   // [DIAGNOSTIC-GUIDANCE-1] Outside-control issues are never actionable (no Fix/Review CTA)
+  // [ISSUE-FIX-ROUTE-INTEGRITY-1] Ensures no dead clicks: only issues with valid fix paths are clickable
   const fixHref =
     projectId && !isOutsideEngineControl
       ? buildIssueFixHref({ projectId, issue })
@@ -258,20 +270,57 @@ function IssueCard({
             <span className={severityBadge.className}>
               {severityBadge.label}
             </span>
+            {/* [EA-27: PRIORITIZATION-SIGNAL-ENRICHMENT-1] Impact indicator */}
+            {(() => {
+              const impactLevel = deriveImpactLevel(issue.deoImpactEstimate);
+              return <ImpactIndicator impactLevel={impactLevel} size="sm" showLabel={false} />;
+            })()}
             {/* [DIAGNOSTIC-GUIDANCE-1] Outside-control issues get specific label */}
             {/* [ISSUE-TO-FIX-PATH-1] Informational badge for orphan issues (non-outside-control) */}
+            {/* [EA-16: ERROR-&-BLOCKED-STATE-UX-1] Blocked states with canonical reasons */}
             {!actionable && (
-              <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600 border border-gray-200">
-                {isOutsideEngineControl
-                  ? 'Informational — outside EngineO.ai control'
-                  : 'Informational — no action required'}
-              </span>
+              (() => {
+                // Determine canonical blocked reason
+                const canonicalReasonId: CanonicalBlockedReasonId = isOutsideEngineControl
+                  ? 'DESTINATION_UNAVAILABLE'
+                  : 'DESTINATION_UNAVAILABLE';
+                const blockedReason = getCanonicalBlockedReason(canonicalReasonId);
+
+                const tooltipText = isOutsideEngineControl
+                  ? `${blockedReason.reason} ${blockedReason.nextStep}`
+                  : `${blockedReason.reason} ${blockedReason.nextStep}`;
+
+                const badgeLabel = isOutsideEngineControl
+                  ? 'Blocked — outside EngineO.ai control'
+                  : `Blocked — ${blockedReason.label.toLowerCase()}`;
+
+                return (
+                  <span
+                    className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600 border border-gray-200"
+                    data-testid="issue-blocked-badge"
+                    data-blocked-reason={canonicalReasonId}
+                    title={tooltipText}
+                    aria-label={`Blocked: ${tooltipText}`}
+                    role="status"
+                  >
+                    {badgeLabel}
+                  </span>
+                );
+              })()
             )}
           </div>
           <p className="mt-1 text-xs text-gray-500">{safeDescription}</p>
           <p className="mt-1 text-xs text-gray-500">
             {issue.count} pages/products affected.
           </p>
+          {/* [EA-27: PRIORITIZATION-SIGNAL-ENRICHMENT-1] Priority rationale line */}
+          {(() => {
+            const factors = derivePrioritizationFactors(issue);
+            const rationale = derivePriorityRationale(issue, factors);
+            return rationale ? (
+              <p className="mt-1 text-[10px] text-gray-400 italic">{rationale}</p>
+            ) : null;
+          })()}
           {/* [DIAGNOSTIC-GUIDANCE-1] Diagnostic guidance block for outside-control issues */}
           {isOutsideEngineControl && (
             <div
@@ -372,6 +421,9 @@ function IssueCard({
                     <span className="text-gray-500">
                       {affectedProductCount} product
                       {affectedProductCount !== 1 ? 's' : ''} affected
+                      <span className="ml-1 text-[10px] text-gray-400" title="Project context required to view affected items">
+                        (context unavailable)
+                      </span>
                     </span>
                   )}
                 </div>

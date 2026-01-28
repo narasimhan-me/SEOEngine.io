@@ -1,5 +1,12 @@
+// [KEYBOARD-&-FOCUS-INTEGRITY-1] Focus management imports
+import { useRef, useCallback } from 'react';
+
 // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Draft state types
 type MetadataDraftState = 'unsaved' | 'saved' | 'applied';
+
+// [APPLY-ACTION-GOVERNANCE-1] Import governance types
+import type { ApplyGovernanceResult } from '@/lib/apply-governance';
+import { BlockedStateExplanation } from '@/components/common/BlockedStateExplanation';
 
 interface ProductSeoEditorProps {
   title: string;
@@ -14,6 +21,8 @@ interface ProductSeoEditorProps {
   draftState?: MetadataDraftState;
   canApply?: boolean;
   onSaveDraft?: () => void;
+  // [APPLY-ACTION-GOVERNANCE-1] Enhanced governance state
+  applyGovernance?: ApplyGovernanceResult;
 }
 
 export function ProductSeoEditor({
@@ -28,7 +37,36 @@ export function ProductSeoEditor({
   draftState = 'applied',
   canApply = true,
   onSaveDraft,
+  applyGovernance,
 }: ProductSeoEditorProps) {
+  // [KEYBOARD-&-FOCUS-INTEGRITY-1] Refs for focus management after actions
+  const titleInputRef = useRef<HTMLInputElement>(null);
+  const applyButtonRef = useRef<HTMLButtonElement>(null);
+  const saveDraftButtonRef = useRef<HTMLButtonElement>(null);
+
+  // [KEYBOARD-&-FOCUS-INTEGRITY-1] Wrapped handlers with focus management
+  const handleSaveDraft = useCallback(() => {
+    if (onSaveDraft) {
+      onSaveDraft();
+      // After saving draft, focus the Apply button (next logical action)
+      requestAnimationFrame(() => {
+        applyButtonRef.current?.focus();
+      });
+    }
+  }, [onSaveDraft]);
+
+  const handleReset = useCallback(() => {
+    onReset();
+    // After reset, focus the title input (start of form)
+    requestAnimationFrame(() => {
+      titleInputRef.current?.focus();
+    });
+  }, [onReset]);
+
+  const handleApply = useCallback(() => {
+    onApplyToShopify();
+    // Focus management after apply is handled by success/error feedback
+  }, [onApplyToShopify]);
   const titleLength = title.length;
   const descriptionLength = description.length;
 
@@ -67,6 +105,7 @@ export function ProductSeoEditor({
             Meta Title
           </label>
           <input
+            ref={titleInputRef}
             id="seo-title"
             type="text"
             value={title}
@@ -134,17 +173,19 @@ export function ProductSeoEditor({
       {/* Action buttons */}
       <div className="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-4">
         <button
-          onClick={onReset}
+          onClick={handleReset}
           className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
         >
           Reset to Shopify data
         </button>
         <div className="flex items-center gap-2">
           {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Save draft button */}
+          {/* [KEYBOARD-&-FOCUS-INTEGRITY-1] After save, focus moves to Apply button */}
           {onSaveDraft && draftState === 'unsaved' && (
             <button
+              ref={saveDraftButtonRef}
               data-testid="save-draft-button"
-              onClick={onSaveDraft}
+              onClick={handleSaveDraft}
               className="inline-flex items-center rounded-md border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 shadow-sm hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             >
               <svg
@@ -163,60 +204,108 @@ export function ProductSeoEditor({
               Save draft
             </button>
           )}
-          {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Apply to Shopify button with gating */}
-          <button
-            data-testid="apply-to-shopify-button"
-            onClick={onApplyToShopify}
-            disabled={applying || !canApply}
-            title={
-              !canApply
-                ? 'Save your draft first before applying to Shopify'
-                : 'Applies saved draft only. Does not auto-save or use AI.'
-            }
-            className="inline-flex items-center rounded-md border border-transparent bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {applying ? (
-              <>
-                <svg
-                  className="mr-2 h-4 w-4 animate-spin text-white"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
+          {/* [APPLY-ACTION-GOVERNANCE-1] Apply to Shopify button with governance states */}
+          <div className="flex flex-col gap-2">
+            {/* [APPLY-ACTION-GOVERNANCE-1] Inline explanation for blocked state */}
+            {applyGovernance &&
+              applyGovernance.state === 'CANNOT_APPLY' &&
+              applyGovernance.reason &&
+              applyGovernance.nextStep && (
+                <BlockedStateExplanation
+                  reason={applyGovernance.reason}
+                  nextStep={applyGovernance.nextStep}
+                  category={
+                    applyGovernance.blockerCategory === 'permission'
+                      ? 'permission'
+                      : applyGovernance.blockerCategory === 'approval_required'
+                        ? 'approval_required'
+                        : 'system'
+                  }
+                  action={
+                    applyGovernance.action?.label === 'Save draft' && onSaveDraft
+                      ? { label: 'Save draft', onClick: onSaveDraft }
+                      : applyGovernance.action
+                  }
+                  compact
+                />
+              )}
+            <button
+              ref={applyButtonRef}
+              data-testid="apply-to-shopify-button"
+              data-apply-state={
+                applyGovernance?.state ||
+                (applying ? 'IN_PROGRESS' : canApply ? 'CAN_APPLY' : 'CANNOT_APPLY')
+              }
+              onClick={handleApply}
+              disabled={
+                applyGovernance
+                  ? applyGovernance.state !== 'CAN_APPLY'
+                  : applying || !canApply
+              }
+              aria-disabled={
+                applyGovernance
+                  ? applyGovernance.state !== 'CAN_APPLY'
+                  : applying || !canApply
+              }
+              aria-busy={applyGovernance?.state === 'IN_PROGRESS' || applying}
+              title={
+                applyGovernance?.state === 'CANNOT_APPLY'
+                  ? applyGovernance.reason
+                  : applyGovernance?.state === 'CAN_APPLY' || canApply
+                    ? 'Applies saved draft only. Does not auto-save or use AI.'
+                    : 'Save your draft first before applying to Shopify'
+              }
+              className={`inline-flex items-center rounded-md border border-transparent px-4 py-2 text-sm font-medium shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                (applyGovernance?.state === 'CAN_APPLY' || (!applyGovernance && canApply && !applying))
+                  ? 'bg-[hsl(var(--success))] text-[hsl(var(--primary-foreground))] hover:opacity-90 focus:ring-[hsl(var(--success))]'
+                  : 'bg-muted text-muted-foreground cursor-not-allowed'
+              }`}
+            >
+              {(applyGovernance?.state === 'IN_PROGRESS' || applying) ? (
+                <>
+                  <svg
+                    className="mr-2 h-4 w-4 animate-spin"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                  Applying...
+                </>
+              ) : (
+                <>
+                  <svg
+                    className="mr-2 h-4 w-4"
+                    fill="none"
                     stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
-                Applying...
-              </>
-            ) : (
-              <>
-                <svg
-                  className="mr-2 h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-                  />
-                </svg>
-                Apply to Shopify
-              </>
-            )}
-          </button>
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                    />
+                  </svg>
+                  Apply to Shopify
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
       {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Help text for Apply */}

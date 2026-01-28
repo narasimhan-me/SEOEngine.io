@@ -19,6 +19,7 @@ Some Issue row actions intentionally fall back to Blocked due to missing or inco
 As part of ISSUE-FIX-ROUTE-INTEGRITY-1, we introduced a strict Issue Action Destination Map to eliminate dead clicks and misleading CTAs.
 
 This phase intentionally chose truthfulness over coverage:
+
 - If a destination cannot be proven reachable → action is blocked.
 - No fake "Open" or "Fix" buttons are shown.
 
@@ -31,15 +32,18 @@ This ticket tracks those gaps explicitly so they are not forgotten or misinterpr
 ## Known Gaps (Current Behavior is Correct, but Limited)
 
 ### 1. Non-Product Asset Issues (Pages / Collections)
+
 - "Open" action is Blocked unless a valid shopifyAdminUrl is present.
 - No internal detail pages exist yet for these asset types.
 - Current fallback behavior is intentional.
 
 ### 2. Issues without primaryProductId
+
 - "Open" defaults to product workspace when primaryProductId exists.
 - Issues lacking this context have no internal fallback and remain Blocked.
 
 ### 3. Issue types marked isActionableNow but lacking destination metadata
+
 - Guardrail logs warn in dev mode.
 - UI correctly renders Blocked, but coverage can be expanded later by:
   - enriching issue metadata, or

@@ -13,6 +13,8 @@ import type { DeoIssue } from '@/lib/deo-issues';
 import { ProductTable } from '@/components/products/ProductTable';
 import { ListControls } from '@/components/common/ListControls';
 import { ScopeBanner } from '@/components/common/ScopeBanner';
+import { EmptyState } from '@/components/common/EmptyState';
+import { EmptyStatePresets } from '@/lib/empty-state-contract';
 import { isAuthenticated, getToken } from '@/lib/auth';
 import {
   productsApi,
@@ -122,7 +124,9 @@ export default function ProductsPage() {
     null
   );
   // [RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1 FIXUP-3] undefined = not loaded yet; [] = loaded empty
-  const [productIssues, setProductIssues] = useState<DeoIssue[] | undefined>(undefined);
+  const [productIssues, setProductIssues] = useState<DeoIssue[] | undefined>(
+    undefined
+  );
   const [overview, setOverview] = useState<ProjectOverview | null>(null);
   const [showPreCrawlGuard, setShowPreCrawlGuard] = useState(true);
 
@@ -489,71 +493,26 @@ export default function ProductsPage() {
       <div className="overflow-hidden rounded-lg border border-border bg-[hsl(var(--surface-card))] md:overflow-visible">
         {products.length === 0 ? (
           hasActiveFilters ? (
-            // [LIST-SEARCH-FILTER-1] Filtered empty state - token-based styling
-            <div className="text-center py-12">
-              <svg
-                className="mx-auto h-12 w-12 text-muted-foreground"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-              <h3 className="mt-2 text-sm font-medium text-foreground">
-                No products match your filters.
-              </h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Try adjusting your search or filter criteria.
-              </p>
-              <div className="mt-4">
-                <button
-                  onClick={handleClearFilters}
-                  className="text-primary hover:text-primary/80"
-                >
-                  Clear filters
-                </button>
-              </div>
-            </div>
+            <EmptyState
+              {...EmptyStatePresets.filteredNoResults('products')}
+              onAction={handleClearFilters}
+            />
+          ) : projectInfo?.shopify.connected ? (
+            <EmptyState
+              category="initial"
+              icon="package"
+              title="No products"
+              message="Sync products and run your first crawl to see DEO insights. Issues will be surfaced in the Issues Engine for AI-powered fixes."
+            />
           ) : (
-            // Unfiltered empty state - token-based styling
-            <div className="text-center py-12">
-              <svg
-                className="mx-auto h-12 w-12 text-muted-foreground"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-                />
-              </svg>
-              <h3 className="mt-2 text-sm font-medium text-foreground">
-                No products
-              </h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {projectInfo?.shopify.connected
-                  ? 'Sync products and run your first crawl to see DEO insights. Issues will be surfaced in the Issues Engine for AI-powered fixes.'
-                  : 'Step 1: Connect your Shopify store, then sync products and run your first crawl to surface issues.'}
-              </p>
-              {!projectInfo?.shopify.connected && (
-                <div className="mt-4">
-                  <Link
-                    href={`/projects/${projectId}/settings#integrations`}
-                    className="text-primary hover:text-primary/80"
-                  >
-                    Go to project settings to connect Shopify
-                  </Link>
-                </div>
-              )}
-            </div>
+            <EmptyState
+              category="initial"
+              icon="package"
+              title="No products"
+              message="Step 1: Connect your Shopify store, then sync products and run your first crawl to surface issues."
+              actionText="Go to project settings to connect Shopify"
+              actionHref={`/projects/${projectId}/settings#integrations`}
+            />
           )
         ) : (
           <ProductTable

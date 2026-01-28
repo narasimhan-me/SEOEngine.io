@@ -1206,11 +1206,12 @@ export class DeoIssuesService {
         collections: missingCollections,
       },
       // Issue Engine Full metadata (Phase UX-8 / IE-2.0)
+      // [EA-28: ISSUE-EXPLANATION-QUALITY-1] Clear, accessible explanation
       category: 'metadata',
       whyItMatters:
-        'Missing titles and descriptions reduce search engine and AI visibility, hurt click-through rates, and make it harder for users to find your content.',
+        'Titles and descriptions help search engines and AI assistants understand and display your content. Without them, your pages may not appear for relevant searches or may show generic previews that don\'t attract clicks.',
       recommendedFix:
-        'Add concise, descriptive titles and meta descriptions to all pages and products that match user intent and highlight key benefits.',
+        'Add clear titles and descriptions that tell customers what each page or product offers. Focus on the main benefit or purpose.',
       aiFixable: false,
       fixCost: 'manual',
     };
@@ -1308,11 +1309,12 @@ export class DeoIssuesService {
         collections: thinCollections,
       },
       // Issue Engine Full metadata (Phase UX-8 / IE-2.0)
+      // [EA-28: ISSUE-EXPLANATION-QUALITY-1] Clear, accessible explanation
       category: 'content_entity',
       whyItMatters:
-        'Short content limits your ability to rank for competitive queries and makes it harder for AI systems to extract meaningful answers from your pages.',
+        'Pages with more content give search engines and AI more to work with when matching your pages to customer searches. Brief content may not provide enough information to be shown for relevant queries.',
       recommendedFix:
-        'Expand key pages and products with richer descriptions, FAQs, and supporting details that address user questions comprehensively.',
+        'Add more details about what you offer—features, benefits, common questions, and how customers can use your products.',
       aiFixable: false,
       fixCost: 'manual',
     };
@@ -1421,11 +1423,12 @@ export class DeoIssuesService {
         pages: entityPages,
         collections: entityCollections,
       },
+      // [EA-28: ISSUE-EXPLANATION-QUALITY-1] Clear, accessible explanation
       category: 'content_entity',
       whyItMatters:
-        'Discovery engines need clear entity signals to understand what your pages and products represent. Missing entity hints reduce relevance and answerability.',
+        'Search engines and AI need clear product information to understand and recommend what you sell. Products missing key details may not appear for relevant customer searches.',
       recommendedFix:
-        'Ensure every page and product has a clear title and H1, and that product descriptions include key attributes and entity terms.',
+        'Make sure each product has a clear title, category, and description that includes key details like what it is, who it is for, and what makes it useful.',
       aiFixable: false,
       fixCost: 'manual',
     };
@@ -1509,11 +1512,12 @@ export class DeoIssuesService {
         collections: issueCollections,
       },
       // Issue Engine Full metadata (Phase UX-8 / IE-2.0)
+      // [EA-28: ISSUE-EXPLANATION-QUALITY-1] Clear, accessible explanation
       category: 'technical',
       whyItMatters:
-        'If a page is not indexable, it cannot appear in search results or be referenced by AI discovery systems.',
+        "Pages with these settings won't appear in search results. If these are important pages you want customers to find, they need to be made accessible.",
       recommendedFix:
-        'Review robots/noindex settings and ensure important pages are accessible to search engines.',
+        'Review the listed pages. If they should appear in search, check your site settings or theme to ensure search engines are allowed to access them.',
       aiFixable: false,
       fixCost: 'advanced',
     };
@@ -1593,11 +1597,12 @@ export class DeoIssuesService {
         pages: conflictPages,
         collections: conflictCollections,
       },
+      // [EA-28: ISSUE-EXPLANATION-QUALITY-1] Clear, accessible explanation
       category: 'technical',
       whyItMatters:
-        'Conflicting indexability signals waste crawl budget and can prevent key pages from ranking.',
+        'These pages have mixed signals about whether search engines should include them. This can cause search engines to skip pages you want customers to find.',
       recommendedFix:
-        'Align sitemap and robots/noindex settings so important pages are consistently indexable.',
+        'Review the listed pages and make sure your settings consistently indicate whether each page should appear in search results.',
       aiFixable: false,
       fixCost: 'advanced',
       signalType: 'indexability_risk' as PerformanceSignalType,
@@ -1656,11 +1661,12 @@ export class DeoIssuesService {
       pillarId: 'search_intent_fit' as DeoPillarId,
       actionability: 'manual' as DeoIssueActionability,
       // Issue Engine Full metadata (Phase UX-8 / IE-2.0)
+      // [EA-28: ISSUE-EXPLANATION-QUALITY-1] Clear, accessible explanation
       category: 'answerability',
       whyItMatters:
-        'Pages without sufficient content depth cannot serve as sources for featured snippets, AI answers, or voice search results.',
+        'AI assistants and search engines look for detailed content when answering customer questions. Pages with brief content are less likely to be referenced in these answers.',
       recommendedFix:
-        'Add long-form content with clear headings that directly answer common user questions about your products and services.',
+        'Add more detailed content that answers common questions customers might have. Use clear headings and structure your content so key information is easy to find.',
       aiFixable: false,
       fixCost: 'manual',
     };
@@ -1714,11 +1720,12 @@ export class DeoIssuesService {
       pillarId: 'offsite_signals' as DeoPillarId,
       actionability: 'manual' as DeoIssueActionability,
       // Issue Engine Full metadata (Phase UX-8 / IE-2.0)
+      // [EA-28: ISSUE-EXPLANATION-QUALITY-1] Clear, accessible explanation
       category: 'schema_visibility',
       whyItMatters:
-        'Missing canonical pages weaken brand signals and reduce user trust, which affects both search rankings and conversion rates.',
+        'Customers expect to find standard pages like About, Contact, and FAQ when learning about a business. Having these pages builds trust and helps search engines understand your brand.',
       recommendedFix:
-        'Create essential pages like /about, /contact, /faq, and /support with rich content that builds credibility and answers common questions.',
+        'Create the key pages customers expect: About (who you are), Contact (how to reach you), and FAQ (answers to common questions).',
       aiFixable: false,
       fixCost: 'advanced',
     };
@@ -1790,11 +1797,12 @@ export class DeoIssuesService {
         collections: issueCollections,
       },
       // Issue Engine Full metadata (Phase UX-8 / IE-2.0)
+      // [EA-28: ISSUE-EXPLANATION-QUALITY-1] Clear, accessible explanation
       category: 'technical',
       whyItMatters:
-        'Crawl errors prevent search engines from accessing your content and may indicate deeper site health problems that affect user experience.',
+        "Pages that return errors can't be shown in search results and create a poor experience for visitors who try to access them. Fixing these ensures all your content is available.",
       recommendedFix:
-        'Identify and fix broken pages, server errors, and timeout issues. Monitor crawl health regularly to catch new problems early.',
+        "Check the listed pages to understand why they're returning errors. Common causes include deleted pages, moved content, or temporary server issues.",
       aiFixable: false,
       fixCost: 'advanced',
     };
@@ -1870,11 +1878,12 @@ export class DeoIssuesService {
         pages: issuePages,
         collections: issueCollections,
       },
+      // [EA-28: ISSUE-EXPLANATION-QUALITY-1] Clear, accessible explanation
       category: 'technical',
       whyItMatters:
-        'Render-blocking resources slow down initial rendering, which makes it harder for discovery engines and real users on slower connections to reach your content.',
+        'These pages have code that delays when content appears. Visitors on slower connections may wait longer to see your content, and search engines may not fully review these pages.',
       recommendedFix:
-        'Defer or async non-critical scripts, move heavy third-party tags below the main content, and keep critical CSS lean for above-the-fold content.',
+        'Review your theme and any apps installed on affected pages. Some apps or scripts can be loaded later without affecting the visitor experience.',
       aiFixable: false,
       fixCost: 'advanced',
       signalType: 'render_blocking' as PerformanceSignalType,
@@ -1954,11 +1963,12 @@ export class DeoIssuesService {
         pages: issuePages,
         collections: issueCollections,
       },
+      // [EA-28: ISSUE-EXPLANATION-QUALITY-1] Clear, accessible explanation
       category: 'technical',
       whyItMatters:
-        'Slow initial responses reduce how much of your site discovery engines can crawl and increase the chance that users abandon before your content appears.',
+        'These pages take longer than typical to start loading. Visitors may leave before seeing your content, and search engines may not fully review slow pages.',
       recommendedFix:
-        'Review hosting and theme configuration for the affected pages. Reduce heavy above-the-fold apps and scripts, enable caching where possible, and keep key templates lean.',
+        'Check if these pages have heavy apps or complex features. Simplifying pages or checking with your hosting provider may help improve load times.',
       aiFixable: false,
       fixCost: 'manual',
       signalType: 'ttfb_proxy' as PerformanceSignalType,
@@ -2032,11 +2042,12 @@ export class DeoIssuesService {
         pages: issuePages,
         collections: issueCollections,
       },
+      // [EA-28: ISSUE-EXPLANATION-QUALITY-1] Clear, accessible explanation
       category: 'technical',
       whyItMatters:
-        'Very heavy pages consume more crawl budget and are more likely to time out on slower connections, reducing how much of your catalog can be reliably discovered.',
+        'These pages have unusually large file sizes, which can slow loading on mobile devices and slower connections. Search engines may not fully process very large pages.',
       recommendedFix:
-        'Review theme templates and apps on the affected pages. Remove unused sections, avoid duplicating large blocks of HTML, and simplify markup to keep HTML lean.',
+        "Review what's on these pages—sometimes unused sections, repeated content, or complex features can be simplified to reduce page size.",
       aiFixable: false,
       fixCost: 'manual',
       signalType: 'page_weight_risk' as PerformanceSignalType,
@@ -2113,11 +2124,12 @@ export class DeoIssuesService {
         pages: issuePages,
         collections: issueCollections,
       },
+      // [EA-28: ISSUE-EXPLANATION-QUALITY-1] Clear, accessible explanation
       category: 'technical',
       whyItMatters:
-        'Poor mobile rendering hurts engagement on mobile devices and makes it harder for mobile-first discovery engines to trust and surface your content.',
+        "Most customers browse on phones. Pages that don't display well on mobile create a poor shopping experience and search engines prioritize mobile-friendly pages.",
       recommendedFix:
-        'Ensure your theme sets a responsive viewport meta tag and test the affected pages on mobile devices. Avoid fixed-width layouts that require horizontal scrolling.',
+        'Test these pages on a phone to see how they appear. If they require horizontal scrolling or content is hard to read, your theme may need adjustment.',
       aiFixable: false,
       fixCost: 'manual',
       signalType: 'mobile_readiness' as PerformanceSignalType,
@@ -2195,11 +2207,12 @@ export class DeoIssuesService {
       pillarId: 'content_commerce_signals' as DeoPillarId,
       actionability: 'manual' as DeoIssueActionability,
       // Issue Engine Full metadata (Phase UX-8 / IE-2.0)
+      // [EA-28: ISSUE-EXPLANATION-QUALITY-1] Clear, accessible explanation
       category: 'content_entity',
       whyItMatters:
-        'Products with thin descriptions cannot compete in search results and fail to provide the information customers need to make purchase decisions.',
+        'Brief product descriptions may not give customers enough information to buy with confidence. Detailed descriptions also help your products appear for more relevant searches.',
       recommendedFix:
-        'Write detailed product descriptions that cover features, benefits, use cases, and specifications. Aim for at least 150 words per product.',
+        "Add more detail about what makes each product useful: features, materials, who it's for, and how to use it.",
       aiFixable: false,
       fixCost: 'manual',
     };
@@ -2249,11 +2262,12 @@ export class DeoIssuesService {
       pillarId: 'metadata_snippet_quality' as DeoPillarId,
       actionability: 'automation' as DeoIssueActionability,
       // Issue Engine Full metadata (Phase UX-8 / IE-2.0)
+      // [EA-28: ISSUE-EXPLANATION-QUALITY-1] Clear, accessible explanation
       category: 'metadata',
       whyItMatters:
-        'SEO titles are the primary way search engines and AI understand what your product is. Missing titles severely limit discoverability.',
+        'Search titles are what customers see in search results. Products without titles may show generic text instead of a compelling description, making them less likely to be clicked.',
       recommendedFix:
-        'Use AI to generate compelling, keyword-rich SEO titles that accurately describe each product and appeal to your target audience.',
+        'Add a clear title for each product that describes what it is and why customers would want it. You can use the AI tool to generate suggestions.',
       aiFixable: true,
       fixCost: 'one_click',
     };
@@ -2301,11 +2315,12 @@ export class DeoIssuesService {
       pillarId: 'metadata_snippet_quality' as DeoPillarId,
       actionability: 'automation' as DeoIssueActionability,
       // Issue Engine Full metadata (Phase UX-8 / IE-2.0)
+      // [EA-28: ISSUE-EXPLANATION-QUALITY-1] Clear, accessible explanation
       category: 'metadata',
       whyItMatters:
-        'Meta descriptions appear in search results and heavily influence click-through rates. They also help AI understand product context.',
+        'Search descriptions appear below titles in search results and help customers decide whether to click. Without them, search engines show random text from your page.',
       recommendedFix:
-        'Use AI to generate persuasive meta descriptions that highlight key benefits and include relevant keywords.',
+        'Add a short description (1-2 sentences) highlighting what makes each product worth buying. You can use the AI tool to generate suggestions.',
       aiFixable: true,
       fixCost: 'one_click',
     };
@@ -2358,11 +2373,12 @@ export class DeoIssuesService {
       pillarId: 'metadata_snippet_quality' as DeoPillarId,
       actionability: 'automation' as DeoIssueActionability,
       // Issue Engine Full metadata (Phase UX-8 / IE-2.0)
+      // [EA-28: ISSUE-EXPLANATION-QUALITY-1] Clear, accessible explanation
       category: 'metadata',
       whyItMatters:
-        "Weak titles fail to capture attention in search results and don't convey the unique value of your products.",
+        'Very short or generic titles may not tell customers enough about your products to make them stand out in search results.',
       recommendedFix:
-        'Use AI to optimize titles with compelling language, relevant keywords, and clear value propositions.',
+        'Expand titles to include key details like product type, main benefit, or distinguishing feature. You can use the AI tool to generate suggestions.',
       aiFixable: true,
       fixCost: 'one_click',
     };
@@ -2415,11 +2431,12 @@ export class DeoIssuesService {
       pillarId: 'metadata_snippet_quality' as DeoPillarId,
       actionability: 'automation' as DeoIssueActionability,
       // Issue Engine Full metadata (Phase UX-8 / IE-2.0)
+      // [EA-28: ISSUE-EXPLANATION-QUALITY-1] Clear, accessible explanation
       category: 'metadata',
       whyItMatters:
-        'Short descriptions get truncated in search results and fail to differentiate your products from competitors.',
+        "Brief descriptions may get cut off in search results and don't give customers enough reason to click through to your product.",
       recommendedFix:
-        'Use AI to expand descriptions with compelling copy that highlights features, benefits, and unique selling points.',
+        'Expand descriptions to highlight what makes each product valuable. Include key benefits and features customers care about.',
       aiFixable: true,
       fixCost: 'one_click',
     };
@@ -2473,11 +2490,12 @@ export class DeoIssuesService {
       pillarId: 'content_commerce_signals' as DeoPillarId,
       actionability: 'automation' as DeoIssueActionability,
       // Issue Engine Full metadata (Phase UX-8 / IE-2.0)
+      // [EA-28: ISSUE-EXPLANATION-QUALITY-1] Clear, accessible explanation
       category: 'content_entity',
       whyItMatters:
-        'Long descriptions provide the depth needed for AI systems to understand your products and recommend them in answer experiences.',
+        'Detailed descriptions help customers understand your products and help AI assistants recommend them when answering questions. Brief descriptions limit both.',
       recommendedFix:
-        'Write comprehensive product descriptions covering features, specifications, use cases, and benefits. Consider adding FAQs and care instructions.',
+        "Add more detail about each product: features, materials, who it's for, how to use it, and what makes it worth buying.",
       aiFixable: true,
       fixCost: 'one_click',
     };
@@ -2550,11 +2568,12 @@ export class DeoIssuesService {
       pillarId: 'content_commerce_signals' as DeoPillarId,
       actionability: 'automation' as DeoIssueActionability,
       // Issue Engine Full metadata (Phase UX-8 / IE-2.0)
+      // [EA-28: ISSUE-EXPLANATION-QUALITY-1] Clear, accessible explanation
       category: 'content_entity',
       whyItMatters:
-        'Duplicate content dilutes your search visibility and makes it impossible for AI to distinguish between your products.',
+        'When multiple products have identical descriptions, search engines may only show one of them. Unique descriptions help each product appear for relevant searches.',
       recommendedFix:
-        'Use AI to rewrite duplicate descriptions, highlighting what makes each product unique while maintaining consistent brand voice.',
+        'Write unique descriptions that highlight what makes each product different. Focus on specific features, uses, or benefits that set each one apart.',
       aiFixable: true,
       fixCost: 'one_click',
     };
@@ -2614,11 +2633,12 @@ export class DeoIssuesService {
       pillarId: 'content_commerce_signals' as DeoPillarId,
       actionability: 'automation' as DeoIssueActionability,
       // Issue Engine Full metadata (Phase UX-8 / IE-2.0)
+      // [EA-28: ISSUE-EXPLANATION-QUALITY-1] Clear, accessible explanation
       category: 'schema_visibility',
       whyItMatters:
-        "Low entity coverage means search engines can't properly categorize your products or show them for relevant entity-based queries.",
+        'Products missing category or type information are harder for search engines to organize and show for relevant searches.',
       recommendedFix:
-        'Use AI to enrich product content with structured data, clear categorization, and detailed attribute coverage.',
+        'Assign product types and categories in your store admin. This helps organize your catalog and helps search engines understand what each product is.',
       aiFixable: true,
       fixCost: 'one_click',
     };
@@ -2675,11 +2695,12 @@ export class DeoIssuesService {
       pillarId: 'search_intent_fit' as DeoPillarId,
       actionability: 'automation' as DeoIssueActionability,
       // Issue Engine Full metadata (Phase UX-8 / IE-2.0)
+      // [EA-28: ISSUE-EXPLANATION-QUALITY-1] Clear, accessible explanation
       category: 'answerability',
       whyItMatters:
-        'Products without answer-ready content will be skipped by AI assistants when users ask product-related questions.',
+        'AI assistants like ChatGPT and Google reference detailed product content when answering shopping questions. Products with brief content are less likely to be mentioned.',
       recommendedFix:
-        'Use AI to enhance product content with Q&A-style information that directly addresses common customer questions.',
+        "Add content that answers questions customers commonly ask: what it does, who it's for, how to use it, and what makes it a good choice.",
       aiFixable: true,
       fixCost: 'one_click',
     };
@@ -2781,11 +2802,12 @@ export class DeoIssuesService {
         primaryProductId: Array.from(affectedSet)[0],
         pillarId: 'search_intent_fit' as DeoPillarId,
         actionability: 'automation' as any,
+        // [EA-28: ISSUE-EXPLANATION-QUALITY-1] Clear, accessible explanation
         category: 'answerability',
         whyItMatters:
-          'Clear, neutral, well-structured answers improve extractability for AI answer experiences (no citation guarantee).',
+          'AI assistants prefer clear, well-organized content when answering questions. Improving your answer content may increase the chances of being referenced.',
         recommendedFix:
-          'Use Preview to generate a draft improvement for the Answer Block, then Apply (apply never uses AI).',
+          "Use Preview to see a suggested improvement, then Apply to update your content. The Apply step doesn't use AI—it just saves your reviewed changes.",
         aiFixable: true,
         fixCost: 'one_click',
       };
@@ -2844,11 +2866,12 @@ export class DeoIssuesService {
       pillarId: 'search_intent_fit' as DeoPillarId,
       actionability: 'automation' as DeoIssueActionability,
       // Issue Engine Full metadata (Phase UX-8 / IE-2.0)
+      // [EA-28: ISSUE-EXPLANATION-QUALITY-1] Clear, accessible explanation
       category: 'answerability',
       whyItMatters:
-        "Products that don't match search intent will appear for the wrong queries or not appear at all for the right ones.",
+        'Your product content may not match the words and phrases customers use when searching. Aligning your content with how customers search can improve visibility.',
       recommendedFix:
-        "Use AI to optimize product content to better match the language and intent of your target customers' searches.",
+        'Review your product content and consider the words customers might use when looking for products like yours. The AI tool can suggest improvements.',
       aiFixable: true,
       fixCost: 'one_click',
     };
@@ -2900,11 +2923,12 @@ export class DeoIssuesService {
       pillarId: 'media_accessibility' as DeoPillarId,
       actionability: 'manual' as DeoIssueActionability,
       // Issue Engine Full metadata (Phase UX-8 / IE-2.0)
+      // [EA-28: ISSUE-EXPLANATION-QUALITY-1] Clear, accessible explanation
       category: 'technical',
       whyItMatters:
-        'Products without images are excluded from image search, shopping feeds, and visual AI experiences.',
+        "Product images are essential for shopping. Products without images can't appear in image search or shopping results, and customers are less likely to buy products they can't see.",
       recommendedFix:
-        'Upload high-quality product images to Shopify. Include multiple angles and lifestyle shots where possible.',
+        'Add images for these products. Clear photos showing the product from relevant angles help customers make purchase decisions.',
       aiFixable: false,
       fixCost: 'manual',
     };
@@ -2957,11 +2981,12 @@ export class DeoIssuesService {
       pillarId: 'technical_indexability' as DeoPillarId,
       actionability: 'automation' as DeoIssueActionability,
       // Issue Engine Full metadata (Phase UX-8 / IE-2.0)
+      // [EA-28: ISSUE-EXPLANATION-QUALITY-1] Clear, accessible explanation
       category: 'technical',
       whyItMatters:
-        'Missing prices exclude products from shopping results, comparison engines, and price-based AI recommendations.',
+        'Products need prices to appear in shopping results and comparison searches. Without prices, these products may be excluded from searches where customers filter by price.',
       recommendedFix:
-        'Re-sync from Shopify to pull the latest price data. If prices are missing in Shopify, update them there first.',
+        'Check that these products have prices set in your store. If prices are set, try re-syncing your product data.',
       aiFixable: false,
       fixCost: 'one_click',
     };
@@ -3013,11 +3038,12 @@ export class DeoIssuesService {
       pillarId: 'content_commerce_signals' as DeoPillarId,
       actionability: 'automation' as DeoIssueActionability,
       // Issue Engine Full metadata (Phase UX-8 / IE-2.0)
+      // [EA-28: ISSUE-EXPLANATION-QUALITY-1] Clear, accessible explanation
       category: 'schema_visibility',
       whyItMatters:
-        'Categories help search engines and AI understand product relationships and surface them for category-specific queries.',
+        'Products with categories are easier for customers to browse and easier for search engines to organize in relevant results.',
       recommendedFix:
-        'Re-sync from Shopify to pull category data, or manually assign product types in your Shopify admin.',
+        'Assign product types or categories in your store admin. If categories are already set, try re-syncing your product data.',
       aiFixable: false,
       fixCost: 'one_click',
     };

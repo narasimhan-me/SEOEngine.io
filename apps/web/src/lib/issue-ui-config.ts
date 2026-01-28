@@ -1,8 +1,10 @@
 /**
- * [ISSUE-TO-FIX-PATH-1 FIXUP-1] Issue UI Configuration
+ * [EA-28: ISSUE-EXPLANATION-QUALITY-1] Issue UI Configuration
  *
- * Single source of truth for issue display metadata.
- * Moved from IssuesList.tsx to eliminate circular dependencies.
+ * All issue explanations follow a Fact/Risk/Recommendation structure:
+ * - Clear, jargon-free titles accessible to non-SEO users
+ * - Descriptions that explain what was detected, why it matters, and what to do
+ * - No fear-based or alarmist language
  */
 
 import type { DeoPillarId } from '@/lib/deo-pillars';
@@ -17,154 +19,155 @@ export const ISSUE_UI_CONFIG: Record<
 > = {
   // High-level DEO issues
   missing_metadata: {
-    label: 'Missing Metadata',
+    label: 'Pages Missing Titles or Descriptions',
     description:
-      'Some pages and products are missing essential metadata like titles or descriptions.',
+      "Some pages or products don't have titles or descriptions set. Adding these helps search engines and AI assistants understand and display your content accurately.",
     pillarId: 'metadata_snippet_quality',
   },
   thin_content: {
-    label: 'Thin Content',
+    label: 'Pages with Limited Content',
     description:
-      'Many surfaces have very short content, which weakens depth and ranking potential.',
+      'Some pages have very little text content. Adding more detail helps visitors find what they need and helps search engines match your pages to relevant searches.',
     pillarId: 'content_commerce_signals',
   },
   low_entity_coverage: {
-    label: 'Weak Entity Structure',
+    label: 'Products Missing Key Information',
     description:
-      'Key entities, headings, or product schemas are incomplete or missing.',
+      'Some products are missing clear titles, headings, or category information. Completing this information helps customers and search engines understand what you sell.',
     pillarId: 'content_commerce_signals',
   },
   indexability_problems: {
-    label: 'Indexability Problems',
+    label: 'Pages Search Engines Cannot Access',
     description:
-      'Crawl errors or missing HTML basics make some pages hard to index.',
+      'Some pages are configured in a way that prevents search engines from including them in search results. Reviewing these settings ensures your important pages can be found.',
     pillarId: 'technical_indexability',
   },
   answer_surface_weakness: {
-    label: 'Low AI Answer Potential',
+    label: 'Content Not Ready for AI Answers',
     description:
-      'Pages lack the long-form content and structure needed to power rich answers.',
+      "Some pages don't have enough structured content for AI assistants to reference when answering customer questions. Adding clear, detailed content improves your chances of being mentioned.",
     pillarId: 'search_intent_fit',
   },
   brand_navigational_weakness: {
-    label: 'Weak Brand Navigation',
+    label: 'Key Pages Missing',
     description:
-      'Canonical navigational pages like /about or /contact are missing or not discoverable.',
+      'Standard pages that customers expect (like About, Contact, or FAQ) are missing or hard to find. Adding these pages builds trust and helps visitors learn about your business.',
     pillarId: 'offsite_signals',
   },
   crawl_health_errors: {
-    label: 'Crawl Errors',
+    label: 'Pages with Loading Errors',
     description:
-      'A number of pages return HTTP or fetch errors, reducing crawl coverage.',
+      'Some pages are returning errors when accessed. Fixing these ensures all your content is available to both visitors and search engines.',
     pillarId: 'technical_indexability',
   },
   product_content_depth: {
-    label: 'Shallow Product Content',
+    label: 'Products with Brief Descriptions',
     description:
-      'Many products have very short or missing descriptions, limiting their ability to rank and convert.',
+      'Some products have very short descriptions. Adding more detail about features, benefits, and uses helps customers make purchase decisions and improves search visibility.',
     pillarId: 'content_commerce_signals',
   },
   // Issue Engine Lite: Product-focused issues
   missing_seo_title: {
-    label: 'Missing SEO Title',
+    label: 'Products Missing Search Titles',
     description:
-      'Products without an SEO title are harder for search engines and AI to understand and rank.',
+      "Some products don't have a title set for search results. Adding descriptive titles helps search engines and AI understand and display your products accurately.",
     pillarId: 'metadata_snippet_quality',
   },
   missing_seo_description: {
-    label: 'Missing SEO Description',
+    label: 'Products Missing Search Descriptions',
     description:
-      'Products without an SEO description miss rich snippet and click-through optimization.',
+      "Some products don't have descriptions for search results. Adding clear descriptions helps your products stand out and gives customers key information at a glance.",
     pillarId: 'metadata_snippet_quality',
   },
   weak_title: {
-    label: 'Weak Product Title',
+    label: 'Product Titles Could Be Improved',
     description:
-      'Product titles are too short or unoptimized, reducing search visibility.',
+      "Some product titles are very short or generic. More descriptive titles help customers understand what you're selling and improve search visibility.",
     pillarId: 'metadata_snippet_quality',
   },
   weak_description: {
-    label: 'Weak Product Description',
+    label: 'Product Descriptions Could Be Improved',
     description:
-      'Short SEO descriptions limit search snippet quality and fail to convey value.',
+      'Some product descriptions are brief or unclear. Adding more detail about features and benefits helps customers and search engines understand your products better.',
     pillarId: 'metadata_snippet_quality',
   },
   missing_long_description: {
-    label: 'Missing Long Description',
+    label: 'Products Missing Detailed Descriptions',
     description:
-      'Products lack detailed descriptions needed for rich search results and AI answers.',
+      'Some products only have brief descriptions. Adding detailed information about features, materials, and uses helps customers and enables AI assistants to recommend your products.',
     pillarId: 'content_commerce_signals',
   },
   duplicate_product_content: {
-    label: 'Duplicate Product Content',
+    label: 'Products with Identical Descriptions',
     description:
-      'Multiple products share identical descriptions, hurting rankings and confusing AI.',
+      'Multiple products have the same description. Writing unique descriptions for each product helps customers tell them apart and helps search engines show the right product.',
     pillarId: 'content_commerce_signals',
   },
   low_product_entity_coverage: {
-    label: 'Low Entity Coverage in Product Content',
+    label: 'Products Missing Category or Type',
     description:
-      'Products lack the metadata and content depth for strong entity signals.',
+      'Some products are missing category information or detailed attributes. Adding this information helps organize your catalog and improves how products appear in search.',
     pillarId: 'content_commerce_signals',
   },
   not_answer_ready: {
-    label: 'Not Answer-Ready',
+    label: 'Products Need More Content for AI',
     description:
-      'Products lack sufficient content to be cited in AI-powered answer experiences.',
+      "Some products don't have enough content for AI assistants to reference. Adding detailed descriptions and answering common questions improves your chances of being recommended.",
     pillarId: 'search_intent_fit',
   },
   weak_intent_match: {
-    label: 'Weak Intent Match',
-    description: 'Product metadata may not align well with user search intent.',
+    label: 'Product Content May Not Match Searches',
+    description:
+      'Some product content may not match how customers search for these items. Reviewing and updating the language can help your products appear for relevant searches.',
     pillarId: 'search_intent_fit',
   },
   missing_product_image: {
-    label: 'Missing Product Image',
+    label: 'Products Without Images',
     description:
-      'Products without images have significantly lower engagement and conversion.',
+      "Some products don't have images. Adding product photos helps customers see what they're buying and enables your products to appear in image search and shopping results.",
     pillarId: 'media_accessibility',
   },
   missing_price: {
-    label: 'Missing Product Price',
+    label: 'Products Without Prices',
     description:
-      'Products without price data cannot appear in price-filtered results or shopping feeds.',
+      "Some products don't have price information. Adding prices enables your products to appear in shopping results and comparison searches.",
     pillarId: 'technical_indexability',
   },
   missing_category: {
-    label: 'Missing Product Category/Type',
+    label: 'Products Without Categories',
     description:
-      'Products without categories are harder to organize and surface in relevant contexts.',
+      "Some products aren't assigned to categories or product types. Organizing products into categories helps customers browse your store and helps search engines understand your catalog.",
     pillarId: 'content_commerce_signals',
   },
   // PERFORMANCE-1: Discovery-critical performance issues (Technical pillar)
   render_blocking_resources: {
-    label: 'Render-blocking Resources',
+    label: 'Pages Slow to Display',
     description:
-      'Blocking scripts or styles ahead of content can delay first contentful paint for users and crawlers.',
+      'Some pages have code that delays when content appears. This can affect both visitor experience and how thoroughly search engines review your pages.',
     pillarId: 'technical_indexability',
   },
   indexability_conflict: {
-    label: 'Indexability Conflict',
+    label: 'Conflicting Search Settings',
     description:
-      'Pages have conflicting indexing directives (e.g., noindex in robots meta or X-Robots-Tag, or canonical pointing elsewhere).',
+      'Some pages have conflicting instructions about whether search engines should include them. Reviewing these settings ensures your pages appear as intended.',
     pillarId: 'technical_indexability',
   },
   slow_initial_response: {
-    label: 'Slow Initial Response',
+    label: 'Pages Slow to Load',
     description:
-      'HTML document is very large, which may indicate slow TTFB or excessive inline content.',
+      'Some pages take longer than expected to start loading. Improving page speed helps visitors get your content faster and helps search engines review more of your site.',
     pillarId: 'technical_indexability',
   },
   excessive_page_weight: {
-    label: 'Excessive Page Weight',
+    label: 'Pages with Large File Size',
     description:
-      'Page HTML exceeds recommended size thresholds, potentially slowing crawlers and users.',
+      'Some pages have unusually large HTML files. Reducing page size can speed up loading for visitors, especially on mobile devices or slower connections.',
     pillarId: 'technical_indexability',
   },
   mobile_rendering_risk: {
-    label: 'Mobile Rendering Risk',
+    label: 'Pages May Not Display Well on Mobile',
     description:
-      'Pages may have mobile rendering issues due to missing viewport meta or potential layout problems.',
+      'Some pages may not display correctly on mobile devices. Ensuring mobile-friendly display is important since most visitors browse on phones.',
     pillarId: 'technical_indexability',
   },
 };

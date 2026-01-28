@@ -8,7 +8,8 @@ import AdminSideNav from '@/components/layout/AdminSideNav';
 import LayoutShell from '@/components/layout/LayoutShell';
 
 /**
- * [ADMIN-OPS-1] Extended User interface with internal admin role.
+ * [ADMIN-OPS-1] [EA-29] Extended User interface with internal admin role.
+ * Admin shell provides isolated governance and support capabilities.
  */
 interface User {
   id: string;
@@ -17,6 +18,15 @@ interface User {
   role: string;
   adminRole?: 'SUPPORT_AGENT' | 'OPS_ADMIN' | 'MANAGEMENT_CEO' | null;
 }
+
+/**
+ * [EA-29] Admin role display names for UI
+ */
+const ADMIN_ROLE_LABELS: Record<string, string> = {
+  SUPPORT_AGENT: 'Support Agent',
+  OPS_ADMIN: 'Ops Admin',
+  MANAGEMENT_CEO: 'Management',
+};
 
 export default function AdminLayout({
   children,
@@ -27,6 +37,8 @@ export default function AdminLayout({
   const [loading, setLoading] = useState(true);
   const [authorized, setAuthorized] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  // [EA-29] Store user for admin role badge display
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
     async function checkAuth() {
@@ -36,13 +48,15 @@ export default function AdminLayout({
       }
 
       try {
-        const user: User = await usersApi.me();
-        // [ADMIN-OPS-1] Update admin UI gating from role === 'ADMIN' to:
+        const userData: User = await usersApi.me();
+        // [ADMIN-OPS-1] [EA-29] Admin shell gating:
         // role === 'ADMIN' AND adminRole is present.
-        if (user.role !== 'ADMIN' || !user.adminRole) {
+        // This ensures complete separation from user-facing UX.
+        if (userData.role !== 'ADMIN' || !userData.adminRole) {
           router.push('/projects');
           return;
         }
+        setUser(userData);
         setAuthorized(true);
       } catch {
         router.push('/login');
@@ -71,6 +85,46 @@ export default function AdminLayout({
   return (
     <LayoutShell>
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* [EA-29] Read-only admin context banner */}
+        <div className="mb-6 flex items-center justify-between rounded-lg border border-purple-200 bg-purple-50 px-4 py-3 dark:border-purple-800 dark:bg-purple-950">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900">
+              <svg
+                className="h-4 w-4 text-purple-600 dark:text-purple-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-purple-800 dark:text-purple-200">
+                Administrative View — Read-Only Access
+              </p>
+              <p className="text-xs text-purple-600 dark:text-purple-400">
+                System state visibility for governance and support. No user-facing impact.
+              </p>
+            </div>
+          </div>
+          {user && user.adminRole && (
+            <span className="rounded-full bg-purple-200 px-3 py-1 text-xs font-medium text-purple-800 dark:bg-purple-800 dark:text-purple-200">
+              {ADMIN_ROLE_LABELS[user.adminRole] || user.adminRole}
+            </span>
+          )}
+        </div>
+
         {/* Mobile top bar - visible only on small screens */}
         <div className="mb-4 flex items-center justify-between md:hidden">
           <span className="text-sm font-medium text-muted-foreground">

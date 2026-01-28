@@ -138,6 +138,7 @@ export function ProductIssuesPanel({
 
       {/* [COUNT-INTEGRITY-1.1 PATCH 6] Zero-actionable suppression message */}
       {/* [UI-POLISH-&-CLARITY-1 FIXUP-1] Token-only warning styling */}
+      {/* [ISSUE-FIX-ROUTE-INTEGRITY-1] Clear explanation when no actions available */}
       {hasZeroActionable && (
         <div
           className="rounded-lg border border-border bg-[hsl(var(--warning-background))] p-4 text-center"
@@ -285,11 +286,11 @@ function IssueRow({
   const safeTitle = getSafeIssueTitle(issue);
   const safeDescription = getSafeIssueDescription(issue);
 
-  // Shouldn't happen for actionable issues, but handle gracefully
-  // [UI-POLISH-&-CLARITY-1 FIXUP-1] Token-only text styling
+  // [ISSUE-FIX-ROUTE-INTEGRITY-1] Handle gracefully with explicit blocked state explanation
+  // [ISSUE-FIX-ROUTE-INTEGRITY-1] Non-actionable rows render as static (no dead clicks)
   if (!href) {
     return (
-      <div className="px-4 py-3 flex items-start gap-3">
+      <div className="px-4 py-3 flex items-start gap-3" data-testid="product-issue-row-blocked">
         <span
           className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${
             severityColors[issue.severity] ?? severityColors.info
@@ -302,6 +303,17 @@ function IssueRow({
           <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">
             {safeDescription}
           </p>
+          <div className="mt-1 flex items-center gap-2">
+            <span
+              className="inline-flex items-center rounded-full bg-muted border border-border px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
+              data-testid="issue-blocked-badge"
+            >
+              Blocked
+            </span>
+            <span className="text-[10px] text-muted-foreground/70">
+              Fix not available in this workspace
+            </span>
+          </div>
         </div>
       </div>
     );

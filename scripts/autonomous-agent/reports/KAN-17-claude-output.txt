@@ -1,0 +1,21 @@
+
+=== Attempt 1/3 ===
+
+
+Claude Code timed out after 5 minutes (attempt 1)
+
+Retrying in 10s...
+
+
+=== Attempt 2/3 ===
+
+
+Claude Code timed out after 5 minutes (attempt 2)
+
+Retrying in 30s...
+
+
+=== Attempt 3/3 ===
+
+
+Claude Code timed out after 5 minutes (attempt 3)

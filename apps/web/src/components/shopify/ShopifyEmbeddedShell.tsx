@@ -57,7 +57,8 @@ function useEmbeddedDetection() {
   const currentShop = shopParam || storedShop;
 
   // [REVIEW-3] Stored host only enables embedded mode when actually in iframe
-  const isEmbedded = embeddedParam === '1' || !!hostParam || (isInIframe && !!storedHost);
+  const isEmbedded =
+    embeddedParam === '1' || !!hostParam || (isInIframe && !!storedHost);
 
   // Persist host/shop when present in URL
   useEffect(() => {
@@ -289,7 +290,11 @@ export function ShopifyEmbeddedShell({ children }: { children: ReactNode }) {
     const url = new URL(pathname, window.location.origin);
     // Copy non-Shopify params
     searchParams.forEach((value, key) => {
-      if (!['host', 'shop', 'embedded', 'hmac', 'timestamp', 'locale'].includes(key)) {
+      if (
+        !['host', 'shop', 'embedded', 'hmac', 'timestamp', 'locale'].includes(
+          key
+        )
+      ) {
         url.searchParams.set(key, value);
       }
     });
@@ -307,7 +312,11 @@ export function ShopifyEmbeddedShell({ children }: { children: ReactNode }) {
     url.searchParams.set('embedded', '1');
     // Copy other non-Shopify-auth params
     searchParams.forEach((value, key) => {
-      if (!['host', 'shop', 'embedded', 'hmac', 'timestamp', 'locale'].includes(key)) {
+      if (
+        !['host', 'shop', 'embedded', 'hmac', 'timestamp', 'locale'].includes(
+          key
+        )
+      ) {
         url.searchParams.set(key, value);
       }
     });
@@ -375,7 +384,9 @@ export function ShopifyEmbeddedShell({ children }: { children: ReactNode }) {
     if (!isEmbedded || !currentHost) return;
 
     if (!SHOPIFY_API_KEY) {
-      setBootstrapError('Missing NEXT_PUBLIC_SHOPIFY_API_KEY environment variable');
+      setBootstrapError(
+        'Missing NEXT_PUBLIC_SHOPIFY_API_KEY environment variable'
+      );
     }
   }, [isEmbedded, currentHost]);
 
@@ -419,7 +430,10 @@ export function ShopifyEmbeddedShell({ children }: { children: ReactNode }) {
   // In embedded context with host but not authenticated
   if (!isAuthenticated) {
     return (
-      <AuthRequiredFallback loginUrl={loginUrl} onReconnect={handleAuthRedirect} />
+      <AuthRequiredFallback
+        loginUrl={loginUrl}
+        onReconnect={handleAuthRedirect}
+      />
     );
   }
 
