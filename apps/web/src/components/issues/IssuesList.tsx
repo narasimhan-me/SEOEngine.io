@@ -18,6 +18,8 @@ import {
   withRouteContext,
   type RouteFrom,
 } from '@/lib/route-context';
+import { EmptyState } from '@/components/common/EmptyState';
+import { EmptyStatePresets } from '@/lib/empty-state-contract';
 
 // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Re-export ISSUE_UI_CONFIG for backwards compatibility
 export { ISSUE_UI_CONFIG } from '@/lib/issue-ui-config';
@@ -74,12 +76,11 @@ export function IssuesList({
   // Non-grouped view: show "No issues detected" if empty
   if (!groupByPillar && (!issues || issues.length === 0)) {
     return (
-      <div className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">
-        <span className="font-medium">No issues detected</span>
-        <span className="ml-1">
-          Your project looks healthy based on the latest crawl and DEO analysis.
-        </span>
-      </div>
+      <EmptyState
+        {...EmptyStatePresets.noIssuesDetected()}
+        message="Your project looks healthy based on the latest crawl and DEO analysis."
+        compact={false}
+      />
     );
   }
 
@@ -133,9 +134,7 @@ export function IssuesList({
                   ))}
                 </div>
               ) : (
-                <div className="rounded-md bg-gray-50 px-3 py-2 text-sm text-gray-500">
-                  Not analyzed yet
-                </div>
+                <EmptyState {...EmptyStatePresets.notAnalyzedYet()} />
               )}
             </div>
           );

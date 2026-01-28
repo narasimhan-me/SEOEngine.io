@@ -12,6 +12,8 @@ import { projectsApi, shopifyApi, type RoleCapabilities } from '@/lib/api';
 import { ListControls } from '@/components/common/ListControls';
 import { RowStatusChip } from '@/components/common/RowStatusChip';
 import { ScopeBanner } from '@/components/common/ScopeBanner';
+import { EmptyState } from '@/components/common/EmptyState';
+import { EmptyStatePresets } from '@/lib/empty-state-contract';
 import { ShopifyPermissionNotice } from '@/components/shopify/ShopifyPermissionNotice';
 import {
   DataTable,
@@ -744,51 +746,34 @@ export default function PagesAssetListPage() {
         <>
           {pages.length === 0 ? (
             hasActiveFilters ? (
-              // [LIST-SEARCH-FILTER-1.1] Filtered empty state
-              <div className="rounded-lg border border-border bg-[hsl(var(--surface-card))] text-center py-12">
-                <svg
-                  className="mx-auto h-12 w-12 text-muted-foreground"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-                <h3 className="mt-2 text-sm font-medium text-foreground">
-                  No pages match your filters.
-                </h3>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Try adjusting your search or filter criteria.
-                </p>
-                <div className="mt-4">
-                  <button
-                    onClick={handleClearFilters}
-                    className="text-primary hover:text-primary/80"
-                  >
-                    Clear filters
-                  </button>
-                </div>
+              <div className="rounded-lg border border-border bg-[hsl(var(--surface-card))]">
+                <EmptyState
+                  {...EmptyStatePresets.filteredNoResults('pages')}
+                  onAction={handleClearFilters}
+                />
               </div>
             ) : (
-              // [SHOPIFY-ASSET-SYNC-COVERAGE-1] Unfiltered empty state - distinguish never synced vs synced but empty
-              <div className="rounded-lg border border-border bg-[hsl(var(--surface-card))] px-4 py-8 text-center text-sm text-muted-foreground">
+              <div className="rounded-lg border border-border bg-[hsl(var(--surface-card))]">
                 {syncStatus.shopifyConnected && !syncStatus.lastPagesSyncAt ? (
-                  <>
-                    <p>Not yet synced.</p>
-                    <p className="mt-2">
-                      Click &quot;Sync Pages&quot; to import pages from Shopify.
-                    </p>
-                  </>
+                  <EmptyState
+                    {...EmptyStatePresets.neverSynced('pages')}
+                    message="Click 'Sync Pages' to import pages from Shopify."
+                  />
                 ) : syncStatus.shopifyConnected &&
                   syncStatus.lastPagesSyncAt ? (
-                  <p>No pages found in Shopify for this store.</p>
+                  <EmptyState
+                    category="initial"
+                    icon="document"
+                    title="No pages found"
+                    message="No pages found in Shopify for this store."
+                  />
                 ) : (
-                  <p>No pages found</p>
+                  <EmptyState
+                    category="initial"
+                    icon="document"
+                    title="No pages found"
+                    message="Connect Shopify and sync to see your pages."
+                  />
                 )}
               </div>
             )

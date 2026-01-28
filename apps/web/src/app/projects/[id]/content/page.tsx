@@ -12,6 +12,8 @@ import type { ContentPage, ContentStatus, PageType } from '@/lib/content';
 import { getContentStatus } from '@/lib/content';
 import { ContentRow } from '@/components/content/ContentRow';
 import { GuardedLink } from '@/components/navigation/GuardedLink';
+import { EmptyState } from '@/components/common/EmptyState';
+import { EmptyStatePresets } from '@/lib/empty-state-contract';
 
 const CONTENT_PILLAR = DEO_PILLARS.find(
   (p) => p.id === 'content_commerce_signals'
@@ -312,40 +314,21 @@ export default function ContentListPage() {
 
         {/* Page list or empty state */}
         {pages.length === 0 ? (
-          <div className="px-4 py-12 text-center">
-            <svg
-              className="mx-auto h-12 w-12 text-gray-300"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"
-              />
-            </svg>
-            <h3 className="mt-4 text-sm font-medium text-gray-900">
-              No content pages found
-            </h3>
-            <p className="mt-2 text-sm text-gray-500">
-              No non-product pages have been crawled yet for this project.
-            </p>
-            <p className="mt-1 text-sm text-gray-500">
-              Run a crawl from the{' '}
-              <Link
-                href={`/projects/${projectId}/store-health`}
-                className="font-medium text-purple-600 hover:text-purple-700"
-              >
-                Store Health
-              </Link>{' '}
-              to discover content pages.
-            </p>
-          </div>
+          <EmptyState
+            category="initial"
+            icon="document"
+            title="No content pages found"
+            message="No non-product pages have been crawled yet for this project. Run a crawl from Store Health to discover content pages."
+            actionText="Go to Store Health"
+            actionHref={`/projects/${projectId}/store-health`}
+          />
         ) : filteredPages.length === 0 ? (
-          <div className="px-4 py-6 text-sm text-gray-500">
-            No pages match the selected filters.
+          <div className="px-4">
+            <EmptyState
+              {...EmptyStatePresets.filteredNoResults('pages')}
+              message="No pages match the selected filters. Try adjusting your filters."
+              compact={true}
+            />
           </div>
         ) : (
           <div className="space-y-3 px-4 py-3">
