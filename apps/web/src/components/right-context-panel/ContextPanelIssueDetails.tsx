@@ -213,6 +213,19 @@ export function ContextPanelIssueDetails({
     }
   }, [initialIssue, fetchIssue]);
 
+  // [EA-30: AI-ASSIST-ENTRY-POINTS-1] Record trust loop signal when issue is viewed
+  // This contributes to trust loop completion (understanding phase)
+  // Note: Must be before early returns to comply with Rules of Hooks
+  useEffect(() => {
+    if (issue && projectId) {
+      recordTrustLoopSignal(projectId, 'hasViewedIssue');
+    }
+  }, [issue, projectId]);
+
+  // [EA-30: AI-ASSIST-ENTRY-POINTS-1] Check trust loop status for AI assistant gating
+  // Note: Must be before early returns to comply with Rules of Hooks
+  const trustLoopComplete = shouldShowAiAssistant(projectId);
+
   // Loading state
   if (loadState === 'loading') {
     return (
@@ -248,17 +261,6 @@ export function ContextPanelIssueDetails({
   if (!issue) {
     return null;
   }
-
-  // [EA-30: AI-ASSIST-ENTRY-POINTS-1] Record trust loop signal when issue is viewed
-  // This contributes to trust loop completion (understanding phase)
-  useEffect(() => {
-    if (issue && projectId) {
-      recordTrustLoopSignal(projectId, 'hasViewedIssue');
-    }
-  }, [issue, projectId]);
-
-  // [EA-30: AI-ASSIST-ENTRY-POINTS-1] Check trust loop status for AI assistant gating
-  const trustLoopComplete = shouldShowAiAssistant(projectId);
 
   // Derive pillar label
   const pillarLabel = issue.pillarId

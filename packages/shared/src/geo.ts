@@ -71,7 +71,7 @@ export const GEO_ISSUE_LABELS: Record<GeoIssueType, string> = {
  */
 export const GEO_ISSUE_DESCRIPTIONS: Record<GeoIssueType, string> = {
   missing_direct_answer:
-    'This answer doesn't start with a clear, direct response. Starting with a straightforward answer helps AI assistants extract and share your content.',
+    "This answer doesn't start with a clear, direct response. Starting with a straightforward answer helps AI assistants extract and share your content.",
   answer_too_vague:
     'This answer could be more helpful with specific details like numbers, measurements, or examples. Concrete details make your content more useful and trustworthy.',
   poor_answer_structure:

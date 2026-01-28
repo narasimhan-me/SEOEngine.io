@@ -59,7 +59,7 @@ export const DEO_PILLARS: DeoPillar[] = [
     description:
       'The titles, descriptions, and structured information that control how your pages appear in search results.',
     whyItMatters:
-      'Good titles and descriptions help your pages stand out in search results and give customers a clear preview of what they'll find. They also help AI assistants accurately describe your content when answering questions.',
+      "Good titles and descriptions help your pages stand out in search results and give customers a clear preview of what they'll find. They also help AI assistants accurately describe your content when answering questions.",
     comingSoon: false,
   },
   {
@@ -107,7 +107,7 @@ export const DEO_PILLARS: DeoPillar[] = [
     label: 'External Presence',
     shortName: 'Off-site',
     description:
-      'Your brand's presence on external sites like review platforms, directories, and comparison sites that build credibility.',
+      "Your brand's presence on external sites like review platforms, directories, and comparison sites that build credibility.",
     whyItMatters:
       'When your brand appears on trusted external sites, it builds credibility with both customers and search engines. AI assistants also look at external sources when deciding which brands to recommend.',
     comingSoon: false,
@@ -119,7 +119,7 @@ export const DEO_PILLARS: DeoPillar[] = [
     description:
       'How easily local customers can find you through location-based searches. Only relevant for businesses serving specific geographic areas.',
     whyItMatters:
-      'If you serve specific locations, local search is how nearby customers find you. Clear location information helps you appear in "near me" searches and local recommendations. This doesn't apply to businesses that ship everywhere.',
+      "If you serve specific locations, local search is how nearby customers find you. Clear location information helps you appear in 'near me' searches and local recommendations. This doesn't apply to businesses that ship everywhere.",
     comingSoon: false,
   },
   {

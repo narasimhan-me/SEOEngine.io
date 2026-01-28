@@ -74,7 +74,7 @@ function deriveIssueSuggestions(issue: DeoIssue): AiAssistantSuggestion[] {
 
     suggestions.push({
       id: `${issue.id}-learning`,
-      text: `If you\'d like to learn more, this relates to ${pillarLabel}.`,
+      text: `If you'd like to learn more, this relates to ${pillarLabel}.`,
       context: 'Understanding these patterns can help with similar issues in the future.',
       category: 'learning',
       confidence: 'low',

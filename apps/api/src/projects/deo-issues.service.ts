@@ -1515,7 +1515,7 @@ export class DeoIssuesService {
       // [EA-28: ISSUE-EXPLANATION-QUALITY-1] Clear, accessible explanation
       category: 'technical',
       whyItMatters:
-        'Pages with these settings won't appear in search results. If these are important pages you want customers to find, they need to be made accessible.',
+        "Pages with these settings won't appear in search results. If these are important pages you want customers to find, they need to be made accessible.",
       recommendedFix:
         'Review the listed pages. If they should appear in search, check your site settings or theme to ensure search engines are allowed to access them.',
       aiFixable: false,
@@ -1800,9 +1800,9 @@ export class DeoIssuesService {
       // [EA-28: ISSUE-EXPLANATION-QUALITY-1] Clear, accessible explanation
       category: 'technical',
       whyItMatters:
-        'Pages that return errors can't be shown in search results and create a poor experience for visitors who try to access them. Fixing these ensures all your content is available.',
+        "Pages that return errors can't be shown in search results and create a poor experience for visitors who try to access them. Fixing these ensures all your content is available.",
       recommendedFix:
-        'Check the listed pages to understand why they're returning errors. Common causes include deleted pages, moved content, or temporary server issues.',
+        "Check the listed pages to understand why they're returning errors. Common causes include deleted pages, moved content, or temporary server issues.",
       aiFixable: false,
       fixCost: 'advanced',
     };
@@ -2047,7 +2047,7 @@ export class DeoIssuesService {
       whyItMatters:
         'These pages have unusually large file sizes, which can slow loading on mobile devices and slower connections. Search engines may not fully process very large pages.',
       recommendedFix:
-        'Review what's on these pages—sometimes unused sections, repeated content, or complex features can be simplified to reduce page size.',
+        "Review what's on these pages—sometimes unused sections, repeated content, or complex features can be simplified to reduce page size.",
       aiFixable: false,
       fixCost: 'manual',
       signalType: 'page_weight_risk' as PerformanceSignalType,
@@ -2127,7 +2127,7 @@ export class DeoIssuesService {
       // [EA-28: ISSUE-EXPLANATION-QUALITY-1] Clear, accessible explanation
       category: 'technical',
       whyItMatters:
-        'Most customers browse on phones. Pages that don't display well on mobile create a poor shopping experience and search engines prioritize mobile-friendly pages.',
+        "Most customers browse on phones. Pages that don't display well on mobile create a poor shopping experience and search engines prioritize mobile-friendly pages.",
       recommendedFix:
         'Test these pages on a phone to see how they appear. If they require horizontal scrolling or content is hard to read, your theme may need adjustment.',
       aiFixable: false,
@@ -2212,7 +2212,7 @@ export class DeoIssuesService {
       whyItMatters:
         'Brief product descriptions may not give customers enough information to buy with confidence. Detailed descriptions also help your products appear for more relevant searches.',
       recommendedFix:
-        'Add more detail about what makes each product useful: features, materials, who it's for, and how to use it.',
+        "Add more detail about what makes each product useful: features, materials, who it's for, and how to use it.",
       aiFixable: false,
       fixCost: 'manual',
     };
@@ -2434,7 +2434,7 @@ export class DeoIssuesService {
       // [EA-28: ISSUE-EXPLANATION-QUALITY-1] Clear, accessible explanation
       category: 'metadata',
       whyItMatters:
-        'Brief descriptions may get cut off in search results and don't give customers enough reason to click through to your product.',
+        "Brief descriptions may get cut off in search results and don't give customers enough reason to click through to your product.",
       recommendedFix:
         'Expand descriptions to highlight what makes each product valuable. Include key benefits and features customers care about.',
       aiFixable: true,
@@ -2495,7 +2495,7 @@ export class DeoIssuesService {
       whyItMatters:
         'Detailed descriptions help customers understand your products and help AI assistants recommend them when answering questions. Brief descriptions limit both.',
       recommendedFix:
-        'Add more detail about each product: features, materials, who it's for, how to use it, and what makes it worth buying.',
+        "Add more detail about each product: features, materials, who it's for, how to use it, and what makes it worth buying.",
       aiFixable: true,
       fixCost: 'one_click',
     };
@@ -2700,7 +2700,7 @@ export class DeoIssuesService {
       whyItMatters:
         'AI assistants like ChatGPT and Google reference detailed product content when answering shopping questions. Products with brief content are less likely to be mentioned.',
       recommendedFix:
-        'Add content that answers questions customers commonly ask: what it does, who it's for, how to use it, and what makes it a good choice.',
+        "Add content that answers questions customers commonly ask: what it does, who it's for, how to use it, and what makes it a good choice.",
       aiFixable: true,
       fixCost: 'one_click',
     };
@@ -2807,7 +2807,7 @@ export class DeoIssuesService {
         whyItMatters:
           'AI assistants prefer clear, well-organized content when answering questions. Improving your answer content may increase the chances of being referenced.',
         recommendedFix:
-          'Use Preview to see a suggested improvement, then Apply to update your content. The Apply step doesn't use AI—it just saves your reviewed changes.',
+          "Use Preview to see a suggested improvement, then Apply to update your content. The Apply step doesn't use AI—it just saves your reviewed changes.",
         aiFixable: true,
         fixCost: 'one_click',
       };
@@ -2926,7 +2926,7 @@ export class DeoIssuesService {
       // [EA-28: ISSUE-EXPLANATION-QUALITY-1] Clear, accessible explanation
       category: 'technical',
       whyItMatters:
-        'Product images are essential for shopping. Products without images can't appear in image search or shopping results, and customers are less likely to buy products they can't see.',
+        "Product images are essential for shopping. Products without images can't appear in image search or shopping results, and customers are less likely to buy products they can't see.",
       recommendedFix:
         'Add images for these products. Clear photos showing the product from relevant angles help customers make purchase decisions.',
       aiFixable: false,

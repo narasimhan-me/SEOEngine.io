@@ -1,6 +1,4 @@
 import type { DeoIssue } from '@/lib/deo-issues';
-// [EA-27: PRIORITIZATION-SIGNAL-ENRICHMENT-1] Import deriveImpactLevel for impact summary
-import { deriveImpactLevel } from '@/lib/issues/prioritizationSignals';
 
 interface IssuesSummaryCardProps {
   issues: DeoIssue[];

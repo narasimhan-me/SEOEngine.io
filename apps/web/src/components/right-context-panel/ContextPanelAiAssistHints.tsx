@@ -118,7 +118,7 @@ export function ContextPanelAiAssistHints({
           <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">
             {issuesCount} issue{issuesCount !== 1 ? 's' : ''} detected. You can
             review these in the main workspace to explore potential fixes when
-            you're ready.
+            you&apos;re ready.
           </p>
         )}
         {/* [EA-30] Advisory note */}
