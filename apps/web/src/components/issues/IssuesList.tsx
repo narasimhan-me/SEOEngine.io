@@ -265,13 +265,14 @@ function IssueCard({
             {!actionable && (
               <span
                 className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600 border border-gray-200"
+                data-testid="issue-blocked-badge"
                 title={isOutsideEngineControl
                   ? 'This issue depends on theme, hosting, or Shopify configuration. Use the guidance below to address manually.'
-                  : 'This issue is tracked for awareness. No user action is required at this time.'}
+                  : 'No fix action available in current context. Review issue details for guidance.'}
               >
                 {isOutsideEngineControl
-                  ? 'Informational — outside EngineO.ai control'
-                  : 'Informational — no action required'}
+                  ? 'Blocked — outside EngineO.ai control'
+                  : 'Blocked — no action available'}
               </span>
             )}
           </div>

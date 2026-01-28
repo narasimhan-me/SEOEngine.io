@@ -58,6 +58,10 @@ export interface GetIssueActionDestinationsParams {
  *
  * Returns explicit destinations for fix/open/viewAffected actions.
  * When kind='none', the action is blocked and should not be rendered as a clickable CTA.
+ *
+ * DEV GUARDRAILS (non-production only):
+ * - Warns when actionable issues have no mapped fix destination
+ * - Ensures new issue types cannot be added without explicit route definitions
  */
 export function getIssueActionDestinations({
   projectId,
@@ -104,6 +108,20 @@ export function getIssueActionDestinations({
         kind: 'none',
         reasonBlocked: 'Fix destination not available in current UI',
       };
+
+  // [ISSUE-FIX-ROUTE-INTEGRITY-1] Dev-time guardrail: warn about mapping gaps
+  // Issues marked actionable but with no fix path indicate missing route definitions
+  if (
+    typeof window !== 'undefined' &&
+    process.env.NODE_ENV !== 'production' &&
+    issue.isActionableNow === true &&
+    !fixHref
+  ) {
+    console.warn(
+      `[ISSUE-FIX-ROUTE-INTEGRITY-1] DEV WARNING: Issue "${issue.type || issue.id}" is marked actionable but has no fix destination. ` +
+        `Add a mapping in ISSUE_FIX_PATH_MAP (issue-to-fix-path.ts) or set isActionableNow=false.`
+    );
+  }
 
   return {
     fix: fixDestination,

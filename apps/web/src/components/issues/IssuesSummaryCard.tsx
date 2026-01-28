@@ -7,6 +7,8 @@ interface IssuesSummaryCardProps {
   onViewAll: () => void;
   /** [DRAFT-LIFECYCLE-VISIBILITY-1] Count of issues with saved drafts pending application */
   pendingDraftsCount?: number;
+  /** [ISSUE-FIX-ROUTE-INTEGRITY-1] Count of issues that are blocked (not actionable) */
+  blockedCount?: number;
 }
 
 export function IssuesSummaryCard({
@@ -15,6 +17,7 @@ export function IssuesSummaryCard({
   error,
   onViewAll,
   pendingDraftsCount = 0,
+  blockedCount = 0,
 }: IssuesSummaryCardProps) {
   if (loading) {
     return (
@@ -97,6 +100,18 @@ export function IssuesSummaryCard({
           {total} issue categor{total === 1 ? 'y' : 'ies'} identified across
           pages and products.
         </p>
+      )}
+
+      {/* [ISSUE-FIX-ROUTE-INTEGRITY-1] Blocked issues indicator */}
+      {blockedCount > 0 && (
+        <div className="mt-3 rounded-md bg-gray-50 px-3 py-2 text-xs text-gray-600 border border-gray-200">
+          <span className="font-medium">
+            {blockedCount} issue{blockedCount === 1 ? '' : 's'} blocked
+          </span>
+          <span className="ml-1">
+            — no fix available in current context
+          </span>
+        </div>
       )}
 
       {/* [DRAFT-LIFECYCLE-VISIBILITY-1] Pending drafts indicator */}

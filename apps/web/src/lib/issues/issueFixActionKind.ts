@@ -161,9 +161,9 @@ export function getIssueFixActionKindInfo(
         label: 'Blocked',
         sublabel: 'No action available',
         iconKey: 'status.blocked',
-        // [ERROR-&-BLOCKED-STATE-UX-1] Provide clear explanation and next step
-        blockedReason: 'This issue cannot be acted upon in the current context.',
-        nextStep: 'Review the issue details or check if related assets need attention first.',
+        // [ISSUE-FIX-ROUTE-INTEGRITY-1] Provide clear explanation and actionable next step
+        blockedReason: 'No fix destination is mapped for this issue type in the current context.',
+        nextStep: 'Review affected items in the Issues Engine or wait for the fix surface to become available.',
       };
   }
 }
