@@ -70,19 +70,19 @@ export const ISSUE_UI_CONFIG: Record<
   missing_seo_title: {
     label: 'Products Missing Search Titles',
     description:
-      'Some products don't have a title set for search results. Adding descriptive titles helps search engines and AI understand and display your products accurately.',
+      "Some products don't have a title set for search results. Adding descriptive titles helps search engines and AI understand and display your products accurately.",
     pillarId: 'metadata_snippet_quality',
   },
   missing_seo_description: {
     label: 'Products Missing Search Descriptions',
     description:
-      'Some products don't have descriptions for search results. Adding clear descriptions helps your products stand out and gives customers key information at a glance.',
+      "Some products don't have descriptions for search results. Adding clear descriptions helps your products stand out and gives customers key information at a glance.",
     pillarId: 'metadata_snippet_quality',
   },
   weak_title: {
     label: 'Product Titles Could Be Improved',
     description:
-      'Some product titles are very short or generic. More descriptive titles help customers understand what you're selling and improve search visibility.',
+      "Some product titles are very short or generic. More descriptive titles help customers understand what you're selling and improve search visibility.",
     pillarId: 'metadata_snippet_quality',
   },
   weak_description: {
@@ -112,7 +112,7 @@ export const ISSUE_UI_CONFIG: Record<
   not_answer_ready: {
     label: 'Products Need More Content for AI',
     description:
-      'Some products don't have enough content for AI assistants to reference. Adding detailed descriptions and answering common questions improves your chances of being recommended.',
+      "Some products don't have enough content for AI assistants to reference. Adding detailed descriptions and answering common questions improves your chances of being recommended.",
     pillarId: 'search_intent_fit',
   },
   weak_intent_match: {
@@ -124,19 +124,19 @@ export const ISSUE_UI_CONFIG: Record<
   missing_product_image: {
     label: 'Products Without Images',
     description:
-      'Some products don't have images. Adding product photos helps customers see what they're buying and enables your products to appear in image search and shopping results.',
+      "Some products don't have images. Adding product photos helps customers see what they're buying and enables your products to appear in image search and shopping results.",
     pillarId: 'media_accessibility',
   },
   missing_price: {
     label: 'Products Without Prices',
     description:
-      'Some products don't have price information. Adding prices enables your products to appear in shopping results and comparison searches.',
+      "Some products don't have price information. Adding prices enables your products to appear in shopping results and comparison searches.",
     pillarId: 'technical_indexability',
   },
   missing_category: {
     label: 'Products Without Categories',
     description:
-      'Some products aren't assigned to categories or product types. Organizing products into categories helps customers browse your store and helps search engines understand your catalog.',
+      "Some products aren't assigned to categories or product types. Organizing products into categories helps customers browse your store and helps search engines understand your catalog.",
     pillarId: 'content_commerce_signals',
   },
   // PERFORMANCE-1: Discovery-critical performance issues (Technical pillar)

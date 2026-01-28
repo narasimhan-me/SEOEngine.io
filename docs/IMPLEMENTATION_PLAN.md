@@ -201,7 +201,7 @@ Verification report auto-repair for missing `## Checklist` header, and Jira JQL 
 - `scripts/autonomous-agent/engine.py`
 - `scripts/autonomous-agent/work_ledger.py`
 - `scripts/autonomous-agent/README.md`
-- `scripts/autonomous-agent/reports/ENGINE-RUN-ARTIFACTS.md`
+- `docs/ENGINE-RUN-ARTIFACTS.md`
 - `scripts/autonomous-agent/tests/test_verifier_autorepair_missing_checklist.py` (new)
 - `scripts/autonomous-agent/tests/test_implement_queue_statuscategory_todo.py` (new)
 
@@ -277,7 +277,7 @@ Engine reliability improvements: verification report skeleton creation, verify b
 - `scripts/autonomous-agent/engine.py`
 - `scripts/autonomous-agent/work_ledger.py`
 - `scripts/autonomous-agent/README.md`
-- `scripts/autonomous-agent/reports/ENGINE-RUN-ARTIFACTS.md` (updated)
+- `docs/ENGINE-RUN-ARTIFACTS.md` (updated)
 - `scripts/autonomous-agent/tests/test_verification_skeleton_template.py` (new)
 - `scripts/autonomous-agent/tests/test_verify_backoff_no_spam.py` (new)
 - `scripts/autonomous-agent/tests/test_agent_template_error_non_retryable.py` (new)
@@ -377,7 +377,7 @@ Comprehensive hardening for Jira payload size limits, decomposition manifest cor
 - `scripts/autonomous-agent/.gitignore`
 - `.gitignore`
 - `scripts/autonomous-agent/README.md`
-- `scripts/autonomous-agent/reports/ENGINE-RUN-ARTIFACTS.md`
+- `docs/ENGINE-RUN-ARTIFACTS.md`
 - `scripts/autonomous-agent/tests/test_story_payload_size_hardening.py` (new)
 - `scripts/autonomous-agent/tests/test_manifest_incomplete_retry.py` (new)
 - `scripts/autonomous-agent/tests/test_idea_intake_idempotency_epics.py` (new)
@@ -433,7 +433,7 @@ Review fixup for RUNTIME-RELIABILITY-FIXUP-2 - additional cleanup and fallbacks.
 ### Files Modified:
 - `.gitignore`
 - `scripts/autonomous-agent/engine.py`
-- `scripts/autonomous-agent/reports/ENGINE-RUN-ARTIFACTS.md`
+- `docs/ENGINE-RUN-ARTIFACTS.md`
 - `scripts/autonomous-agent/tests/test_epic_decomposition_idempotency.py` (new)
 - `scripts/autonomous-agent/tests/test_fatal_output_detection.py` (new)
 - `scripts/autonomous-agent/tests/test_verification_required_parser.py` (new)
@@ -454,7 +454,7 @@ Review fixup for RUNTIME-RELIABILITY-FIXUP-2 - additional cleanup and fallbacks.
 
 ### Files Modified:
 - `scripts/autonomous-agent/engine.py`
-- `scripts/autonomous-agent/reports/ENGINE-RUN-ARTIFACTS.md`
+- `docs/ENGINE-RUN-ARTIFACTS.md`
 - `scripts/autonomous-agent/run.sh`
 - `scripts/autonomous-agent/reports/KAN-17-20260127-113930Z-claude-output-attempt1.txt`
 - `scripts/autonomous-agent/reports/KAN-19-20260127-120329Z-claude-output-attempt1.txt`
