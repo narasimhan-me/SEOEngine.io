@@ -13,6 +13,27 @@ This document tracks all implementation phases and their completion status.
 
 
 
+
+## [KAN-51] Implement: [EA-30] EA-30 — AI-ASSIST-ENTRY-POINTS-1
+
+**Implemented:** 2026-01-28 14:56 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/web/src/app/projects/[id]/issues/page.tsx`
+- `apps/web/src/components/assistant/AiAssistantEntryPoint.tsx`
+- `apps/web/src/components/assistant/FixExplanationHelp.tsx`
+- `apps/web/src/components/assistant/IssueContextualHelp.tsx`
+- `apps/web/src/components/assistant/index.ts`
+- `apps/web/src/components/issues/PriorityRationaleSection.tsx`
+- `apps/web/src/components/right-context-panel/ContextPanelAiAssistHints.tsx`
+- `apps/web/src/components/right-context-panel/ContextPanelIssueDetails.tsx`
+- `apps/web/src/lib/deo-issues.ts`
+- `apps/web/src/lib/trust-loop/aiAssistantPreferences.ts`
+- `apps/web/src/lib/trust-loop/trustLoopState.ts`
+
+---
+
 ## [KAN-50] Implement: [EA-29] EA-29 — ADMIN-SHELL-REMOUNT-1
 
 **Implemented:** 2026-01-28 14:36 UTC
