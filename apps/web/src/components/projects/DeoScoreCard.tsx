@@ -1,4 +1,6 @@
 import type { DeoScoreBreakdown } from '@/lib/deo-issues';
+import { DEO_SCORE_METRIC, getScoreInterpretation } from '@/lib/dashboard-metrics';
+import { MetricExplanation } from '@/components/common/MetricExplanation';
 
 interface DeoScoreCardProps {
   score: DeoScoreBreakdown | null;
@@ -16,36 +18,38 @@ export function DeoScoreCard({
     ? new Date(lastComputedAt).toLocaleString()
     : null;
 
-  const scoreColor =
-    overall == null
-      ? 'text-gray-400'
-      : overall >= 80
-        ? 'text-green-600'
-        : overall >= 60
-          ? 'text-yellow-500'
-          : overall >= 40
-            ? 'text-orange-500'
-            : 'text-red-500';
+  const interpretation = getScoreInterpretation(overall);
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-sm font-medium text-gray-700">DEO Score</h2>
-          <p className={`mt-2 text-4xl font-semibold ${scoreColor}`}>
+          {/* [DASHBOARD-SIGNAL-REWRITE-1] Clear label with explanation */}
+          <div className="flex items-center gap-1.5">
+            <h2 className="text-sm font-medium text-gray-700">{DEO_SCORE_METRIC.label}</h2>
+            <MetricExplanation metric={DEO_SCORE_METRIC} value={overall} mode="inline" size="sm" />
+          </div>
+          <p className={`mt-2 text-4xl font-semibold ${interpretation.colorClass}`}>
             {overall != null ? `${overall}` : '--'}
             <span className="ml-1 text-base font-normal text-gray-400">
               /100
             </span>
           </p>
+          {/* [DASHBOARD-SIGNAL-REWRITE-1] Status label with explanation */}
+          {overall != null && (
+            <p className={`mt-1 text-xs font-medium ${interpretation.colorClass}`}>
+              {interpretation.label}
+            </p>
+          )}
         </div>
         <div className="flex flex-col items-end">
-          <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
-            DEO v1
+          {/* [DASHBOARD-SIGNAL-REWRITE-1] Type indicator (Observation) */}
+          <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+            Observation
           </span>
           {formattedDate && (
             <span className="mt-2 text-xs text-gray-500">
-              Last computed:{' '}
+              Last updated:{' '}
               <span className="font-medium text-gray-700">{formattedDate}</span>
             </span>
           )}
@@ -53,9 +57,10 @@ export function DeoScoreCard({
       </div>
       {overall == null ? (
         <div className="mt-3">
+          {/* [DASHBOARD-SIGNAL-REWRITE-1] Clear explanation of what happens next */}
           <p className="text-xs text-gray-500 mb-2">
-            No DEO Score yet. Run your first crawl to compute your DEO Score
-            across Content, Entities, Technical, and Visibility signals.
+            No score yet. Run your first crawl to measure how discoverable your site
+            is across search engines and AI assistants.
           </p>
           {onRunFirstCrawl && (
             <button
@@ -67,10 +72,15 @@ export function DeoScoreCard({
           )}
         </div>
       ) : (
-        <p className="mt-3 text-xs text-gray-500">
-          DEO Score summarizes Content, Entities, Technical, and Visibility
-          signals for this project using the v1 model.
-        </p>
+        <div className="mt-3">
+          {/* [DASHBOARD-SIGNAL-REWRITE-1] Contextual interpretation */}
+          <p className="text-xs text-gray-600">
+            {interpretation.description}
+          </p>
+          <p className="mt-2 text-[11px] text-gray-500">
+            Based on Content Quality, Product Identity, Site Health, and Search Readiness.
+          </p>
+        </div>
       )}
     </div>
   );

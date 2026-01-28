@@ -8,6 +8,30 @@ This document tracks all implementation phases and their completion status.
 
 
 
+
+## [KAN-40] Implement: [EA-16] ERROR-&-BLOCKED-STATE-UX-1: Standardize and harden all blocked, error, and boundary states across the Issues Decision Engine and Right Context Panel so users never mistake a system limitation for a bug—or a bug for user error.
+
+**Implemented:** 2026-01-28 12:41 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/web/src/app/projects/[id]/products/[productId]/page.tsx`
+- `apps/web/src/components/common/BlockedStateExplanation.tsx`
+- `apps/web/src/components/common/RowStatusChip.tsx`
+- `apps/web/src/components/issues/IssuesList.tsx`
+- `apps/web/src/components/issues/IssuesSummaryCard.tsx`
+- `apps/web/src/components/products/AssetDraftsTab.tsx`
+- `apps/web/src/components/right-context-panel/ContextPanelIssueDetails.tsx`
+- `apps/web/src/lib/deo-issues.ts`
+- `apps/web/src/lib/empty-state-contract.ts`
+- `apps/web/src/lib/issues/canonicalBlockedReasons.ts`
+- `apps/web/src/lib/issues/issueFixActionKind.ts`
+- `apps/web/src/lib/list-actions-clarity.ts`
+- `apps/web/tests/error-blocked-state-ux-1.spec.ts`
+- `docs/IMPLEMENTATION_PLAN.md`
+
+---
+
 ## [KAN-38] Implement: [EA-12] ISSUE-FIX-ROUTE-INTEGRITY-1: Issues Decision Engine — No Dead Clicks
 
 **Implemented:** 2026-01-28 12:21 UTC

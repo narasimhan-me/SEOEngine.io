@@ -974,8 +974,10 @@ export default function ProductOptimizationPage() {
         ...rcpDescriptor.metadata,
         ...governanceMetadata,
         draftState,
-        lastAppliedAt: appliedAt || product?.lastOptimizedAt || undefined,
-        status: product ? getProductStatus(product) : undefined,
+        ...((appliedAt || product?.lastOptimizedAt) && {
+          lastAppliedAt: appliedAt || product?.lastOptimizedAt || '',
+        }),
+        ...(product && { status: getProductStatus(product) }),
         issueCount: String(productIssues.length),
       },
     });
