@@ -78,7 +78,7 @@ export function BlockedStateExplanation({
         role="status"
         aria-live="polite"
       >
-        <Icon name={config.icon} size={14} aria-hidden="true" />
+        <Icon name={config.icon} size={16} aria-hidden="true" />
         <span>{reason}</span>
         {action && (
           <>
