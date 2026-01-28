@@ -287,7 +287,7 @@ function LayoutShellInner({ children }: { children: ReactNode }) {
     <div className="flex h-screen flex-col bg-background text-foreground">
       <header className="z-50 h-16 shrink-0 border-b border-border bg-background">
         <div className="flex h-full items-center gap-3 px-4">
-          <IconButton label="App switcher — not yet available" aria-disabled="true" title="Multi-app switching is planned for a future release">
+          <IconButton label="App switcher — not yet available">
             <AppSwitcherIcon className="h-5 w-5 opacity-50" />
           </IconButton>
           <GuardedLink href="/projects" className="flex items-center gap-2">
