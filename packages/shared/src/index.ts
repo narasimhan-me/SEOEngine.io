@@ -52,7 +52,26 @@ export * from './deo-score-config';
 export * from './deo-score-engine';
 
 // DEO issues types (depends on deo-pillars)
-export * from './deo-issues';
+export type {
+  DeoIssueSeverity,
+  DeoIssueFixType,
+  DeoIssueActionability,
+  DeoIssueCategory,
+  DeoIssueFixCost,
+  IssueAssetTypeKey,
+  IssueAssetTypeCounts,
+  DeoIssue,
+  DeoIssuesResponse,
+  IssueCountsBucket,
+  IssueCountsSummary,
+  CanonicalCountTriplet,
+  CanonicalIssueCountsSummary,
+  AssetIssuesResponse,
+  // [EA-27: PRIORITIZATION-SIGNAL-ENRICHMENT-1] Prioritization signal types
+  DeoIssueImpactLevel,
+  PrioritizationFactor,
+  IssuePriorityPreference,
+} from './deo-issues';
 
 // Search Intent types (SEARCH-INTENT-1)
 export * from './search-intent';

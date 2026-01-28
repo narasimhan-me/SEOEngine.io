@@ -1,4 +1,6 @@
 import type { DeoIssue } from '@/lib/deo-issues';
+// [EA-27: PRIORITIZATION-SIGNAL-ENRICHMENT-1] Import deriveImpactLevel for impact summary
+import { deriveImpactLevel } from '@/lib/issues/prioritizationSignals';
 
 interface IssuesSummaryCardProps {
   issues: DeoIssue[];
@@ -102,6 +104,39 @@ export function IssuesSummaryCard({
         </p>
       )}
 
+      {/* [EA-27: PRIORITIZATION-SIGNAL-ENRICHMENT-1] Impact level summary */}
+      {total > 0 && (
+        <div className="mt-3 pt-3 border-t border-gray-100">
+          <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-2">By Impact</p>
+          <div className="flex gap-2 flex-wrap">
+            <ImpactPill
+              label="High"
+              count={issues.filter((i) => {
+                const estimate = i.deoImpactEstimate;
+                return estimate != null && estimate >= 60;
+              }).length}
+              colorClasses="bg-orange-50 text-orange-700 border-orange-200"
+            />
+            <ImpactPill
+              label="Medium"
+              count={issues.filter((i) => {
+                const estimate = i.deoImpactEstimate;
+                return estimate != null && estimate >= 30 && estimate < 60;
+              }).length}
+              colorClasses="bg-gray-50 text-gray-700 border-gray-200"
+            />
+            <ImpactPill
+              label="Low"
+              count={issues.filter((i) => {
+                const estimate = i.deoImpactEstimate;
+                return estimate == null || estimate < 30;
+              }).length}
+              colorClasses="bg-blue-50 text-blue-700 border-blue-200"
+            />
+          </div>
+        </div>
+      )}
+
       {/* [EA-16: ERROR-&-BLOCKED-STATE-UX-1] Blocked issues indicator with canonical reason */}
       {blockedCount > 0 && (
         <div
@@ -140,6 +175,29 @@ interface SummaryPillProps {
   label: string;
   count: number;
   colorClasses: string;
+}
+
+/**
+ * [EA-27: PRIORITIZATION-SIGNAL-ENRICHMENT-1] Impact level pill for summary display.
+ */
+function ImpactPill({
+  label,
+  count,
+  colorClasses,
+}: {
+  label: string;
+  count: number;
+  colorClasses: string;
+}) {
+  return (
+    <div
+      className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium ${colorClasses}`}
+      title={`${count} ${label.toLowerCase()} impact issue${count !== 1 ? 's' : ''}`}
+    >
+      <span>{count}</span>
+      <span className="text-[9px] opacity-70">{label}</span>
+    </div>
+  );
 }
 
 function SummaryPill({ label, count, colorClasses }: SummaryPillProps) {

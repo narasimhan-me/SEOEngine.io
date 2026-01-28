@@ -33,6 +33,20 @@ export {
   getAllBlockedReasonsSorted,
 } from './issues/canonicalBlockedReasons';
 
+// [EA-27: PRIORITIZATION-SIGNAL-ENRICHMENT-1] Re-export prioritization types and helpers
+export type {
+  DeoIssueImpactLevel,
+  PrioritizationFactor,
+  IssuePriorityPreference,
+} from './issues/prioritizationSignals';
+export {
+  deriveImpactLevel,
+  getImpactLevelCopy,
+  deriveConfidenceConsideration,
+  derivePrioritizationFactors,
+  derivePriorityRationale,
+} from './issues/prioritizationSignals';
+
 // =============================================================================
 // DEO Score Types
 // =============================================================================

@@ -24,6 +24,13 @@ import {
   getCanonicalBlockedReason,
   type CanonicalBlockedReasonId,
 } from '@/lib/issues/canonicalBlockedReasons';
+// [EA-27: PRIORITIZATION-SIGNAL-ENRICHMENT-1] Import prioritization signal helpers
+import {
+  deriveImpactLevel,
+  derivePrioritizationFactors,
+  derivePriorityRationale,
+} from '@/lib/issues/prioritizationSignals';
+import { ImpactIndicator } from './ImpactIndicator';
 
 // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Re-export ISSUE_UI_CONFIG for backwards compatibility
 export { ISSUE_UI_CONFIG } from '@/lib/issue-ui-config';
@@ -263,6 +270,11 @@ function IssueCard({
             <span className={severityBadge.className}>
               {severityBadge.label}
             </span>
+            {/* [EA-27: PRIORITIZATION-SIGNAL-ENRICHMENT-1] Impact indicator */}
+            {(() => {
+              const impactLevel = deriveImpactLevel(issue.deoImpactEstimate);
+              return <ImpactIndicator impactLevel={impactLevel} size="sm" showLabel={false} />;
+            })()}
             {/* [DIAGNOSTIC-GUIDANCE-1] Outside-control issues get specific label */}
             {/* [ISSUE-TO-FIX-PATH-1] Informational badge for orphan issues (non-outside-control) */}
             {/* [EA-16: ERROR-&-BLOCKED-STATE-UX-1] Blocked states with canonical reasons */}
@@ -301,6 +313,14 @@ function IssueCard({
           <p className="mt-1 text-xs text-gray-500">
             {issue.count} pages/products affected.
           </p>
+          {/* [EA-27: PRIORITIZATION-SIGNAL-ENRICHMENT-1] Priority rationale line */}
+          {(() => {
+            const factors = derivePrioritizationFactors(issue);
+            const rationale = issue.priorityRationale || derivePriorityRationale(issue, factors);
+            return rationale ? (
+              <p className="mt-1 text-[10px] text-gray-400 italic">{rationale}</p>
+            ) : null;
+          })()}
           {/* [DIAGNOSTIC-GUIDANCE-1] Diagnostic guidance block for outside-control issues */}
           {isOutsideEngineControl && (
             <div

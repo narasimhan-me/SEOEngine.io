@@ -21,6 +21,13 @@ import {
   getCanonicalBlockedReason,
   type CanonicalBlockedReasonId,
 } from '@/lib/issues/canonicalBlockedReasons';
+// [EA-27: PRIORITIZATION-SIGNAL-ENRICHMENT-1] Import prioritization signal helpers
+import {
+  deriveImpactLevel,
+  derivePrioritizationFactors,
+  derivePriorityRationale,
+} from '@/lib/issues/prioritizationSignals';
+import { PriorityRationaleSection } from '@/components/issues/PriorityRationaleSection';
 
 /**
  * [ISSUES-ENGINE-REMOUNT-1] Read-only issue details renderer for RCP.
@@ -423,6 +430,23 @@ export function ContextPanelIssueDetails({
           </p>
         )}
       </div>
+
+      {/* [EA-27: PRIORITIZATION-SIGNAL-ENRICHMENT-1] Priority Considerations Section */}
+      {(() => {
+        const impactLevel = issue.impactLevel || deriveImpactLevel(issue.deoImpactEstimate);
+        const factors = issue.prioritizationFactors || derivePrioritizationFactors(issue);
+        const rationale = issue.priorityRationale || derivePriorityRationale(issue, factors);
+        return (
+          <PriorityRationaleSection
+            impactLevel={impactLevel}
+            priorityRationale={rationale}
+            prioritizationFactors={factors}
+            confidence={issue.confidence}
+            confidenceConsideration={issue.confidenceConsideration}
+            compact={false}
+          />
+        );
+      })()}
 
       {/* [FIXUP-3] Actionability (replaces Status) */}
       {/* [EA-16: ERROR-&-BLOCKED-STATE-UX-1] Enhanced with canonical blocked reasons */}
