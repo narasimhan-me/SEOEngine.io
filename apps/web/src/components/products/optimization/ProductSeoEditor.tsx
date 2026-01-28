@@ -1,3 +1,6 @@
+// [KEYBOARD-&-FOCUS-INTEGRITY-1] Focus management imports
+import { useRef, useCallback } from 'react';
+
 // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Draft state types
 type MetadataDraftState = 'unsaved' | 'saved' | 'applied';
 
@@ -36,6 +39,34 @@ export function ProductSeoEditor({
   onSaveDraft,
   applyGovernance,
 }: ProductSeoEditorProps) {
+  // [KEYBOARD-&-FOCUS-INTEGRITY-1] Refs for focus management after actions
+  const titleInputRef = useRef<HTMLInputElement>(null);
+  const applyButtonRef = useRef<HTMLButtonElement>(null);
+  const saveDraftButtonRef = useRef<HTMLButtonElement>(null);
+
+  // [KEYBOARD-&-FOCUS-INTEGRITY-1] Wrapped handlers with focus management
+  const handleSaveDraft = useCallback(() => {
+    if (onSaveDraft) {
+      onSaveDraft();
+      // After saving draft, focus the Apply button (next logical action)
+      requestAnimationFrame(() => {
+        applyButtonRef.current?.focus();
+      });
+    }
+  }, [onSaveDraft]);
+
+  const handleReset = useCallback(() => {
+    onReset();
+    // After reset, focus the title input (start of form)
+    requestAnimationFrame(() => {
+      titleInputRef.current?.focus();
+    });
+  }, [onReset]);
+
+  const handleApply = useCallback(() => {
+    onApplyToShopify();
+    // Focus management after apply is handled by success/error feedback
+  }, [onApplyToShopify]);
   const titleLength = title.length;
   const descriptionLength = description.length;
 
@@ -74,6 +105,7 @@ export function ProductSeoEditor({
             Meta Title
           </label>
           <input
+            ref={titleInputRef}
             id="seo-title"
             type="text"
             value={title}
@@ -141,17 +173,19 @@ export function ProductSeoEditor({
       {/* Action buttons */}
       <div className="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-4">
         <button
-          onClick={onReset}
+          onClick={handleReset}
           className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
         >
           Reset to Shopify data
         </button>
         <div className="flex items-center gap-2">
           {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Save draft button */}
+          {/* [KEYBOARD-&-FOCUS-INTEGRITY-1] After save, focus moves to Apply button */}
           {onSaveDraft && draftState === 'unsaved' && (
             <button
+              ref={saveDraftButtonRef}
               data-testid="save-draft-button"
-              onClick={onSaveDraft}
+              onClick={handleSaveDraft}
               className="inline-flex items-center rounded-md border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 shadow-sm hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             >
               <svg
@@ -196,12 +230,13 @@ export function ProductSeoEditor({
                 />
               )}
             <button
+              ref={applyButtonRef}
               data-testid="apply-to-shopify-button"
               data-apply-state={
                 applyGovernance?.state ||
                 (applying ? 'IN_PROGRESS' : canApply ? 'CAN_APPLY' : 'CANNOT_APPLY')
               }
-              onClick={onApplyToShopify}
+              onClick={handleApply}
               disabled={
                 applyGovernance
                   ? applyGovernance.state !== 'CAN_APPLY'
