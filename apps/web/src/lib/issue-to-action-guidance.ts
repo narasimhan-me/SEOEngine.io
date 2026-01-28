@@ -56,7 +56,7 @@ const ISSUE_TO_PLAYBOOK_MAP: Record<string, RecommendedPlaybook[]> = {
         'Suggests titles for products that are currently missing them.',
       affects: 'Products missing search titles in the current view',
       preconditions: [
-        'You'll review all suggestions before any changes are saved.',
+        "You'll review all suggestions before any changes are saved.",
         'Nothing is changed until you click Apply.',
         'You can edit suggestions before applying them.',
       ],
@@ -73,7 +73,7 @@ const ISSUE_TO_PLAYBOOK_MAP: Record<string, RecommendedPlaybook[]> = {
         'Suggests descriptions for products that are currently missing them.',
       affects: 'Products missing search descriptions in the current view',
       preconditions: [
-        'You'll review all suggestions before any changes are saved.',
+        "You'll review all suggestions before any changes are saved.",
         'Nothing is changed until you click Apply.',
         'You can edit suggestions before applying them.',
       ],

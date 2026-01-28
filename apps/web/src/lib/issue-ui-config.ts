@@ -21,7 +21,7 @@ export const ISSUE_UI_CONFIG: Record<
   missing_metadata: {
     label: 'Pages Missing Titles or Descriptions',
     description:
-      'Some pages or products don't have titles or descriptions set. Adding these helps search engines and AI assistants understand and display your content accurately.',
+      "Some pages or products don't have titles or descriptions set. Adding these helps search engines and AI assistants understand and display your content accurately.",
     pillarId: 'metadata_snippet_quality',
   },
   thin_content: {
