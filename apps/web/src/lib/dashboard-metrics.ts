@@ -275,7 +275,7 @@ export const HEALTH_CARD_METRICS: Record<string, MetricDefinition> = {
     id: 'crawl-errors',
     label: 'Pages with Access Issues',
     whatItMeasures: 'Pages that returned errors when we tried to access them.',
-    whyItMatters: 'Pages that can't be accessed won't appear in search results. Fixing access issues ensures all your content is available.',
+    whyItMatters: "Pages that can't be accessed won't appear in search results. Fixing access issues ensures all your content is available.",
     howToInterpret: 'Zero issues is ideal. Any errors are worth investigating to ensure your content is accessible.',
     type: 'signal',
     dataSource: 'Response codes from our site scan',

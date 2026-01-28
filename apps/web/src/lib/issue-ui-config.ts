@@ -45,7 +45,7 @@ export const ISSUE_UI_CONFIG: Record<
   answer_surface_weakness: {
     label: 'Content Not Ready for AI Answers',
     description:
-      'Some pages don't have enough structured content for AI assistants to reference when answering customer questions. Adding clear, detailed content improves your chances of being mentioned.',
+      "Some pages don't have enough structured content for AI assistants to reference when answering customer questions. Adding clear, detailed content improves your chances of being mentioned.",
     pillarId: 'search_intent_fit',
   },
   brand_navigational_weakness: {
