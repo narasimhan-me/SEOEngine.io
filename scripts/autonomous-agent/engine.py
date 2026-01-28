@@ -2279,14 +2279,53 @@ class EmailClient:
 
     def _send_via_mcp(self, subject: str, body: str) -> bool:
         """Attempt to send email via Gmail MCP server subprocess"""
-        try:
-            # MCP JSON-RPC request to send email
-            request_id = 1
+        import select
+        import time
 
-            # Initialize request
+        MCP_TIMEOUT_SECS = 90  # Increased: npx download + Gmail auth can take time
+
+        def read_jsonrpc_response(proc, timeout_secs: float) -> Optional[dict]:
+            """Read a single JSON-RPC response line with timeout"""
+            deadline = time.time() + timeout_secs
+            buffer = ""
+            while time.time() < deadline:
+                remaining = deadline - time.time()
+                if remaining <= 0:
+                    return None
+                # Use select for non-blocking read with timeout
+                ready, _, _ = select.select([proc.stdout], [], [], min(remaining, 1.0))
+                if ready:
+                    char = proc.stdout.read(1)
+                    if not char:  # EOF
+                        return None
+                    buffer += char
+                    if char == '\n':
+                        line = buffer.strip()
+                        if line:
+                            try:
+                                return json.loads(line)
+                            except json.JSONDecodeError:
+                                buffer = ""  # Skip non-JSON lines
+                                continue
+                        buffer = ""
+            return None
+
+        proc = None
+        try:
+            # Spawn MCP server process
+            proc = subprocess.Popen(
+                ['npx', '-y', '@gongrzhe/server-gmail-autoauth-mcp'],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                bufsize=1  # Line buffered
+            )
+
+            # Step 1: Send initialize request
             init_request = {
                 "jsonrpc": "2.0",
-                "id": request_id,
+                "id": 1,
                 "method": "initialize",
                 "params": {
                     "protocolVersion": "2024-11-05",
@@ -2294,11 +2333,31 @@ class EmailClient:
                     "clientInfo": {"name": "engineo-agent", "version": "1.0.0"}
                 }
             }
+            proc.stdin.write(json.dumps(init_request) + '\n')
+            proc.stdin.flush()
 
-            # Send email request
+            # Step 2: Wait for initialize response
+            init_response = read_jsonrpc_response(proc, MCP_TIMEOUT_SECS / 2)
+            if not init_response:
+                print("[EMAIL] MCP Gmail timeout waiting for init response")
+                return False
+
+            if "error" in init_response:
+                print(f"[EMAIL] MCP Gmail init error: {init_response.get('error', {}).get('message', 'unknown')}")
+                return False
+
+            # Step 3: Send initialized notification (required by MCP protocol)
+            initialized_notification = {
+                "jsonrpc": "2.0",
+                "method": "notifications/initialized"
+            }
+            proc.stdin.write(json.dumps(initialized_notification) + '\n')
+            proc.stdin.flush()
+
+            # Step 4: Send email request
             send_request = {
                 "jsonrpc": "2.0",
-                "id": request_id + 1,
+                "id": 2,
                 "method": "tools/call",
                 "params": {
                     "name": "send_email",
@@ -2309,36 +2368,24 @@ class EmailClient:
                     }
                 }
             }
-
-            # Spawn MCP server process
-            proc = subprocess.Popen(
-                ['npx', '-y', '@gongrzhe/server-gmail-autoauth-mcp'],
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True
-            )
-
-            # Send requests
-            proc.stdin.write(json.dumps(init_request) + '\n')
             proc.stdin.write(json.dumps(send_request) + '\n')
             proc.stdin.flush()
 
-            # Wait for response with timeout
-            try:
-                stdout, stderr = proc.communicate(timeout=30)
-
-                if proc.returncode == 0:
-                    print(f"[EMAIL] Sent via MCP Gmail: {subject}")
-                    print(f"[EMAIL] To: {self.config.escalation_email}")
-                    return True
-                else:
-                    print(f"[EMAIL] MCP Gmail failed: {stderr[:200]}")
-                    return False
-            except subprocess.TimeoutExpired:
-                proc.kill()
-                print("[EMAIL] MCP Gmail timeout")
+            # Step 5: Wait for send_email response
+            send_response = read_jsonrpc_response(proc, MCP_TIMEOUT_SECS / 2)
+            if not send_response:
+                print("[EMAIL] MCP Gmail timeout waiting for send response")
                 return False
+
+            if "error" in send_response:
+                err_msg = send_response.get('error', {}).get('message', 'unknown')
+                print(f"[EMAIL] MCP Gmail send error: {err_msg[:200]}")
+                return False
+
+            # Success
+            print(f"[EMAIL] Sent via MCP Gmail: {subject}")
+            print(f"[EMAIL] To: {self.config.escalation_email}")
+            return True
 
         except FileNotFoundError:
             print("[EMAIL] npx not found, MCP Gmail unavailable")
@@ -2346,6 +2393,16 @@ class EmailClient:
         except Exception as e:
             print(f"[EMAIL] MCP Gmail error: {e}")
             return False
+        finally:
+            if proc:
+                try:
+                    proc.terminate()
+                    proc.wait(timeout=5)
+                except Exception:
+                    try:
+                        proc.kill()
+                    except Exception:
+                        pass
 
     def _queue_to_file(self, subject: str, body: str) -> bool:
         """Fallback: queue escalation to JSON file for manual processing"""
