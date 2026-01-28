@@ -449,9 +449,9 @@ export function ContextPanelIssueDetails({
 
       {/* [EA-27: PRIORITIZATION-SIGNAL-ENRICHMENT-1] Priority Considerations Section */}
       {(() => {
-        const impactLevel = issue.impactLevel || deriveImpactLevel(issue.deoImpactEstimate);
-        const factors = issue.prioritizationFactors || derivePrioritizationFactors(issue);
-        const rationale = issue.priorityRationale || derivePriorityRationale(issue, factors);
+        const impactLevel = deriveImpactLevel(issue.deoImpactEstimate);
+        const factors = derivePrioritizationFactors(issue);
+        const rationale = derivePriorityRationale(issue, factors);
         return (
           <PriorityRationaleSection
             impactLevel={impactLevel}
