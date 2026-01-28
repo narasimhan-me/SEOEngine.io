@@ -64,7 +64,7 @@ import {
   applyGovernanceToMetadata,
   type ApplyGovernanceResult,
 } from '@/lib/apply-governance';
-import { getRoleCapabilities, type RoleCapabilities } from '@/lib/api';
+import { type RoleCapabilities } from '@/lib/api';
 import {
   ProductAnswersPanel,
   type ProductAnswersResponse,
@@ -282,7 +282,7 @@ export default function ProductOptimizationPage() {
   // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Draft lifecycle state
   const { setHasUnsavedChanges } = useUnsavedChanges();
   // [APPLY-ACTION-GOVERNANCE-1] Role capabilities for governance
-  const [roleCapabilities, setRoleCapabilities] = useState<RoleCapabilities>({
+  const [roleCapabilities, _setRoleCapabilities] = useState<RoleCapabilities>({
     canView: true,
     canGenerateDrafts: true,
     canRequestApproval: true,
