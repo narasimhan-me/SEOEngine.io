@@ -416,10 +416,35 @@ export function ActionBundleCard({
       {/* Row 5: Footer CTAs */}
       {/* [ROUTE-INTEGRITY-1] Use ctaRouteWithContext for deterministic from+returnTo */}
       <div className="mt-4 flex flex-col gap-2 border-t border-gray-100 pt-4">
+        {/* [ERROR-&-BLOCKED-STATE-UX-1] Disabled reason shown ABOVE button for visibility */}
+        {disabledReason && (
+          <div
+            className="flex items-center gap-2 rounded-md bg-[hsl(var(--warning-background))] px-3 py-2 text-sm"
+            role="status"
+            aria-live="polite"
+            data-testid="action-bundle-blocked-reason"
+          >
+            <svg
+              className="h-4 w-4 flex-shrink-0 text-[hsl(var(--warning-foreground))]"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+              aria-hidden="true"
+            >
+              <path
+                fillRule="evenodd"
+                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <span className="text-[hsl(var(--warning-foreground))]">
+              {disabledReason}
+            </span>
+          </div>
+        )}
         <div className="flex items-center gap-3">
           {primaryCta && (
             <Link
-              href={ctaRouteWithContext}
+              href={disabledReason ? '#' : ctaRouteWithContext}
               className={`inline-flex items-center rounded-md px-4 py-2 text-sm font-medium transition-colors ${
                 disabledReason
                   ? 'cursor-not-allowed bg-gray-100 text-gray-400'
@@ -430,6 +455,10 @@ export function ActionBundleCard({
                   e.preventDefault();
                 }
               }}
+              // [ERROR-&-BLOCKED-STATE-UX-1] Accessibility: aria-disabled and aria-describedby
+              aria-disabled={!!disabledReason}
+              aria-describedby={disabledReason ? 'action-bundle-blocked-reason' : undefined}
+              tabIndex={disabledReason ? -1 : undefined}
             >
               {primaryCta}
             </Link>
@@ -441,9 +470,6 @@ export function ActionBundleCard({
             >
               {secondaryCta}
             </Link>
-          )}
-          {disabledReason && (
-            <span className="text-sm text-gray-500">{disabledReason}</span>
           )}
         </div>
         {/* [DRAFT-AI-ENTRYPOINT-CLARITY-1] Show AI boundary note for generation CTAs */}

@@ -4,14 +4,16 @@ import {
   HEALTH_CARD_TO_WORK_QUEUE_MAP,
   buildWorkQueueUrl,
 } from '@/lib/work-queue';
+import { HEALTH_CARD_METRICS } from '@/lib/dashboard-metrics';
+import { MetricExplanation } from '@/components/common/MetricExplanation';
 
 interface ProjectHealthCardsProps {
   signals: DeoScoreSignals | null;
-  projectId: string; // [WORK-QUEUE-1] Required for routing
+  projectId: string;
 }
 
 /**
- * [WORK-QUEUE-1] Updated: Cards are now clickable and route to Work Queue filters.
+ * [DASHBOARD-SIGNAL-REWRITE-1] Health cards with clear explanations.
  */
 export function ProjectHealthCards({
   signals,
@@ -25,49 +27,45 @@ export function ProjectHealthCards({
   const lowVisibilitySeverity = 1 - (s.serpPresence ?? 0);
   const crawlErrorSeverity = 1 - (s.crawlHealth ?? 0);
 
+  // [DASHBOARD-SIGNAL-REWRITE-1] Cards with centralized metric definitions
   const cards = [
     {
       key: 'missing-metadata',
-      label: 'Missing metadata',
       severity: missingMetadataSeverity,
-      description: 'Surfaces with incomplete titles or descriptions.',
+      metric: HEALTH_CARD_METRICS['missing-metadata'],
     },
     {
       key: 'thin-content',
-      label: 'Thin content',
       severity: thinContentSeverity,
-      description: 'Pages or products with very short content or thin flags.',
+      metric: HEALTH_CARD_METRICS['thin-content'],
     },
     {
       key: 'weak-entities',
-      label: 'Weak entity coverage',
       severity: weakEntitySeverity,
-      description:
-        'Surfaces missing clear entity hints (title + H1 / metadata).',
+      metric: HEALTH_CARD_METRICS['weak-entities'],
     },
     {
       key: 'low-visibility',
-      label: 'Low visibility readiness',
       severity: lowVisibilitySeverity,
-      description: 'Surfaces that are not fully SERP / answer ready.',
+      metric: HEALTH_CARD_METRICS['low-visibility'],
     },
     {
       key: 'crawl-errors',
-      label: 'Crawl errors',
       severity: crawlErrorSeverity,
-      description: 'Crawl failures or non-2xx/3xx HTTP responses.',
+      metric: HEALTH_CARD_METRICS['crawl-errors'],
     },
   ];
 
-  const getSeverityLabel = (value: number) => {
+  // [DASHBOARD-SIGNAL-REWRITE-1] Clear, non-alarming status labels
+  const getStatusLabel = (value: number) => {
     const v = Math.max(0, Math.min(1, value));
-    if (v < 0.2) return 'Low';
-    if (v < 0.4) return 'Moderate';
-    if (v < 0.7) return 'High';
-    return 'Critical';
+    if (v < 0.2) return 'Healthy';
+    if (v < 0.4) return 'Some gaps';
+    if (v < 0.7) return 'Needs work';
+    return 'Priority';
   };
 
-  const getSeverityColor = (value: number) => {
+  const getStatusColor = (value: number) => {
     const v = Math.max(0, Math.min(1, value));
     if (v < 0.2) return 'bg-green-50 text-green-700 border-green-100';
     if (v < 0.4) return 'bg-yellow-50 text-yellow-700 border-yellow-100';
@@ -75,7 +73,6 @@ export function ProjectHealthCards({
     return 'bg-red-50 text-red-700 border-red-100';
   };
 
-  // [WORK-QUEUE-1] Build Work Queue URL for each card
   const getWorkQueueUrl = (cardKey: string) => {
     const mapping = HEALTH_CARD_TO_WORK_QUEUE_MAP[cardKey];
     if (mapping) {
@@ -84,23 +81,27 @@ export function ProjectHealthCards({
         actionKey: mapping.actionKey,
       });
     }
-    // Fallback to general Work Queue
     return buildWorkQueueUrl(projectId);
   };
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-      <h3 className="text-sm font-medium text-gray-700">Issues by Category</h3>
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-medium text-gray-700">Issue Categories</h3>
+        {/* [DASHBOARD-SIGNAL-REWRITE-1] Type indicator */}
+        <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700">
+          Observations
+        </span>
+      </div>
       <p className="mt-1 text-xs text-gray-500">
-        High-level DEO issue categories derived from normalized signals (0-1).
-        Higher severity indicates more work needed. Click a card to view in Work
-        Queue.
+        Areas where improvements could increase your discoverability.
+        Click any card to see specific items to address.
       </p>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         {cards.map((card) => {
           const severity = card.severity ?? 0;
-          const label = getSeverityLabel(severity);
-          const color = getSeverityColor(severity);
+          const label = getStatusLabel(severity);
+          const color = getStatusColor(severity);
           const workQueueUrl = getWorkQueueUrl(card.key);
 
           return (
@@ -110,12 +111,17 @@ export function ProjectHealthCards({
               className={`flex flex-col rounded-md border p-3 text-xs transition-all hover:ring-2 hover:ring-blue-300 ${color}`}
             >
               <div className="flex items-center justify-between">
-                <span className="font-medium">{card.label}</span>
+                {/* [DASHBOARD-SIGNAL-REWRITE-1] Clear label with inline explanation */}
+                <div className="flex items-center gap-1">
+                  <span className="font-medium">{card.metric.label}</span>
+                  <MetricExplanation metric={card.metric} mode="inline" size="sm" />
+                </div>
                 <span className="rounded-full bg-white/60 px-2 py-0.5 text-[11px] font-semibold">
                   {label}
                 </span>
               </div>
-              <p className="mt-1 text-[11px] opacity-80">{card.description}</p>
+              {/* [DASHBOARD-SIGNAL-REWRITE-1] Clear description of what this measures */}
+              <p className="mt-1 text-[11px] opacity-80">{card.metric.whatItMeasures}</p>
             </Link>
           );
         })}

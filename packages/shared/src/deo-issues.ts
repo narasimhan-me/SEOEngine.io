@@ -54,6 +54,44 @@ export type DeoIssueCategory =
  */
 export type DeoIssueFixCost = 'one_click' | 'manual' | 'advanced';
 
+/**
+ * [EA-27: PRIORITIZATION-SIGNAL-ENRICHMENT-1] Impact level indicator
+ * Visual signal for relative importance without implying false precision.
+ * - 'high': Issue has significant impact on DEO performance
+ * - 'medium': Issue has moderate impact on DEO performance
+ * - 'low': Issue has minor impact on DEO performance
+ */
+export type DeoIssueImpactLevel = 'high' | 'medium' | 'low';
+
+/**
+ * [EA-27: PRIORITIZATION-SIGNAL-ENRICHMENT-1] Prioritization factor
+ * Transparent factors that contribute to issue ordering.
+ * Uses qualitative language, not numerical scores.
+ */
+export interface PrioritizationFactor {
+  /** Factor identifier for internal tracking */
+  factorId: string;
+  /** Human-readable label (e.g., "Affects many pages") */
+  label: string;
+  /** Plain-language explanation of why this factor matters */
+  explanation: string;
+  /** Whether this factor increases or decreases priority */
+  direction: 'increases' | 'decreases';
+}
+
+/**
+ * [EA-27: PRIORITIZATION-SIGNAL-ENRICHMENT-1] User preference for issue priority
+ * Allows users to override or dismiss prioritization signals.
+ */
+export interface IssuePriorityPreference {
+  /** Whether the user has dismissed this issue's priority signal */
+  dismissed: boolean;
+  /** User-provided override priority (optional) */
+  userPriority?: 'high' | 'medium' | 'low' | null;
+  /** Timestamp when preference was last modified */
+  modifiedAt?: string;
+}
+
 export type IssueAssetTypeKey = 'products' | 'pages' | 'collections';
 
 export interface IssueAssetTypeCounts {
@@ -166,6 +204,36 @@ export interface DeoIssue {
    * To be wired up in later IE-2.x sub-phases.
    */
   dependencies?: string[];
+
+  // === [EA-27: PRIORITIZATION-SIGNAL-ENRICHMENT-1] Prioritization Signal fields ===
+
+  /**
+   * Impact level indicator (high/medium/low).
+   * Derived from deoImpactEstimate but expressed as qualitative level.
+   * Users can understand at a glance without numerical precision.
+   */
+  impactLevel?: DeoIssueImpactLevel;
+
+  /**
+   * Transparent factors contributing to this issue's priority ordering.
+   * Each factor includes a label and plain-language explanation.
+   * All factors are visible and explainable—no hidden weighting logic.
+   */
+  prioritizationFactors?: PrioritizationFactor[];
+
+  /**
+   * Plain-language rationale for why this issue is prioritized.
+   * Written to be understandable by non-technical users.
+   * Example: "This issue affects many products and impacts your content quality score."
+   */
+  priorityRationale?: string;
+
+  /**
+   * Qualitative confidence indicator framed as considerations.
+   * Uses language like "Several factors suggest..." rather than percentages.
+   * Example: "Based on analysis of your product catalog and crawl data"
+   */
+  confidenceConsideration?: string;
 
   // === Search & Intent Pillar fields (SEARCH-INTENT-1) ===
 

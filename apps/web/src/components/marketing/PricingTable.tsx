@@ -75,7 +75,7 @@ const plans: Plan[] = [
       'Unlimited crawled pages',
       'Unlimited automation suggestions',
       'Unlimited monthly AI runs',
-      'Team roles (coming soon)',
+      'Team roles (planned)',
       'API access',
       'Audit exports',
       'Priority support',

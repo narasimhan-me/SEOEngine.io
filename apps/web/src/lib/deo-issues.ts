@@ -7,6 +7,70 @@
 
 import type { DeoPillarId } from './deo-pillars';
 
+// [DRAFT-LIFECYCLE-VISIBILITY-1] Re-export draft lifecycle types for convenient access
+export type {
+  DraftLifecycleState,
+  DraftLifecycleSignals,
+  DraftLifecycleCopy,
+} from './issues/draftLifecycleState';
+export {
+  deriveDraftLifecycleState,
+  getDraftLifecycleCopy,
+  checkSavedDraftInSessionStorage,
+} from './issues/draftLifecycleState';
+
+// [EA-16: ERROR-&-BLOCKED-STATE-UX-1] Re-export canonical blocked reasons
+export type {
+  CanonicalBlockedReasonId,
+  CanonicalBlockedReason,
+  BlockerCategory,
+} from './issues/canonicalBlockedReasons';
+export {
+  CANONICAL_BLOCKED_REASONS,
+  getCanonicalBlockedReason,
+  getPriorityBlockedReason,
+  isUserResolvable,
+  getAllBlockedReasonsSorted,
+} from './issues/canonicalBlockedReasons';
+
+// [EA-27: PRIORITIZATION-SIGNAL-ENRICHMENT-1] Re-export prioritization types and helpers
+export type {
+  DeoIssueImpactLevel,
+  PrioritizationFactor,
+  IssuePriorityPreference,
+} from './issues/prioritizationSignals';
+export {
+  deriveImpactLevel,
+  getImpactLevelCopy,
+  deriveConfidenceConsideration,
+  derivePrioritizationFactors,
+  derivePriorityRationale,
+} from './issues/prioritizationSignals';
+
+// [EA-30: AI-ASSIST-ENTRY-POINTS-1] Re-export trust loop and AI assistant types
+export type {
+  TrustLoopSignals,
+  TrustLoopState,
+} from './trust-loop/trustLoopState';
+export {
+  loadTrustLoopState,
+  recordTrustLoopSignal,
+  shouldShowAiAssistant,
+  deriveTrustLoopComplete,
+} from './trust-loop/trustLoopState';
+export type {
+  AiAssistantVisibility,
+  AiAssistantPreferences,
+} from './trust-loop/aiAssistantPreferences';
+export {
+  loadAiAssistantPreferences,
+  setAiAssistantVisibility,
+  isAiAssistantVisible,
+  isAiAssistantMinimized,
+  dismissAiAssistantForSession,
+  isAiAssistantDismissedForContext,
+} from './trust-loop/aiAssistantPreferences';
+
 // =============================================================================
 // DEO Score Types
 // =============================================================================

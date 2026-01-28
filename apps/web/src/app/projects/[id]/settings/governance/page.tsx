@@ -16,6 +16,7 @@ import {
   type DataTableColumn,
   type DataTableRow,
 } from '@/components/tables/DataTable';
+import { EmptyState } from '@/components/common/EmptyState';
 
 /**
  * [GOV-AUDIT-VIEWER-1] Governance Viewer Tab
@@ -383,30 +384,21 @@ function ApprovalsTab({
 
       {/* Empty state */}
       {!loading && !error && items.length === 0 && (
-        <div className="rounded-lg border border-border bg-[hsl(var(--surface-card))] p-8 text-center">
-          <svg
-            className="mx-auto h-12 w-12 text-muted-foreground"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-          <h3 className="mt-4 text-lg font-medium text-foreground">
-            {status === 'pending'
-              ? 'No pending approvals'
-              : 'No approval history'}
-          </h3>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {status === 'pending'
-              ? 'Approval requests will appear here when team members request changes.'
-              : 'Approved and rejected requests will appear here.'}
-          </p>
+        <div className="rounded-lg border border-border bg-[hsl(var(--surface-card))]">
+          <EmptyState
+            category={status === 'pending' ? 'success' : 'cleared'}
+            icon="check-circle"
+            title={
+              status === 'pending'
+                ? 'No pending approvals'
+                : 'No approval history'
+            }
+            message={
+              status === 'pending'
+                ? 'Approval requests will appear here when team members request changes.'
+                : 'Approved and rejected requests will appear here.'
+            }
+          />
         </div>
       )}
 

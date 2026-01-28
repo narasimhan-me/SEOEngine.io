@@ -1,39 +1,42 @@
 import type { DeoScoreSignals } from '@/lib/deo-issues';
+import { DEO_SIGNAL_METRICS, getScoreInterpretation } from '@/lib/dashboard-metrics';
+import { MetricExplanation } from '@/components/common/MetricExplanation';
 
 interface DeoSignalsSummaryProps {
   signals: DeoScoreSignals | null;
   loading: boolean;
 }
 
-interface SignalRowConfig {
-  key: keyof DeoScoreSignals;
-  label: string;
-}
-
-const crawlSignals: SignalRowConfig[] = [
-  { key: 'crawlHealth', label: 'Crawl health' },
-  { key: 'indexability', label: 'Indexability' },
-  { key: 'htmlStructuralQuality', label: 'HTML structural quality' },
-  { key: 'thinContentQuality', label: 'Thin content quality' },
-  { key: 'serpPresence', label: 'SERP readiness' },
-  { key: 'answerSurfacePresence', label: 'Answer surface readiness' },
-  { key: 'brandNavigationalStrength', label: 'Brand navigational strength' },
+// [DASHBOARD-SIGNAL-REWRITE-1] Use centralized metric definitions with clear labels
+const crawlSignals = [
+  { key: 'crawlHealth' as keyof DeoScoreSignals, metricId: 'crawlHealth' },
+  { key: 'indexability' as keyof DeoScoreSignals, metricId: 'indexability' },
+  { key: 'htmlStructuralQuality' as keyof DeoScoreSignals, metricId: 'htmlStructuralQuality' },
+  { key: 'thinContentQuality' as keyof DeoScoreSignals, metricId: 'thinContentQuality' },
+  { key: 'serpPresence' as keyof DeoScoreSignals, metricId: 'serpPresence' },
+  { key: 'answerSurfacePresence' as keyof DeoScoreSignals, metricId: 'answerSurfacePresence' },
+  { key: 'brandNavigationalStrength' as keyof DeoScoreSignals, metricId: 'brandNavigationalStrength' },
 ];
 
-const productSignals: SignalRowConfig[] = [
-  { key: 'contentCoverage', label: 'Content coverage' },
-  { key: 'contentDepth', label: 'Content depth' },
-  { key: 'contentFreshness', label: 'Content freshness' },
-  { key: 'entityCoverage', label: 'Entity coverage' },
-  { key: 'entityAccuracy', label: 'Entity accuracy' },
-  { key: 'entityLinkage', label: 'Entity linkage' },
+const productSignals = [
+  { key: 'contentCoverage' as keyof DeoScoreSignals, metricId: 'contentCoverage' },
+  { key: 'contentDepth' as keyof DeoScoreSignals, metricId: 'contentDepth' },
+  { key: 'contentFreshness' as keyof DeoScoreSignals, metricId: 'contentFreshness' },
+  { key: 'entityCoverage' as keyof DeoScoreSignals, metricId: 'entityCoverage' },
+  { key: 'entityAccuracy' as keyof DeoScoreSignals, metricId: 'entityAccuracy' },
+  { key: 'entityLinkage' as keyof DeoScoreSignals, metricId: 'entityLinkage' },
 ];
 
-function renderSignalRow(
-  signals: DeoScoreSignals | null,
-  config: SignalRowConfig
-) {
-  const raw = signals?.[config.key] ?? null;
+function SignalRow({
+  signals,
+  signalKey,
+  metricId,
+}: {
+  signals: DeoScoreSignals | null;
+  signalKey: keyof DeoScoreSignals;
+  metricId: string;
+}) {
+  const raw = signals?.[signalKey] ?? null;
   const value =
     raw != null ? Math.round(Math.max(0, Math.min(1, raw)) * 100) : null;
   const barPercent = value != null ? `${value}%` : '0%';
@@ -48,17 +51,31 @@ function renderSignalRow(
             ? 'bg-orange-400'
             : 'bg-red-400';
 
+  const metric = DEO_SIGNAL_METRICS[metricId];
+  const interpretation = getScoreInterpretation(value);
+
   return (
-    <div key={config.key} className="flex items-center justify-between gap-3">
+    <div className="flex items-center justify-between gap-3">
       <div className="flex-1">
         <div className="flex items-center justify-between text-xs">
-          <span className="text-gray-600">{config.label}</span>
-          <span className="font-medium text-gray-800">
-            {value != null ? `${value}` : '--'}
-            {value != null && (
-              <span className="ml-0.5 text-[10px] text-gray-400">/100</span>
+          {/* [DASHBOARD-SIGNAL-REWRITE-1] Clear label with explanation */}
+          <div className="flex items-center gap-1">
+            <span className="text-gray-600">{metric?.label ?? signalKey}</span>
+            {metric && (
+              <MetricExplanation metric={metric} value={value} mode="inline" size="sm" />
             )}
-          </span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className={`text-[10px] ${interpretation.colorClass}`}>
+              {interpretation.label}
+            </span>
+            <span className="font-medium text-gray-800">
+              {value != null ? `${value}` : '--'}
+              {value != null && (
+                <span className="ml-0.5 text-[10px] text-gray-400">/100</span>
+              )}
+            </span>
+          </div>
         </div>
         <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-gray-100">
           <div
@@ -77,33 +94,59 @@ export function DeoSignalsSummary({
 }: DeoSignalsSummaryProps) {
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-      <h3 className="text-sm font-medium text-gray-700">DEO Signals Summary</h3>
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-medium text-gray-700">Signal Details</h3>
+        {/* [DASHBOARD-SIGNAL-REWRITE-1] Type indicator */}
+        <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700">
+          Observations
+        </span>
+      </div>
       <p className="mt-1 text-xs text-gray-500">
-        Key crawl and product signals used to compute the DEO Score.
+        Individual measurements that feed into your Discovery Score.
+        Hover over any signal name to learn what it measures and why it matters.
       </p>
       {loading ? (
-        <div className="mt-4 text-xs text-gray-500">Loading DEO signals...</div>
+        <div className="mt-4 text-xs text-gray-500">Loading signals...</div>
       ) : !signals ? (
         <div className="mt-4 text-xs text-gray-500">
-          No DEO signals available yet. Run a crawl and recompute the DEO Score
-          to populate this section.
+          No signals available yet. Run a crawl to measure your site&apos;s discoverability.
         </div>
       ) : (
         <div className="mt-4 space-y-4 text-xs">
           <div>
             <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-              Crawl Signals
+              Site & Page Signals
             </h4>
+            <p className="mb-2 text-[10px] text-gray-400">
+              How well search engines can access and understand your pages
+            </p>
             <div className="space-y-2">
-              {crawlSignals.map((cfg) => renderSignalRow(signals, cfg))}
+              {crawlSignals.map((cfg) => (
+                <SignalRow
+                  key={cfg.key}
+                  signals={signals}
+                  signalKey={cfg.key}
+                  metricId={cfg.metricId}
+                />
+              ))}
             </div>
           </div>
           <div>
             <h4 className="mb-2 mt-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
-              Product Signals
+              Product & Content Signals
             </h4>
+            <p className="mb-2 text-[10px] text-gray-400">
+              Quality and completeness of your product information
+            </p>
             <div className="space-y-2">
-              {productSignals.map((cfg) => renderSignalRow(signals, cfg))}
+              {productSignals.map((cfg) => (
+                <SignalRow
+                  key={cfg.key}
+                  signals={signals}
+                  signalKey={cfg.key}
+                  metricId={cfg.metricId}
+                />
+              ))}
             </div>
           </div>
         </div>
@@ -111,3 +154,4 @@ export function DeoSignalsSummary({
     </div>
   );
 }
+

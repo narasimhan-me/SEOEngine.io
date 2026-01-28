@@ -48,6 +48,8 @@ Thumbs.db
 # Misc
 *.tsbuildinfo
 .eslintcache
+*.zip
+*.lock
 
 # TypeScript build artifacts in shared package
 packages/shared/src/**/*.js
@@ -60,3 +62,20 @@ apps/web/test-results/.last-run.json
 # Scripts folder zip files
 scripts/**/*.zip
 scripts/*.zip
+
+# EngineO autonomous-agent runtime artifacts (never commit)
+.engineo/
+scripts/autonomous-agent/reports/*-claude-output-attempt*.txt
+scripts/autonomous-agent/reports/*-verification.md
+
+# Work ledger (runtime state, repo-root level)
+work_ledger.json
+
+# Verification reports (generated artifacts, repo-root reports/ directory)
+reports/*-verification.md
+
+# Decomposition manifests (generated artifacts)
+reports/*-decomposition.json
+
+# Patch batch artifacts (PATCH A: generated artifacts)
+reports/*-patch-batch.md
