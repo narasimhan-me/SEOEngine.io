@@ -55,7 +55,7 @@ import {
   type DraftLifecycleState,
 } from '@/lib/issues/draftLifecycleState';
 // [ERROR-&-BLOCKED-STATE-UX-1] Import blocked state derivation and copy helpers
-import { deriveBlockedState, getBlockedStateCopy } from '@/lib/issues/blockedState';
+import { deriveBlockedState, getBlockedStateCopy, buildBlockedTooltip } from '@/lib/issues/blockedState';
 // [EA-30: AI-ASSIST-ENTRY-POINTS-1] Import trust loop signal recording
 import { recordTrustLoopSignal } from '@/lib/trust-loop/trustLoopState';
 // [ISSUE-FIX-KIND-CLARITY-1 FIXUP-3] Import Icon component for CTA icons
