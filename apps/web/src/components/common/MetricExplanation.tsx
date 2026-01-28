@@ -58,7 +58,7 @@ function MetricTypePill({ type }: { type: MetricType }) {
 
 export function MetricExplanation({
   metric,
-  value,
+  value: _value,
   mode = 'label',
   size = 'md',
 }: MetricExplanationProps) {
