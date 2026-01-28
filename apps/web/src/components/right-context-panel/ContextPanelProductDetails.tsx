@@ -144,7 +144,7 @@ export function ContextPanelProductDetails({
                         ? 'status.warning'
                         : 'utility.visibility'
                   }
-                  size={12}
+                  size={16}
                   className="mr-1 inline-block"
                   aria-hidden="true"
                 />
@@ -188,7 +188,7 @@ export function ContextPanelProductDetails({
           className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
         >
           {descriptor.openHrefLabel || 'Open full page'}
-          <Icon name="navigation.chevronRight" size={12} aria-hidden="true" />
+          <span aria-hidden="true">›</span>
         </a>
       )}
     </div>

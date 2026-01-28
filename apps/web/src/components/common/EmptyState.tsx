@@ -19,21 +19,21 @@
 import { Icon, type IconManifestKey } from '@/components/icons';
 import type { EmptyStateConfig, EmptyStateIcon } from '@/lib/empty-state-contract';
 
-// Map empty state icons to Material Symbols
+// Map empty state icons to semantic icon keys from manifest
 const iconMapping: Record<EmptyStateIcon, IconManifestKey> = {
-  'search': 'search',
-  'document': 'description',
-  'folder': 'folder',
-  'check-circle': 'check_circle',
-  'inbox': 'inbox',
-  'database': 'storage',
-  'package': 'deployed_code',
-  'users': 'people',
-  'settings': 'settings',
-  'chart': 'bar_chart',
-  'clock': 'schedule',
-  'filter': 'filter_list',
-  'sparkles': 'auto_awesome'
+  'search': 'utility.search',
+  'document': 'playbook.content',
+  'folder': 'nav.projects',
+  'check-circle': 'status.healthy',
+  'inbox': 'nav.orders',
+  'database': 'utility.schema',
+  'package': 'nav.brand',
+  'users': 'nav.admin',
+  'settings': 'nav.settings',
+  'chart': 'nav.analytics',
+  'clock': 'workflow.history',
+  'filter': 'utility.search',
+  'sparkles': 'workflow.ai'
 };
 
 export interface EmptyStateProps extends EmptyStateConfig {
@@ -64,7 +64,7 @@ export function EmptyState({
       >
         <Icon
           name={materialIcon}
-          size={18}
+          size={16}
           className="flex-shrink-0 text-muted-foreground mt-0.5"
           aria-hidden="true"
         />
@@ -109,7 +109,7 @@ export function EmptyState({
         className="mb-4 rounded-full bg-[hsl(var(--muted))] p-4 text-muted-foreground"
         aria-hidden="true"
       >
-        <Icon name={materialIcon} size={32} />
+        <Icon name={materialIcon} size={24} />
       </div>
 
       {/* Title */}
