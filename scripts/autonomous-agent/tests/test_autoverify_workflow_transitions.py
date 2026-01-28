@@ -20,7 +20,7 @@ import sys
 # Import from modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from auto_verify import (
+from verification.auto_verify import (
     run_auto_verify,
     execute_automatable_items,
     ChecklistItem,
@@ -28,7 +28,7 @@ from auto_verify import (
     AutoVerifyResult,
     FailureType,
 )
-from contracts import (
+from verification.contracts import (
     contract_human_review_status,
     contract_human_attention_status,
 )
@@ -37,7 +37,7 @@ from contracts import (
 class TestAutoVerifyExecution(unittest.TestCase):
     """Test auto-verify command execution with mocked subprocess."""
 
-    @patch('auto_verify.subprocess.run')
+    @patch('verification.auto_verify.subprocess.run')
     def test_passing_command_returns_success(self, mock_run):
         """Passing command returns success result."""
         mock_run.return_value = MagicMock(
@@ -67,7 +67,7 @@ class TestAutoVerifyExecution(unittest.TestCase):
         self.assertEqual(results[0].exit_code, 0)
         self.assertIsNone(results[0].failure_type)
 
-    @patch('auto_verify.subprocess.run')
+    @patch('verification.auto_verify.subprocess.run')
     def test_failing_command_returns_failure(self, mock_run):
         """Failing command returns failure result with classification."""
         mock_run.return_value = MagicMock(
@@ -97,7 +97,7 @@ class TestAutoVerifyExecution(unittest.TestCase):
         self.assertEqual(results[0].exit_code, 1)
         self.assertEqual(results[0].failure_type, FailureType.TYPE_ERROR)
 
-    @patch('auto_verify.subprocess.run')
+    @patch('verification.auto_verify.subprocess.run')
     def test_timeout_returns_timeout_failure(self, mock_run):
         """Command timeout returns TIMEOUT failure type."""
         import subprocess
@@ -142,7 +142,7 @@ class TestHumanReviewTransition(unittest.TestCase):
         finally:
             os.environ.pop('ENGINEO_CONTRACT_HUMAN_REVIEW_STATUS', None)
 
-    @patch('auto_verify.subprocess.run')
+    @patch('verification.auto_verify.subprocess.run')
     def test_all_automatable_pass_with_manual_remaining(self, mock_run):
         """When all automatable pass but manual items remain, result indicates this."""
         mock_run.return_value = MagicMock(returncode=0, stdout="OK", stderr="")
@@ -197,7 +197,7 @@ class TestHumanAttentionTransition(unittest.TestCase):
         finally:
             os.environ.pop('ENGINEO_CONTRACT_HUMAN_ATTENTION_STATUS', None)
 
-    @patch('auto_verify.subprocess.run')
+    @patch('verification.auto_verify.subprocess.run')
     def test_automatable_failure_classified(self, mock_run):
         """Automatable failures are properly classified."""
         mock_run.return_value = MagicMock(
@@ -238,7 +238,7 @@ class TestHumanAttentionTransition(unittest.TestCase):
 class TestFailureTypeClassification(unittest.TestCase):
     """Test failure type classification heuristics."""
 
-    @patch('auto_verify.subprocess.run')
+    @patch('verification.auto_verify.subprocess.run')
     def test_type_error_classification(self, mock_run):
         """TypeScript errors are classified as TYPE_ERROR."""
         mock_run.return_value = MagicMock(
@@ -265,7 +265,7 @@ class TestFailureTypeClassification(unittest.TestCase):
 
         self.assertEqual(results[0].failure_type, FailureType.TYPE_ERROR)
 
-    @patch('auto_verify.subprocess.run')
+    @patch('verification.auto_verify.subprocess.run')
     def test_lint_error_classification(self, mock_run):
         """Lint errors are classified as LINT_ERROR."""
         mock_run.return_value = MagicMock(
@@ -292,7 +292,7 @@ class TestFailureTypeClassification(unittest.TestCase):
 
         self.assertEqual(results[0].failure_type, FailureType.LINT_ERROR)
 
-    @patch('auto_verify.subprocess.run')
+    @patch('verification.auto_verify.subprocess.run')
     def test_test_failure_classification(self, mock_run):
         """Test failures are classified as TEST_FAILURE."""
         mock_run.return_value = MagicMock(
@@ -319,7 +319,7 @@ class TestFailureTypeClassification(unittest.TestCase):
 
         self.assertEqual(results[0].failure_type, FailureType.TEST_FAILURE)
 
-    @patch('auto_verify.subprocess.run')
+    @patch('verification.auto_verify.subprocess.run')
     def test_env_error_classification(self, mock_run):
         """Environment errors are classified as ENV_ERROR."""
         mock_run.side_effect = FileNotFoundError("pnpm: command not found")
@@ -347,7 +347,7 @@ class TestFailureTypeClassification(unittest.TestCase):
 class TestArtifactGeneration(unittest.TestCase):
     """Test evidence artifact generation."""
 
-    @patch('auto_verify.subprocess.run')
+    @patch('verification.auto_verify.subprocess.run')
     def test_evidence_file_created(self, mock_run):
         """Evidence file is created on auto-verify run."""
         mock_run.return_value = MagicMock(returncode=0, stdout="OK", stderr="")
@@ -384,7 +384,7 @@ class TestArtifactGeneration(unittest.TestCase):
                 os.environ.pop('ENGINEO_AUTOVERIFY_ALLOWLIST', None)
                 os.environ.pop('ENGINEO_AUTOVERIFY_ENABLED', None)
 
-    @patch('auto_verify.subprocess.run')
+    @patch('verification.auto_verify.subprocess.run')
     def test_summary_file_format(self, mock_run):
         """Summary file is valid JSON with expected structure."""
         import json
@@ -429,7 +429,7 @@ class TestNoPushForAutoVerify(unittest.TestCase):
 
     def test_git_push_default_disabled(self):
         """Git push is disabled by default."""
-        from contracts import git_push_enabled
+        from verification.contracts import git_push_enabled
 
         # Clear any existing value
         os.environ.pop('ENGINEO_GIT_PUSH_ENABLED', None)
@@ -438,7 +438,7 @@ class TestNoPushForAutoVerify(unittest.TestCase):
 
     def test_git_push_requires_explicit_enable(self):
         """Git push requires explicit enable."""
-        from contracts import git_push_enabled
+        from verification.contracts import git_push_enabled
 
         os.environ['ENGINEO_GIT_PUSH_ENABLED'] = '1'
         try:

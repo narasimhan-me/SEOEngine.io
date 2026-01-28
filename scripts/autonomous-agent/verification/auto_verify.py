@@ -26,7 +26,7 @@ from dataclasses import dataclass, field, asdict
 from typing import List, Optional, Dict, Any, Tuple
 from enum import Enum
 
-from contracts import (
+from .contracts import (
     autoverify_enabled,
     autoverify_full_allowlist,
     autoverify_command_timeout,

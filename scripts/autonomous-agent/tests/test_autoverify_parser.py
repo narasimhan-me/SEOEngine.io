@@ -19,14 +19,14 @@ import sys
 # Import from modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from auto_verify import (
+from verification.auto_verify import (
     parse_checklist_items,
     update_report_with_results,
     _compute_item_id,
     CommandResult,
     FailureType,
 )
-from contracts import (
+from verification.contracts import (
     is_command_allowlisted,
     contains_shell_metacharacters,
     SHELL_METACHARACTERS,

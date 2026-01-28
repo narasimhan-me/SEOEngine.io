@@ -85,7 +85,8 @@ from decomposition_manifest import (
 from blocking_escalations import BlockingEscalationsStore
 
 # AUTOVERIFY-AUTOFIX-LOOP-SAFETY-1 PATCH 4: Import contracts and auto_verify
-from contracts import (
+# REVIEW-FIXUP-1 PATCH 1: Imports from verification/ module
+from verification.contracts import (
     contract_human_review_status,
     contract_human_attention_status,
     contract_human_statuses,
@@ -96,7 +97,7 @@ from contracts import (
     human_attention_transition_priority,
     git_push_enabled,
 )
-from auto_verify import (
+from verification.auto_verify import (
     run_auto_verify,
     parse_checklist_items,
     compute_failure_hash,
@@ -3104,18 +3105,22 @@ class ExecutionEngine:
         # Priority 2: VERIFY/CLOSE
         # Stories with statusCategory In Progress OR status BLOCKED
         # PATCH 2: Apply verify backoff gating
+        # REVIEW-FIXUP-1 PATCH 3: Wire commit_changed bypass
         stories_for_verify = self.jira.get_stories_for_verify_close()
         if stories_for_verify:
             self.log("SUPERVISOR", f"[VERIFY/CLOSE] Found {len(stories_for_verify)} candidates")
+            # Get current commit SHA once for commit_changed bypass
+            current_commit_sha = self.git.get_head_sha() if hasattr(self.git, 'get_head_sha') else None
             for story in stories_for_verify:
                 story_key = story['key']
 
                 # PATCH 2: Check verify backoff before attempting
+                # REVIEW-FIXUP-1 PATCH 3: Pass current_commit_sha for commit_changed bypass
                 entry = self.work_ledger.get(story_key)
                 canonical_path = _canonical_verification_report_relpath(story_key)
                 full_report_path = str(Path(self.config.repo_path) / canonical_path)
 
-                should_verify, reason = _should_attempt_verify(entry, full_report_path)
+                should_verify, reason = _should_attempt_verify(entry, full_report_path, current_commit_sha=current_commit_sha)
                 if not should_verify:
                     self.log("SUPERVISOR", f"[VERIFY/CLOSE] Skipping {story_key}: {reason}")
                     continue
@@ -4461,6 +4466,30 @@ Report `{report_path}` was missing the required `## Checklist` header.
                             log_func=lambda msg: self.log("SUPERVISOR", msg),
                         )
 
+                        # REVIEW-FIXUP-1 PATCH 3: Auto-verify artifact commit (NEVER push)
+                        # Commit evidence artifacts locally so they persist across runs
+                        if av_result.evidence_file or av_result.summary_file or av_result.report_updated:
+                            files_to_stage = []
+                            if av_result.evidence_file and Path(av_result.evidence_file).exists():
+                                files_to_stage.append(av_result.evidence_file)
+                            if av_result.summary_file and Path(av_result.summary_file).exists():
+                                files_to_stage.append(av_result.summary_file)
+                            if av_result.report_updated:
+                                files_to_stage.append(str(report_full_path))
+
+                            if files_to_stage:
+                                try:
+                                    # Stage the files
+                                    self.git.add_files(files_to_stage)
+
+                                    # Commit without STORY_KEY in message to avoid Jira comment spam
+                                    # Note: This commit NEVER pushes regardless of ENGINEO_GIT_PUSH_ENABLED
+                                    self.git.commit('chore(auto-verify): evidence artifacts commit [skip ci]')
+                                    self.log("SUPERVISOR", f"[{key}] Auto-verify artifacts committed (local only, never pushed)")
+                                except Exception as e:
+                                    # Non-fatal: log and continue even if commit fails
+                                    self.log("SUPERVISOR", f"[{key}] Auto-verify artifact commit failed (non-fatal): {e}")
+
                         # Update auto_verify_runs counter
                         new_verify_runs = auto_verify_runs + 1
 
@@ -4558,12 +4587,84 @@ Story transitioned to {human_review} for manual verification."""
                                     auto_fix_eligible = False
 
                             if auto_fix_eligible:
-                                # TODO: Trigger auto-fix (re-invoke implementer with fix prompt)
-                                # For now, route to human attention
-                                self.log("SUPERVISOR", f"[{key}] Auto-fix eligible but not yet implemented - routing to {human_attention}")
-                                auto_fix_eligible = False  # Disable until implemented
+                                # REVIEW-FIXUP-1 PATCH 4: Implement bounded auto-fix loop
+                                self.log("SUPERVISOR", f"[{key}] Auto-fix attempt {auto_fix_attempts + 1}/{max_auto_fix_attempts()}")
 
-                            if not auto_fix_eligible:
+                                # Build fix description with failure context
+                                fix_description = f"""## AUTO-FIX REQUEST
+
+The following auto-verify command failed. Please analyze the error and fix the code.
+
+### Failed Command
+```
+{first_failure.command if first_failure else 'N/A'}
+```
+
+### Exit Code
+{first_failure.exit_code if first_failure else 'N/A'}
+
+### Failure Type
+{failure_type.value if failure_type else 'UNKNOWN'}
+
+### Error Output (stderr)
+```
+{(first_failure.stderr[:2000] if first_failure and first_failure.stderr else 'N/A')}
+```
+
+### Output (stdout)
+```
+{(first_failure.stdout[:2000] if first_failure and first_failure.stdout else 'N/A')}
+```
+
+## Instructions
+
+1. Analyze the error output above
+2. Identify the root cause of the failure
+3. Make the MINIMAL changes needed to fix the issue
+4. Do NOT refactor or change unrelated code
+5. After fixing, commit with message: "fix({key}): auto-fix for {failure_type.value if failure_type else 'verify failure'}"
+6. Do NOT push to remote - just commit locally
+
+## Verification Report
+Update the verification report at: {report_path}
+
+The report MUST have all checklist items checked (- [x]) after fixing.
+"""
+
+                                # Invoke IMPLEMENTER with fix prompt
+                                fix_success, fix_output, _fix_files, _fix_artifact = self._invoke_claude_code(
+                                    key,
+                                    f"Auto-fix: {first_failure.command if first_failure else 'verify failure'}",
+                                    fix_description,
+                                )
+
+                                # Update auto_fix_attempts counter
+                                new_auto_fix_attempts = auto_fix_attempts + 1
+
+                                # Update work ledger with fix attempt
+                                now_iso = datetime.now(timezone.utc).isoformat()
+                                self._upsert_work_ledger_entry(
+                                    issue_key=key,
+                                    issue_type="Story",
+                                    status=status,
+                                    last_step=LastStep.IMPLEMENTER.value,
+                                    last_step_result=StepResult.SUCCESS.value if fix_success else StepResult.FAILED.value,
+                                    auto_fix_attempts=new_auto_fix_attempts,
+                                    last_failure_hash=new_failure_hash,
+                                    last_failure_type=failure_type.value if failure_type else None,
+                                    last_failure_at=now_iso,
+                                    verify_last_commit_sha=self.git.get_head_sha() if hasattr(self.git, 'get_head_sha') else None,
+                                )
+
+                                if fix_success:
+                                    self.log("SUPERVISOR", f"[{key}] Auto-fix completed, will re-verify on next cycle")
+                                    # Don't return True - let the main loop pick up this story again for re-verification
+                                    return True  # Signal that work was done, loop will re-verify
+                                else:
+                                    self.log("SUPERVISOR", f"[{key}] Auto-fix failed: {fix_output[:200] if fix_output else 'unknown error'}")
+                                    # Continue to route to human attention below
+
+                            if not auto_fix_eligible or (auto_fix_eligible and not fix_success):
                                 # Route to HUMAN ATTENTION NEEDED
                                 self.log("SUPERVISOR", f"[{key}] Auto-fix ineligible/exhausted - routing to {human_attention}")
 

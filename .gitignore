@@ -67,8 +67,6 @@ scripts/*.zip
 .engineo/
 scripts/autonomous-agent/reports/*-claude-output-attempt*.txt
 scripts/autonomous-agent/reports/*-verification.md
-# Keep documentation files
-!scripts/autonomous-agent/reports/ENGINE-RUN-ARTIFACTS.md
 
 # Work ledger (runtime state, repo-root level)
 work_ledger.json
