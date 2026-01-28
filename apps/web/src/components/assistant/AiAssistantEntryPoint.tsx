@@ -113,7 +113,7 @@ export function AiAssistantEntryPoint({
     >
       <summary className="cursor-pointer px-3 py-2 flex items-center justify-between text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
         <span className="flex items-center gap-1.5">
-          <Icon name="workflow.ai" size={14} aria-hidden="true" />
+          <Icon name="workflow.ai" size={16} aria-hidden="true" />
           {title}
         </span>
         <button
