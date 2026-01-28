@@ -113,7 +113,7 @@ export function AiAssistantEntryPoint({
     >
       <summary className="cursor-pointer px-3 py-2 flex items-center justify-between text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
         <span className="flex items-center gap-1.5">
-          <Icon name="status.info" size={14} aria-hidden="true" />
+          <Icon name="workflow.ai" size={14} aria-hidden="true" />
           {title}
         </span>
         <button
@@ -123,11 +123,11 @@ export function AiAssistantEntryPoint({
             e.stopPropagation();
             handleDismissAll();
           }}
-          className="text-muted-foreground/60 hover:text-muted-foreground p-0.5 rounded"
+          className="text-muted-foreground/60 hover:text-muted-foreground p-0.5 rounded text-sm leading-none"
           aria-label="Dismiss assistant suggestions"
           title="Dismiss"
         >
-          <Icon name="action.close" size={12} aria-hidden="true" />
+          ×
         </button>
       </summary>
 
@@ -157,11 +157,11 @@ export function AiAssistantEntryPoint({
               <button
                 type="button"
                 onClick={() => handleDismissSuggestion(suggestion.id)}
-                className="opacity-0 group-hover:opacity-100 text-muted-foreground/40 hover:text-muted-foreground p-0.5 rounded transition-opacity"
+                className="opacity-0 group-hover:opacity-100 text-muted-foreground/40 hover:text-muted-foreground p-0.5 rounded transition-opacity text-xs leading-none"
                 aria-label="Dismiss this suggestion"
                 title="Dismiss"
               >
-                <Icon name="action.close" size={10} aria-hidden="true" />
+                ×
               </button>
             </div>
           </div>

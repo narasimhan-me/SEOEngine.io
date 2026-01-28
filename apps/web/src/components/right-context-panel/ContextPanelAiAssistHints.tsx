@@ -92,7 +92,7 @@ export function ContextPanelAiAssistHints({
     >
       <summary className="cursor-pointer px-3 py-2 flex items-center justify-between text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
         <span className="flex items-center gap-1.5">
-          <Icon name="status.info" size={14} aria-hidden="true" />
+          <Icon name="workflow.ai" size={14} aria-hidden="true" />
           Assistant
         </span>
         <button
@@ -102,11 +102,11 @@ export function ContextPanelAiAssistHints({
             e.stopPropagation();
             handleDismiss();
           }}
-          className="text-muted-foreground/60 hover:text-muted-foreground p-0.5 rounded"
+          className="text-muted-foreground/60 hover:text-muted-foreground p-0.5 rounded text-sm leading-none"
           aria-label="Dismiss assistant suggestions"
           title="Dismiss"
         >
-          <Icon name="action.close" size={12} aria-hidden="true" />
+          ×
         </button>
       </summary>
       <div className="border-t border-border/50 px-3 py-2">
