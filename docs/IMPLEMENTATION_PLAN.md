@@ -9,6 +9,29 @@ This document tracks all implementation phases and their completion status.
 
 
 
+
+
+## [KAN-45] Implement: [EA-27] EA-27 — PRIORITIZATION-SIGNAL-ENRICHMENT-1
+
+**Implemented:** 2026-01-28 13:57 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `docs/IMPLEMENTATION_PLAN.md`
+
+---
+
+## [KAN-43] Implement: [EA-26] EA-26 — DASHBOARD-SIGNAL-REWRITE-1
+
+**Implemented:** 2026-01-28 13:18 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/web/src/components/common/EmptyState.tsx`
+- `apps/web/src/components/right-context-panel/ContextPanelProductDetails.tsx`
+
+---
+
 ## [KAN-40] Implement: [EA-16] ERROR-&-BLOCKED-STATE-UX-1: Standardize and harden all blocked, error, and boundary states across the Issues Decision Engine and Right Context Panel so users never mistake a system limitation for a bug—or a bug for user error.
 
 **Implemented:** 2026-01-28 12:41 UTC
