@@ -25,7 +25,7 @@ interface ImpactIndicatorProps {
 const impactIcons: Record<DeoIssueImpactLevel, IconManifestKey> = {
   high: 'status.warning',
   medium: 'workflow.history',
-  low: 'status.info',
+  low: 'status.healthy',
 };
 
 // Style mapping using design tokens
@@ -45,7 +45,7 @@ export function ImpactIndicator({
   const styles = impactStyles[impactLevel];
 
   const sizeClasses = size === 'sm' ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-0.5 text-xs';
-  const iconSize = size === 'sm' ? 12 : 14;
+  const iconSize = 16; // Icon component only accepts 16, 20, or 24
 
   return (
     <span
