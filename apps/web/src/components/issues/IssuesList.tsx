@@ -316,7 +316,7 @@ function IssueCard({
           {/* [EA-27: PRIORITIZATION-SIGNAL-ENRICHMENT-1] Priority rationale line */}
           {(() => {
             const factors = derivePrioritizationFactors(issue);
-            const rationale = issue.priorityRationale || derivePriorityRationale(issue, factors);
+            const rationale = derivePriorityRationale(issue, factors);
             return rationale ? (
               <p className="mt-1 text-[10px] text-gray-400 italic">{rationale}</p>
             ) : null;
