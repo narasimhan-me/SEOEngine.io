@@ -132,6 +132,47 @@ export const EmptyStatePresets = {
     message: searchTerm
       ? `No results found for "${searchTerm}". Try a different search term.`
       : 'Try a different search term.'
+  }),
+
+  // [EA-16: ERROR-&-BLOCKED-STATE-UX-1] Blocked state presets aligned with canonical reasons
+  permissionsMissing: (): EmptyStateConfig => ({
+    category: 'initial',
+    icon: 'users',
+    title: 'Missing permissions',
+    message: 'This action requires additional permissions you do not currently have.',
+    actionText: 'Contact project owner'
+  }),
+
+  shopifyScopeMissing: (): EmptyStateConfig => ({
+    category: 'initial',
+    icon: 'package',
+    title: 'Shopify access required',
+    message: 'This action requires Shopify OAuth scopes that have not been granted.',
+    actionText: 'Reconnect Shopify'
+  }),
+
+  syncPending: (): EmptyStateConfig => ({
+    category: 'not_analyzed',
+    icon: 'clock',
+    title: 'Sync in progress',
+    message: 'Data is not yet available because a sync is currently in progress. Please wait for the sync to complete.',
+    compact: true
+  }),
+
+  destinationUnavailable: (): EmptyStateConfig => ({
+    category: 'initial',
+    icon: 'folder',
+    title: 'Action unavailable',
+    message: 'No valid action route exists for this item in the current context.',
+    compact: true
+  }),
+
+  systemError: (): EmptyStateConfig => ({
+    category: 'cleared',
+    icon: 'settings',
+    title: 'Something went wrong',
+    message: 'An unexpected error occurred. Please try again later or contact support if the problem persists.',
+    actionText: 'Try again'
   })
 };
 

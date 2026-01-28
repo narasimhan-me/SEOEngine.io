@@ -20,6 +20,10 @@ import {
 } from '@/lib/route-context';
 import { EmptyState } from '@/components/common/EmptyState';
 import { EmptyStatePresets } from '@/lib/empty-state-contract';
+import {
+  getCanonicalBlockedReason,
+  type CanonicalBlockedReasonId,
+} from '@/lib/issues/canonicalBlockedReasons';
 
 // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Re-export ISSUE_UI_CONFIG for backwards compatibility
 export { ISSUE_UI_CONFIG } from '@/lib/issue-ui-config';
@@ -261,19 +265,36 @@ function IssueCard({
             </span>
             {/* [DIAGNOSTIC-GUIDANCE-1] Outside-control issues get specific label */}
             {/* [ISSUE-TO-FIX-PATH-1] Informational badge for orphan issues (non-outside-control) */}
-            {/* [ISSUE-FIX-ROUTE-INTEGRITY-1] Blocked states visually distinguishable with explanation */}
+            {/* [EA-16: ERROR-&-BLOCKED-STATE-UX-1] Blocked states with canonical reasons */}
             {!actionable && (
-              <span
-                className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600 border border-gray-200"
-                data-testid="issue-blocked-badge"
-                title={isOutsideEngineControl
-                  ? 'This issue depends on theme, hosting, or Shopify configuration. Use the guidance below to address manually.'
-                  : 'No fix action available in current context. Review issue details for guidance.'}
-              >
-                {isOutsideEngineControl
+              (() => {
+                // Determine canonical blocked reason
+                const canonicalReasonId: CanonicalBlockedReasonId = isOutsideEngineControl
+                  ? 'DESTINATION_UNAVAILABLE'
+                  : 'DESTINATION_UNAVAILABLE';
+                const blockedReason = getCanonicalBlockedReason(canonicalReasonId);
+
+                const tooltipText = isOutsideEngineControl
+                  ? `${blockedReason.reason} ${blockedReason.nextStep}`
+                  : `${blockedReason.reason} ${blockedReason.nextStep}`;
+
+                const badgeLabel = isOutsideEngineControl
                   ? 'Blocked — outside EngineO.ai control'
-                  : 'Blocked — no action available'}
-              </span>
+                  : `Blocked — ${blockedReason.label.toLowerCase()}`;
+
+                return (
+                  <span
+                    className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600 border border-gray-200"
+                    data-testid="issue-blocked-badge"
+                    data-blocked-reason={canonicalReasonId}
+                    title={tooltipText}
+                    aria-label={`Blocked: ${tooltipText}`}
+                    role="status"
+                  >
+                    {badgeLabel}
+                  </span>
+                );
+              })()
             )}
           </div>
           <p className="mt-1 text-xs text-gray-500">{safeDescription}</p>

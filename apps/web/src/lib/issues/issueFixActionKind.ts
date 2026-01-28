@@ -126,10 +126,12 @@ export function deriveIssueFixActionKind(
  * Gets full fix action kind info including label, sublabel, and icon.
  *
  * @param params - Same params as getIssueActionDestinations
+ * @param blockedReasonOverride - [EA-16] Optional canonical blocked reason ID to override default
  * @returns IssueFixActionKindInfo with all UI metadata
  */
 export function getIssueFixActionKindInfo(
-  params: GetIssueActionDestinationsParams
+  params: GetIssueActionDestinationsParams,
+  blockedReasonOverride?: string
 ): IssueFixActionKindInfo {
   const kind = deriveIssueFixActionKind(params);
 
@@ -155,16 +157,53 @@ export function getIssueFixActionKindInfo(
         sublabel: 'No automatic fix available',
         iconKey: 'playbook.content',
       };
-    case 'BLOCKED':
+    case 'BLOCKED': {
+      // [EA-16: ERROR-&-BLOCKED-STATE-UX-1] Use canonical blocked reason when provided
+      const defaultReason = 'No fix destination is mapped for this issue type in the current context.';
+      const defaultNextStep = 'Review affected items in the Issues Engine or wait for the fix surface to become available.';
+
+      // Map canonical reason IDs to user-friendly copy
+      const canonicalReasonCopy: Record<string, { reason: string; nextStep: string }> = {
+        PERMISSIONS_MISSING: {
+          reason: 'This action requires additional permissions you do not currently have.',
+          nextStep: 'Contact a project owner to request the necessary permissions.',
+        },
+        SHOPIFY_SCOPE_MISSING: {
+          reason: 'This action requires Shopify OAuth scopes that have not been granted.',
+          nextStep: 'Re-connect your Shopify store and grant the requested permissions.',
+        },
+        DRAFT_REQUIRED: {
+          reason: 'This action requires saving a draft first.',
+          nextStep: 'Review and save your draft changes before applying.',
+        },
+        DESTINATION_UNAVAILABLE: {
+          reason: 'No valid action route exists for this issue in the current context.',
+          nextStep: 'Review the issue details in the Issues Engine for guidance.',
+        },
+        SYNC_PENDING: {
+          reason: 'Data is not yet available because a sync is currently in progress.',
+          nextStep: 'Wait for the sync to complete, then try again.',
+        },
+        SYSTEM_ERROR: {
+          reason: 'An unexpected system error prevented this action.',
+          nextStep: 'Try again later or contact support if the problem persists.',
+        },
+      };
+
+      const reasonCopy = blockedReasonOverride && canonicalReasonCopy[blockedReasonOverride]
+        ? canonicalReasonCopy[blockedReasonOverride]
+        : { reason: defaultReason, nextStep: defaultNextStep };
+
       return {
         kind,
         label: 'Blocked',
         sublabel: 'No action available',
         iconKey: 'status.blocked',
-        // [ISSUE-FIX-ROUTE-INTEGRITY-1] Provide clear explanation and actionable next step
-        blockedReason: 'No fix destination is mapped for this issue type in the current context.',
-        nextStep: 'Review affected items in the Issues Engine or wait for the fix surface to become available.',
+        // [EA-16: ERROR-&-BLOCKED-STATE-UX-1] Canonical blocked reason support
+        blockedReason: reasonCopy.reason,
+        nextStep: reasonCopy.nextStep,
       };
+    }
   }
 }
 

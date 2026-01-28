@@ -10,6 +10,7 @@
  */
 
 import type { FromContext } from './issue-fix-navigation';
+import type { CanonicalBlockedReasonId } from './issues/canonicalBlockedReasons';
 
 // =============================================================================
 // Types
@@ -54,6 +55,10 @@ export interface ResolvedRowNextAction {
    * - 'system': System limitation (wait or contact support)
    */
   blockerCategory?: 'approval_required' | 'permission' | 'system';
+  /**
+   * [EA-16] Canonical blocked reason ID for consistent messaging across views.
+   */
+  canonicalReasonId?: CanonicalBlockedReasonId;
 }
 
 export interface RowNextActionInput {
@@ -146,7 +151,7 @@ export function resolveRowNextAction(
         ? requestApprovalHref || reviewDraftsHref
         : viewApprovalStatusHref || reviewDraftsHref;
 
-      // [ERROR-&-BLOCKED-STATE-UX-1] Determine blocked reason and next step based on user's ability to act
+      // [EA-16: ERROR-&-BLOCKED-STATE-UX-1] Determine blocked reason with canonical ID
       const blockedReason = canRequestApproval
         ? 'Draft is awaiting approval before it can be applied.'
         : 'Draft requires approval from a project owner.';
@@ -155,6 +160,10 @@ export function resolveRowNextAction(
         : 'Contact a project owner to approve or request approval on your behalf.';
       const blockerCategory: 'approval_required' | 'permission' =
         canRequestApproval ? 'approval_required' : 'permission';
+      // Map to canonical reason: approval_required maps to DRAFT_REQUIRED, permission maps to PERMISSIONS_MISSING
+      const canonicalReasonId: CanonicalBlockedReasonId = canRequestApproval
+        ? 'DRAFT_REQUIRED'
+        : 'PERMISSIONS_MISSING';
 
       return {
         chipLabel: '⛔ Blocked',
@@ -169,6 +178,7 @@ export function resolveRowNextAction(
         blockedReason,
         nextStep,
         blockerCategory,
+        canonicalReasonId,
       };
     }
 

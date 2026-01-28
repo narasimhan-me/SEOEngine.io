@@ -102,14 +102,21 @@ export function IssuesSummaryCard({
         </p>
       )}
 
-      {/* [ISSUE-FIX-ROUTE-INTEGRITY-1] Blocked issues indicator */}
+      {/* [EA-16: ERROR-&-BLOCKED-STATE-UX-1] Blocked issues indicator with canonical reason */}
       {blockedCount > 0 && (
-        <div className="mt-3 rounded-md bg-gray-50 px-3 py-2 text-xs text-gray-600 border border-gray-200">
+        <div
+          className="mt-3 rounded-md bg-gray-50 px-3 py-2 text-xs text-gray-600 border border-gray-200"
+          role="status"
+          aria-live="polite"
+        >
           <span className="font-medium">
             {blockedCount} issue{blockedCount === 1 ? '' : 's'} blocked
           </span>
           <span className="ml-1">
-            — no fix available in current context
+            — no fix available in current context.
+          </span>
+          <span className="block mt-1 text-gray-500">
+            Review the Issues Engine for guidance on each blocked issue.
           </span>
         </div>
       )}

@@ -19,6 +19,20 @@ export {
   checkSavedDraftInSessionStorage,
 } from './issues/draftLifecycleState';
 
+// [EA-16: ERROR-&-BLOCKED-STATE-UX-1] Re-export canonical blocked reasons
+export type {
+  CanonicalBlockedReasonId,
+  CanonicalBlockedReason,
+  BlockerCategory,
+} from './issues/canonicalBlockedReasons';
+export {
+  CANONICAL_BLOCKED_REASONS,
+  getCanonicalBlockedReason,
+  getPriorityBlockedReason,
+  isUserResolvable,
+  getAllBlockedReasonsSorted,
+} from './issues/canonicalBlockedReasons';
+
 // =============================================================================
 // DEO Score Types
 // =============================================================================

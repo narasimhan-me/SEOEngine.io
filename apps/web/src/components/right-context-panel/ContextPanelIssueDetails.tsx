@@ -16,6 +16,11 @@ import {
   checkSavedDraftInSessionStorage,
   type DraftLifecycleState,
 } from '@/lib/issues/draftLifecycleState';
+// [EA-16: ERROR-&-BLOCKED-STATE-UX-1] Import canonical blocked reasons
+import {
+  getCanonicalBlockedReason,
+  type CanonicalBlockedReasonId,
+} from '@/lib/issues/canonicalBlockedReasons';
 
 /**
  * [ISSUES-ENGINE-REMOUNT-1] Read-only issue details renderer for RCP.
@@ -241,13 +246,17 @@ export function ContextPanelIssueDetails({
 
   // [FIXUP-3][FIXUP-4] Derive actionability label and guidance
   // FIXUP-4: isActionableNow must be explicitly true to be actionable; undefined treated as blocked
-  // [ISSUE-FIX-ROUTE-INTEGRITY-1] All states include actionable guidance explaining what user can do
+  // [EA-16: ERROR-&-BLOCKED-STATE-UX-1] Enhanced with canonical blocked reasons
   const getActionabilityInfo = () => {
     if (issue.actionability === 'informational') {
+      const blockedReason = getCanonicalBlockedReason('DESTINATION_UNAVAILABLE');
       return {
         label: 'Informational — outside EngineO.ai control',
         guidance:
           'EngineO.ai cannot take direct action on this issue. You can review the context in the Work Canvas for more information.',
+        canonicalReasonId: 'DESTINATION_UNAVAILABLE' as CanonicalBlockedReasonId,
+        blockedReason: blockedReason.reason,
+        nextStep: blockedReason.nextStep,
       };
     }
     // FIXUP-4: Only treat as actionable when explicitly true (not undefined)
@@ -256,14 +265,19 @@ export function ContextPanelIssueDetails({
         label: 'Actionable now',
         guidance:
           'Actions for this issue can be initiated from the Work Canvas where context and available options are displayed.',
+        canonicalReasonId: null,
+        blockedReason: null,
+        nextStep: null,
       };
     }
-    // FIXUP-4: Blocked label de-speculated (no "permissions" claim)
-    // [ISSUE-FIX-ROUTE-INTEGRITY-1] Blocked states include clear explanation of why action unavailable
+    // [EA-16: ERROR-&-BLOCKED-STATE-UX-1] Use canonical blocked reason for blocked state
+    const blockedReason = getCanonicalBlockedReason('DESTINATION_UNAVAILABLE');
     return {
       label: 'Blocked — not actionable in this context',
-      guidance:
-        'This issue cannot be acted upon in the current context. Review the issue details in the Work Canvas for more information.',
+      guidance: blockedReason.reason,
+      canonicalReasonId: 'DESTINATION_UNAVAILABLE' as CanonicalBlockedReasonId,
+      blockedReason: blockedReason.reason,
+      nextStep: blockedReason.nextStep,
     };
   };
 
@@ -411,12 +425,15 @@ export function ContextPanelIssueDetails({
       </div>
 
       {/* [FIXUP-3] Actionability (replaces Status) */}
-      {/* [ISSUE-FIX-KIND-CLARITY-1 FIXUP-3] Added fix-action kind sentence for copy alignment */}
+      {/* [EA-16: ERROR-&-BLOCKED-STATE-UX-1] Enhanced with canonical blocked reasons */}
       <div className="rounded-md border border-border bg-[hsl(var(--surface-card))] p-3">
         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
           Actionability
         </p>
-        <span className="mt-1 inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium text-foreground">
+        <span
+          className="mt-1 inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium text-foreground"
+          data-blocked-reason={actionabilityInfo.canonicalReasonId || undefined}
+        >
           {actionabilityInfo.label}
         </span>
         <p className="mt-2 text-xs text-muted-foreground">
@@ -426,10 +443,10 @@ export function ContextPanelIssueDetails({
         <p className="mt-1 text-xs text-muted-foreground italic">
           {fixActionSentence}
         </p>
-        {/* [ISSUE-FIX-ROUTE-INTEGRITY-1] Additional guidance for blocked issues */}
-        {fixActionKind === 'BLOCKED' && (
+        {/* [EA-16: ERROR-&-BLOCKED-STATE-UX-1] Canonical blocked reason explanation */}
+        {fixActionKind === 'BLOCKED' && actionabilityInfo.nextStep && (
           <p className="mt-1 text-xs text-muted-foreground">
-            Check the Issues Engine for alternative actions or review guidance.
+            <span className="font-medium">Next step:</span> {actionabilityInfo.nextStep}
           </p>
         )}
         {/* [DRAFT-LIFECYCLE-VISIBILITY-1 PATCH 4] Draft lifecycle state line

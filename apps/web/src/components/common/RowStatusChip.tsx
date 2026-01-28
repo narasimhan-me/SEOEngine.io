@@ -36,6 +36,10 @@ export interface RowStatusChipProps {
    * [ERROR-&-BLOCKED-STATE-UX-1] Blocker category for visual cues.
    */
   blockerCategory?: 'approval_required' | 'permission' | 'system';
+  /**
+   * [EA-16] Canonical blocked reason ID for development-time validation.
+   */
+  canonicalReasonId?: string;
 }
 
 // [UI-POLISH-&-CLARITY-1 FIXUP-1] Token-only chip styles
@@ -69,10 +73,22 @@ export function RowStatusChip({
   blockedReason,
   nextStep,
   blockerCategory,
+  canonicalReasonId,
 }: RowStatusChipProps) {
   // [UI-POLISH-&-CLARITY-1 FIXUP-1] Token-only fallback
   const styles =
     chipStyles[chipLabel] || 'border-border bg-muted text-muted-foreground';
+
+  // [EA-16: ERROR-&-BLOCKED-STATE-UX-1] Development-time warning for missing explanation
+  if (process.env.NODE_ENV === 'development' && chipLabel === '⛔ Blocked') {
+    if (!blockedReason || blockedReason.trim().length === 0) {
+      console.warn(
+        '[ERROR-&-BLOCKED-STATE-UX-1] RowStatusChip with "Blocked" label rendered without blockedReason. ' +
+        'All blocked chips must include a human-readable explanation. ' +
+        (canonicalReasonId ? `Canonical reason ID: ${canonicalReasonId}` : 'No canonical reason ID provided.')
+      );
+    }
+  }
   // [ICONS-LOCAL-LIBRARY-1] Get icon key and clean label
   const iconKey = chipIcons[chipLabel];
   const cleanLabel = getCleanLabel(chipLabel);

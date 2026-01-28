@@ -7,6 +7,23 @@ This document tracks all implementation phases and their completion status.
 
 
 
+
+## [KAN-38] Implement: [EA-12] ISSUE-FIX-ROUTE-INTEGRITY-1: Issues Decision Engine — No Dead Clicks
+
+**Implemented:** 2026-01-28 12:21 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/web/src/components/issues/IssuesList.tsx`
+- `apps/web/src/components/issues/IssuesSummaryCard.tsx`
+- `apps/web/src/components/products/optimization/ProductIssuesPanel.tsx`
+- `apps/web/src/lib/issue-fix-anchors.ts`
+- `apps/web/src/lib/issue-to-fix-path.ts`
+- `apps/web/src/lib/issues/issueActionDestinations.ts`
+- `apps/web/src/lib/issues/issueFixActionKind.ts`
+
+---
+
 ## [KAN-36] Implement: [EA-25] EPIC 19 — EMPTY-STATE-CONTRACT-1
 
 **Implemented:** 2026-01-28 11:42 UTC

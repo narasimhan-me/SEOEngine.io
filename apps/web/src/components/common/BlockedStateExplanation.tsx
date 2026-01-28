@@ -16,6 +16,7 @@
  */
 
 import { Icon, type IconManifestKey } from '@/components/icons';
+import type { CanonicalBlockedReasonId } from '@/lib/issues/canonicalBlockedReasons';
 
 export type BlockerCategory = 'approval_required' | 'permission' | 'system';
 
@@ -34,6 +35,8 @@ export interface BlockedStateExplanationProps {
   };
   /** Compact mode for inline use within list rows */
   compact?: boolean;
+  /** [EA-16] Optional canonical blocked reason ID for development warnings */
+  canonicalReasonId?: CanonicalBlockedReasonId;
 }
 
 // Category-specific styling and icons
@@ -67,8 +70,27 @@ export function BlockedStateExplanation({
   category = 'permission',
   action,
   compact = false,
+  canonicalReasonId,
 }: BlockedStateExplanationProps) {
   const config = categoryConfig[category];
+
+  // [EA-16: ERROR-&-BLOCKED-STATE-UX-1] Development-time warning for missing explanation copy
+  if (process.env.NODE_ENV === 'development') {
+    if (!reason || reason.trim().length === 0) {
+      console.warn(
+        '[ERROR-&-BLOCKED-STATE-UX-1] BlockedStateExplanation rendered without a reason. ' +
+        'All blocked states must include a human-readable explanation. ' +
+        (canonicalReasonId ? `Canonical reason ID: ${canonicalReasonId}` : 'No canonical reason ID provided.')
+      );
+    }
+    if (!nextStep || nextStep.trim().length === 0) {
+      console.warn(
+        '[ERROR-&-BLOCKED-STATE-UX-1] BlockedStateExplanation rendered without a nextStep. ' +
+        'All blocked states must include a clear next step for the user. ' +
+        (canonicalReasonId ? `Canonical reason ID: ${canonicalReasonId}` : 'No canonical reason ID provided.')
+      );
+    }
+  }
 
   if (compact) {
     // Compact inline version for list rows

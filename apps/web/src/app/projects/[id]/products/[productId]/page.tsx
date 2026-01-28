@@ -282,7 +282,7 @@ export default function ProductOptimizationPage() {
   // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Draft lifecycle state
   const { setHasUnsavedChanges } = useUnsavedChanges();
   // [APPLY-ACTION-GOVERNANCE-1] Role capabilities for governance
-  const [roleCapabilities, _setRoleCapabilities] = useState<RoleCapabilities>({
+  const [roleCapabilities] = useState<RoleCapabilities>({
     canView: true,
     canGenerateDrafts: true,
     canRequestApproval: true,

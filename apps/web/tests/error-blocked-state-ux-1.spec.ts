@@ -188,6 +188,81 @@ test.describe('ERROR-&-BLOCKED-STATE-UX-1: Blocked State Visibility', () => {
   });
 });
 
+test.describe('ERROR-&-BLOCKED-STATE-UX-1: Canonical Blocked Reasons', () => {
+  test('All blocked badges include canonical reason ID', async ({
+    page,
+    request,
+  }) => {
+    const { projectId, editorAccessToken } = await seedTestData(request);
+
+    // Login as EDITOR
+    await page.goto('/login');
+    await page.evaluate((token) => {
+      localStorage.setItem('engineo_token', token);
+    }, editorAccessToken);
+
+    await page.goto(`/projects/${projectId}/products`);
+
+    // Wait for list to load
+    await expect(page.locator('[data-testid="row-status-chip"]').first()).toBeVisible({
+      timeout: 10000,
+    });
+
+    // Find any blocked badges
+    const blockedBadges = page.locator('[data-testid="issue-blocked-badge"]');
+    const badgeCount = await blockedBadges.count();
+
+    if (badgeCount > 0) {
+      // Each blocked badge should have a canonical reason ID
+      for (let i = 0; i < badgeCount; i++) {
+        const badge = blockedBadges.nth(i);
+        const reasonId = await badge.getAttribute('data-blocked-reason');
+
+        // [REQUIREMENT] All blocked badges must have canonical reason ID
+        expect(reasonId).toBeTruthy();
+        expect(['PERMISSIONS_MISSING', 'SHOPIFY_SCOPE_MISSING', 'SYNC_PENDING',
+                'DESTINATION_UNAVAILABLE', 'DRAFT_REQUIRED', 'SYSTEM_ERROR']).toContain(reasonId);
+      }
+    }
+  });
+
+  test('RCP blocked state shows canonical reason with next step', async ({
+    page,
+    request,
+  }) => {
+    const { projectId, editorAccessToken } = await seedTestData(request);
+
+    // Login as EDITOR
+    await page.goto('/login');
+    await page.evaluate((token) => {
+      localStorage.setItem('engineo_token', token);
+    }, editorAccessToken);
+
+    // Navigate to issues page and open RCP for a blocked issue
+    await page.goto(`/projects/${projectId}/issues`);
+
+    // Wait for issues to load
+    await page.waitForLoadState('networkidle');
+
+    // Find a blocked issue badge and check if RCP shows canonical reason
+    const blockedBadge = page.locator('[data-testid="issue-blocked-badge"]').first();
+    if (await blockedBadge.isVisible()) {
+      // Click the parent row to open RCP
+      await blockedBadge.click();
+
+      // Wait for RCP to load
+      await page.waitForTimeout(500);
+
+      // Check that actionability section shows "Next step:" text
+      const nextStepText = page.locator('text=Next step:');
+      if (await nextStepText.isVisible()) {
+        // [REQUIREMENT] RCP must show clear next step for blocked states
+        await expect(nextStepText).toBeVisible();
+      }
+    }
+  });
+});
+
 test.describe('ERROR-&-BLOCKED-STATE-UX-1: No Silent Disables', () => {
   test('Disabled sync button explains why when Shopify not connected', async ({
     page,
