@@ -2,10 +2,12 @@
 Unit tests for verify backoff and comment de-duplication.
 
 PATCH BATCH: AUTONOMOUS-AGENT-VERIFICATION-BACKOFF-FATAL-CLASSIFY-TIMEOUT-UNIFY-1 - PATCH 5
+AUTOVERIFY-AUTOFIX-LOOP-SAFETY-1 PATCH 5: Added commit_changed bypass tests.
 
 Tests:
 - Second verify attempt is skipped when cooldown active and report unchanged
 - Jira add_comment called at most once for same (reason, report_hash)
+- _should_attempt_verify allows verify when commit changed even if cooldown active
 """
 
 import unittest
@@ -132,6 +134,99 @@ class TestShouldAttemptVerify(unittest.TestCase):
 
             self.assertTrue(should_verify)
             self.assertEqual(reason, "cooldown_elapsed")
+
+    def test_commit_changed_allows_verify_immediately(self):
+        """AUTOVERIFY-AUTOFIX-LOOP-SAFETY-1: Commit change bypasses cooldown."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create report file
+            report_path = Path(tmpdir) / "report.md"
+            report_path.write_text("# Report content", encoding='utf-8')
+            report_hash = _hash_file(str(report_path))
+
+            # Create entry with active cooldown and same report hash
+            future_time = datetime.now(timezone.utc) + timedelta(seconds=VERIFY_COOLDOWN_SECONDS)
+            entry = WorkLedgerEntry(
+                issueKey="KAN-25",
+                verify_next_at=future_time.isoformat(),
+                verify_last_report_hash=report_hash,
+                verify_last_commit_sha="old_commit_sha_abc123",  # Old commit
+            )
+
+            now_ts = datetime.now(timezone.utc).timestamp()
+
+            # Pass a different commit SHA
+            should_verify, reason = _should_attempt_verify(
+                entry,
+                str(report_path),
+                now_ts=now_ts,
+                current_commit_sha="new_commit_sha_def456",  # Different commit
+            )
+
+            self.assertTrue(should_verify)
+            self.assertEqual(reason, "commit_changed")
+
+    def test_same_commit_respects_cooldown(self):
+        """AUTOVERIFY-AUTOFIX-LOOP-SAFETY-1: Same commit respects cooldown."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create report file
+            report_path = Path(tmpdir) / "report.md"
+            report_path.write_text("# Report content", encoding='utf-8')
+            report_hash = _hash_file(str(report_path))
+
+            # Create entry with active cooldown
+            future_time = datetime.now(timezone.utc) + timedelta(seconds=VERIFY_COOLDOWN_SECONDS)
+            same_commit = "same_commit_sha_abc123"
+            entry = WorkLedgerEntry(
+                issueKey="KAN-25",
+                verify_next_at=future_time.isoformat(),
+                verify_last_report_hash=report_hash,
+                verify_last_commit_sha=same_commit,
+            )
+
+            now_ts = datetime.now(timezone.utc).timestamp()
+
+            # Pass the same commit SHA
+            should_verify, reason = _should_attempt_verify(
+                entry,
+                str(report_path),
+                now_ts=now_ts,
+                current_commit_sha=same_commit,  # Same commit
+            )
+
+            # Should still be blocked by cooldown
+            self.assertFalse(should_verify)
+            self.assertEqual(reason, "cooldown_active_unchanged_report")
+
+    def test_no_previous_commit_sha_checks_other_conditions(self):
+        """AUTOVERIFY-AUTOFIX-LOOP-SAFETY-1: No previous commit proceeds to other checks."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create report file
+            report_path = Path(tmpdir) / "report.md"
+            report_path.write_text("# Report content", encoding='utf-8')
+            report_hash = _hash_file(str(report_path))
+
+            # Create entry without verify_last_commit_sha
+            future_time = datetime.now(timezone.utc) + timedelta(seconds=VERIFY_COOLDOWN_SECONDS)
+            entry = WorkLedgerEntry(
+                issueKey="KAN-25",
+                verify_next_at=future_time.isoformat(),
+                verify_last_report_hash=report_hash,
+                # No verify_last_commit_sha set
+            )
+
+            now_ts = datetime.now(timezone.utc).timestamp()
+
+            # Pass a commit SHA - should fall through to cooldown check
+            should_verify, reason = _should_attempt_verify(
+                entry,
+                str(report_path),
+                now_ts=now_ts,
+                current_commit_sha="new_commit_sha_abc123",
+            )
+
+            # Should be blocked by cooldown (commit check skipped due to no previous)
+            self.assertFalse(should_verify)
+            self.assertEqual(reason, "cooldown_active_unchanged_report")
 
 
 class TestShouldPostVerifyComment(unittest.TestCase):

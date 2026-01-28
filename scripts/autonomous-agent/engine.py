@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-EngineO Autonomous Multi-Persona Execution Engine v3.2
+EngineO Autonomous Multi-Persona Execution Engine v3.3
 
 This engine coordinates THREE STRICT ROLES:
 
-1) UEP v3.2
+1) UEP v3.3
    - Combines: Lead PM, Tech Architect, UX Designer, CTO, CFO, Content Strategist
    - Acts as ONE integrated executive brain
    - Produces high-level intent ONLY — never implementation
@@ -13,24 +13,28 @@ This engine coordinates THREE STRICT ROLES:
    - Reads Ideas from Atlassian Product Discovery
    - Creates Epics with business goals and acceptance criteria
 
-2) SUPERVISOR v3.2
+2) SUPERVISOR v3.3
    - NEVER writes code
    - ONLY produces PATCH BATCH instructions (surgical, minimal diffs)
    - Decomposes Epics into Stories with exact implementation specs
    - Validates intent and resolves ambiguities
-   - Verifies Stories and Epics
+   - Verifies Stories and Epics (with auto-verify for automatable items)
+   - Routes to human states when automation exhausted
    - Ends each phase with instruction to update Implementation Plan
 
-3) IMPLEMENTER v3.2
+3) IMPLEMENTER v3.3
    - Applies PATCH BATCH diffs EXACTLY as specified
    - Writes all code
    - Makes ONLY the modifications shown in patches
    - Does NOT refactor or change unrelated lines
    - After patches, MUST update IMPLEMENTATION_PLAN.md and relevant docs
-   - Commits to feature/agent branch
+   - Commits to feature/agent branch (push gated by ENGINEO_GIT_PUSH_ENABLED)
 
 All operations go through Jira API and Git.
 MCP-ONLY operations for Atlassian Product Discovery, Jira, Git, and Email.
+
+AUTOVERIFY-AUTOFIX-LOOP-SAFETY-1: Auto-verify automatable checklist items,
+bounded auto-fix attempts, and human state routing.
 """
 
 import os
@@ -79,6 +83,26 @@ from decomposition_manifest import (
 )
 
 from blocking_escalations import BlockingEscalationsStore
+
+# AUTOVERIFY-AUTOFIX-LOOP-SAFETY-1 PATCH 4: Import contracts and auto_verify
+from contracts import (
+    contract_human_review_status,
+    contract_human_attention_status,
+    contract_human_statuses,
+    max_auto_fix_attempts,
+    max_verify_cycles,
+    autoverify_enabled,
+    human_review_transition_priority,
+    human_attention_transition_priority,
+    git_push_enabled,
+)
+from auto_verify import (
+    run_auto_verify,
+    parse_checklist_items,
+    compute_failure_hash,
+    FailureType,
+    AutoVerifyResult,
+)
 
 # Claude Code CLI is used for all personas (no API key required)
 # Model configuration per persona:
@@ -487,22 +511,26 @@ def _hash_file(path: str) -> Optional[str]:
 def _should_attempt_verify(
     entry: Optional['WorkLedgerEntry'],
     report_path: str,
-    now_ts: Optional[float] = None
+    now_ts: Optional[float] = None,
+    current_commit_sha: Optional[str] = None,
 ) -> Tuple[bool, str]:
     """Determine if verify should be attempted based on backoff state.
 
     PATCH 2: Verify backoff gating logic.
+    AUTOVERIFY-AUTOFIX-LOOP-SAFETY-1 PATCH 4: Added commit_changed bypass.
 
     Rules:
     - If report missing: allow attempt (fail-fast with remediation once)
     - If entry has verify_next_at in future AND report hash unchanged: skip
     - If report hash changed since last failure: allow immediately
+    - If commit SHA changed since last failure: allow immediately (commit_changed bypass)
     - If cooldown passed: allow
 
     Args:
         entry: WorkLedgerEntry or None.
         report_path: Full path to verification report.
         now_ts: Current timestamp (for testing); defaults to time.time().
+        current_commit_sha: Current HEAD commit SHA (for commit_changed bypass).
 
     Returns:
         Tuple of (should_verify: bool, reason: str).
@@ -513,6 +541,12 @@ def _should_attempt_verify(
     # If no entry, allow verify
     if entry is None:
         return (True, "no_ledger_entry")
+
+    # AUTOVERIFY-AUTOFIX-LOOP-SAFETY-1 PATCH 4: Commit changed bypass
+    # If code has changed since last verification, bypass cooldown
+    if current_commit_sha and entry.verify_last_commit_sha:
+        if current_commit_sha != entry.verify_last_commit_sha:
+            return (True, "commit_changed")
 
     # Compute current report state
     report_exists = Path(report_path).exists() if report_path else False
@@ -1262,6 +1296,50 @@ def choose_transition(names: List[str]) -> Optional[str]:
     return None
 
 
+def choose_human_review_transition(names: List[str]) -> Optional[str]:
+    """Choose best transition for human review state.
+
+    AUTOVERIFY-AUTOFIX-LOOP-SAFETY-1 PATCH 4: Transition chooser for human review.
+
+    Used when only manual checklist items remain (automatable items passed).
+
+    Priority order is configurable via ENGINEO_HUMAN_REVIEW_TRANSITIONS.
+    Default: HUMAN TO REVIEW AND CLOSE > Review > Human Review
+
+    Returns: Chosen transition name or None if no match.
+    """
+    priority = human_review_transition_priority()
+    names_lower = {n.lower(): n for n in names}
+
+    for target in priority:
+        if target.lower() in names_lower:
+            return names_lower[target.lower()]
+
+    return None
+
+
+def choose_human_attention_transition(names: List[str]) -> Optional[str]:
+    """Choose best transition for human attention state.
+
+    AUTOVERIFY-AUTOFIX-LOOP-SAFETY-1 PATCH 4: Transition chooser for human attention.
+
+    Used when auto-fix is exhausted or failure is not auto-fixable.
+
+    Priority order is configurable via ENGINEO_HUMAN_ATTENTION_TRANSITIONS.
+    Default: HUMAN ATTENTION NEEDED > Blocked > BLOCKED
+
+    Returns: Chosen transition name or None if no match.
+    """
+    priority = human_attention_transition_priority()
+    names_lower = {n.lower(): n for n in names}
+
+    for target in priority:
+        if target.lower() in names_lower:
+            return names_lower[target.lower()]
+
+    return None
+
+
 def _lock_path(repo_path: str) -> Path:
     """Get path to Claude session lock file."""
     return Path(repo_path) / CLAUDE_LOCK_REL_PATH
@@ -1598,8 +1676,23 @@ class JiraClient:
 
         PATCH 2: statusCategory 'In Progress' OR status = 'BLOCKED'
         Includes BLOCKED explicitly per spec.
+
+        AUTOVERIFY-AUTOFIX-LOOP-SAFETY-1 PATCH 4:
+        - Uses contract implement issue types (Story,Bug by default)
+        - Excludes human states to prevent churn:
+          status != "HUMAN TO REVIEW AND CLOSE"
+          status != "HUMAN ATTENTION NEEDED"
         """
-        jql = f"project = {self.config.software_project} AND issuetype = Story AND (statusCategory = 'In Progress' OR status = 'BLOCKED') ORDER BY created ASC"
+        # Get implement issue types from contract
+        implement_types = _contract_implement_issue_types()
+        type_clause = _jql_issuetype_in(implement_types)
+
+        # Get human states to exclude
+        human_review = contract_human_review_status()
+        human_attention = contract_human_attention_status()
+
+        # Build JQL excluding human states
+        jql = f'project = {self.config.software_project} AND {type_clause} AND (statusCategory = "In Progress" OR status = "BLOCKED") AND status != "{human_review}" AND status != "{human_attention}" ORDER BY created ASC'
         return self.search_issues(jql, ['summary', 'status', 'statusCategory', 'description', 'parent', 'issuetype'])
 
     def get_epics_for_decomposition(self) -> List[dict]:
@@ -3828,29 +3921,45 @@ Commit and push were NOT performed.""")
 
             # Commit and push changes to feature branch
             # PATCH 5: Skip commit if Claude already committed (claude_committed=True)
+            # AUTOVERIFY-AUTOFIX-LOOP-SAFETY-1 PATCH 4: Respect git_push_enabled()
             commit_success = False
+            push_enabled = git_push_enabled()
             if claude_committed:
-                # Claude already committed - just push
-                self.log("IMPLEMENTER", f"Claude already committed ({head_sha_after[:8]}), pushing...")
-                commit_success = self.git.push()
-                if commit_success:
-                    self.log("IMPLEMENTER", f"Pushed Claude's commit to {self.config.feature_branch}")
+                # Claude already committed - push if enabled
+                if push_enabled:
+                    self.log("IMPLEMENTER", f"Claude already committed ({head_sha_after[:8]}), pushing...")
+                    commit_success = self.git.push()
+                    if commit_success:
+                        self.log("IMPLEMENTER", f"Pushed Claude's commit to {self.config.feature_branch}")
+                    else:
+                        self.log("IMPLEMENTER", "Failed to push Claude's commit")
                 else:
-                    self.log("IMPLEMENTER", "Failed to push Claude's commit")
+                    self.log("IMPLEMENTER", f"Claude already committed ({head_sha_after[:8]}), push disabled via ENGINEO_GIT_PUSH_ENABLED=0")
+                    commit_success = True  # Commit succeeded, push skipped
             elif modified_files:
                 self.log("IMPLEMENTER", "Committing changes to git...")
                 commit_success = self._commit_implementation(key, summary, modified_files, allow_docs)
                 if commit_success:
-                    self.log("IMPLEMENTER", f"Changes committed and pushed to {self.config.feature_branch}")
+                    if push_enabled:
+                        self.log("IMPLEMENTER", f"Changes committed and pushed to {self.config.feature_branch}")
+                    else:
+                        self.log("IMPLEMENTER", f"Changes committed to {self.config.feature_branch} (push disabled)")
                 else:
                     self.log("IMPLEMENTER", "Failed to commit changes - manual commit required")
 
             # Add success comment to Jira
             # PATCH 5: Properly reflect commit status when Claude committed
+            # AUTOVERIFY-AUTOFIX-LOOP-SAFETY-1 PATCH 4: Reflect push disabled state
             if claude_committed:
-                commit_status = "Claude committed and pushed" if commit_success else "Claude committed (push pending)"
+                if push_enabled:
+                    commit_status = "Claude committed and pushed" if commit_success else "Claude committed (push pending)"
+                else:
+                    commit_status = "Claude committed (push disabled)"
             else:
-                commit_status = "Committed and pushed" if commit_success else "Changes pending commit"
+                if push_enabled:
+                    commit_status = "Committed and pushed" if commit_success else "Changes pending commit"
+                else:
+                    commit_status = "Committed (push disabled)" if commit_success else "Changes pending commit"
             resolved_report_path = canonical_report_path  # Use canonical path from fail-fast check
             self.jira.add_comment(key, f"""
 Implementation completed by IMPLEMENTER.
@@ -4062,7 +4171,7 @@ Human intervention may be required.
         # Create commit message
         commit_message = f"""feat({story_key}): {summary}
 
-Implemented by EngineO Autonomous Execution Engine (IMPLEMENTER v3.2)
+Implemented by EngineO Autonomous Execution Engine (IMPLEMENTER v3.3)
 
 Files modified:
 {chr(10).join(['- ' + f for f in filtered_files])}
@@ -4076,12 +4185,15 @@ Branch: {self.config.feature_branch}
             self.log("IMPLEMENTER", "Failed to create commit")
             return False
 
-        # Push
-        if not self.git.push():
-            self.log("IMPLEMENTER", "Failed to push to remote")
-            return False
+        # AUTOVERIFY-AUTOFIX-LOOP-SAFETY-1 PATCH 4: Push only if enabled
+        if git_push_enabled():
+            if not self.git.push():
+                self.log("IMPLEMENTER", "Failed to push to remote")
+                return False
+            self.log("IMPLEMENTER", "Changes committed and pushed successfully")
+        else:
+            self.log("IMPLEMENTER", "Changes committed (push disabled via ENGINEO_GIT_PUSH_ENABLED=0)")
 
-        self.log("IMPLEMENTER", "Changes committed and pushed successfully")
         return True
 
     def verify_work_item(self, issue: dict) -> bool:
@@ -4094,12 +4206,25 @@ Branch: {self.config.feature_branch}
         - Auto-transitions to Done/Resolved if evidence complete
         - Handles BLOCKED status (included in Verify/Close queue)
 
+        AUTOVERIFY-AUTOFIX-LOOP-SAFETY-1 PATCH 4:
+        - Early return for human review/attention states (engine should not loop)
+        - Auto-verify automatable checklist items if enabled
+        - Route to HUMAN TO REVIEW AND CLOSE when only manual items remain
+        - Route to HUMAN ATTENTION NEEDED when auto-fix exhausted/ineligible
+
         Returns: True if any action was taken, False otherwise.
         """
         key = issue['key']
         summary = issue['fields']['summary']
         issue_type = issue['fields']['issuetype']['name']
         status = issue['fields']['status']['name']
+
+        # AUTOVERIFY-AUTOFIX-LOOP-SAFETY-1 PATCH 4: Early return for human states
+        human_review = contract_human_review_status()
+        human_attention = contract_human_attention_status()
+        if status in (human_review, human_attention):
+            self.log("SUPERVISOR", f"[{key}] Status is {status} - requires human intervention, skipping")
+            return False
 
         # PATCH 8: Include BLOCKED status in verification (not just In Progress)
         if status not in ("In Progress", "BLOCKED", "Blocked"):
@@ -4303,13 +4428,227 @@ Report `{report_path}` was missing the required `## Checklist` header.
             return True
 
         # PATCH 8: Check for unchecked items (fail-closed)
+        # AUTOVERIFY-AUTOFIX-LOOP-SAFETY-1 PATCH 4: Auto-verify automatable items first
         if "- [ ]" in report_content:
             unchecked_count = report_content.count("- [ ]")
             self.log("SUPERVISOR", f"[{key}] Report has {unchecked_count} unchecked checklist items")
 
+            work_entry = self.work_ledger.get(key)
+            current_commit_sha = self.git.get_head_sha() if hasattr(self.git, 'get_head_sha') else None
+
+            # AUTOVERIFY-AUTOFIX-LOOP-SAFETY-1: Check if auto-verify should run
+            if autoverify_enabled():
+                # Check cycle limit
+                auto_verify_runs = work_entry.auto_verify_runs if work_entry else 0
+                max_cycles = max_verify_cycles()
+
+                if auto_verify_runs < max_cycles:
+                    # Parse checklist items
+                    checklist_items = parse_checklist_items(report_content)
+                    automatable_unchecked = [i for i in checklist_items if not i.is_checked and i.command]
+                    manual_unchecked = [i for i in checklist_items if not i.is_checked and not i.command]
+
+                    if automatable_unchecked:
+                        self.log("SUPERVISOR", f"[{key}] Running auto-verify: {len(automatable_unchecked)} automatable, {len(manual_unchecked)} manual")
+
+                        # Run auto-verify
+                        artifacts_dir = Path(self.config.repo_path) / _artifact_dirname()
+                        av_result = run_auto_verify(
+                            story_key=key,
+                            report_path=str(report_full_path),
+                            working_dir=self.config.repo_path,
+                            artifacts_dir=str(artifacts_dir),
+                            log_func=lambda msg: self.log("SUPERVISOR", msg),
+                        )
+
+                        # Update auto_verify_runs counter
+                        new_verify_runs = auto_verify_runs + 1
+
+                        if av_result.all_automatable_passed:
+                            self.log("SUPERVISOR", f"[{key}] Auto-verify: all automatable items passed")
+
+                            # Re-read report (may have been updated by auto-verify)
+                            try:
+                                report_content = report_full_path.read_text(encoding='utf-8')
+                            except Exception:
+                                pass
+
+                            # Check if only manual items remain
+                            if av_result.has_manual_items:
+                                # Route to HUMAN TO REVIEW AND CLOSE
+                                self.log("SUPERVISOR", f"[{key}] Only manual items remain - routing to {human_review}")
+
+                                # Try to transition to human review
+                                names = self.jira.get_available_transition_names(key)
+                                chosen = choose_human_review_transition(names)
+
+                                if chosen:
+                                    self.jira.transition_issue(key, chosen)
+                                    self.log("SUPERVISOR", f"[{key}] Transitioned to {chosen}")
+
+                                # Post comment about what was auto-verified
+                                comment = f"""Supervisor Auto-Verify: PARTIAL PASS — manual items remain
+
+**Auto-verified items:** {len(av_result.items_checked)}
+**Manual items remaining:** {len(av_result.items_manual)}
+
+Evidence: `{Path(av_result.evidence_file).name if av_result.evidence_file else 'N/A'}`
+Summary: `{Path(av_result.summary_file).name if av_result.summary_file else 'N/A'}`
+
+Story transitioned to {human_review} for manual verification."""
+                                self.jira.add_comment(key, comment)
+
+                                # Update work ledger
+                                self._upsert_work_ledger_entry(
+                                    issue_key=key,
+                                    issue_type="Story",
+                                    status=human_review,
+                                    last_step=LastStep.VERIFY.value,
+                                    last_step_result=StepResult.SUCCESS.value,
+                                    auto_verify_runs=new_verify_runs,
+                                    verify_last_commit_sha=current_commit_sha,
+                                )
+
+                                return True
+                            else:
+                                # All items now checked - continue to commit evidence check
+                                self.log("SUPERVISOR", f"[{key}] All checklist items now checked")
+                                # Update work ledger with successful auto-verify
+                                self._upsert_work_ledger_entry(
+                                    issue_key=key,
+                                    issue_type="Story",
+                                    status=status,
+                                    last_step=LastStep.VERIFY.value,
+                                    auto_verify_runs=new_verify_runs,
+                                    verify_last_commit_sha=current_commit_sha,
+                                )
+                                # Fall through to commit evidence check
+
+                        elif av_result.items_failed:
+                            # Some automatable items failed
+                            self.log("SUPERVISOR", f"[{key}] Auto-verify: {len(av_result.items_failed)} items failed")
+
+                            # Get first failure for analysis
+                            first_failure = av_result.command_results[0] if av_result.command_results else None
+                            failure_type = first_failure.failure_type if first_failure else FailureType.UNKNOWN
+                            auto_fix_attempts = work_entry.auto_fix_attempts if work_entry else 0
+                            last_failure_hash = work_entry.last_failure_hash if work_entry else None
+
+                            # Compute failure hash
+                            if first_failure:
+                                new_failure_hash = compute_failure_hash(
+                                    first_failure.command,
+                                    first_failure.exit_code,
+                                    first_failure.stdout + first_failure.stderr
+                                )
+                            else:
+                                new_failure_hash = None
+
+                            # Check auto-fix eligibility
+                            # NOT eligible if: ENV_ERROR, TIMEOUT
+                            auto_fix_eligible = (
+                                failure_type not in (FailureType.ENV_ERROR, FailureType.TIMEOUT) and
+                                auto_fix_attempts < max_auto_fix_attempts()
+                            )
+
+                            # Loop safety: same failure hash without code change = no retry
+                            if new_failure_hash and new_failure_hash == last_failure_hash:
+                                if current_commit_sha == (work_entry.verify_last_commit_sha if work_entry else None):
+                                    self.log("SUPERVISOR", f"[{key}] Same failure hash without code change - not retrying")
+                                    auto_fix_eligible = False
+
+                            if auto_fix_eligible:
+                                # TODO: Trigger auto-fix (re-invoke implementer with fix prompt)
+                                # For now, route to human attention
+                                self.log("SUPERVISOR", f"[{key}] Auto-fix eligible but not yet implemented - routing to {human_attention}")
+                                auto_fix_eligible = False  # Disable until implemented
+
+                            if not auto_fix_eligible:
+                                # Route to HUMAN ATTENTION NEEDED
+                                self.log("SUPERVISOR", f"[{key}] Auto-fix ineligible/exhausted - routing to {human_attention}")
+
+                                # Try to transition to human attention
+                                names = self.jira.get_available_transition_names(key)
+                                chosen = choose_human_attention_transition(names)
+
+                                if chosen:
+                                    self.jira.transition_issue(key, chosen)
+                                    self.log("SUPERVISOR", f"[{key}] Transitioned to {chosen}")
+
+                                # Create blocking escalation
+                                if hasattr(self, "blocking_escalations") and self.blocking_escalations:
+                                    self.blocking_escalations.load()
+                                    if not self.blocking_escalations.load_error:
+                                        self.blocking_escalations.upsert_active(
+                                            key,
+                                            f"AUTO_VERIFY_FAILED_{failure_type.value if failure_type else 'UNKNOWN'}",
+                                            details=f"Command: {first_failure.command if first_failure else 'N/A'}",
+                                        )
+                                        self.blocking_escalations.save()
+
+                                # Post comment
+                                comment = f"""Supervisor Auto-Verify: FAILED — requires human attention
+
+**Failed items:** {len(av_result.items_failed)}
+**Failure type:** {failure_type.value if failure_type else 'UNKNOWN'}
+**Auto-fix attempts:** {auto_fix_attempts}/{max_auto_fix_attempts()}
+**Auto-verify cycles:** {new_verify_runs}/{max_cycles}
+
+Evidence: `{Path(av_result.evidence_file).name if av_result.evidence_file else 'N/A'}`
+Summary: `{Path(av_result.summary_file).name if av_result.summary_file else 'N/A'}`
+
+Story transitioned to {human_attention}."""
+                                self.jira.add_comment(key, comment)
+
+                                # Update work ledger
+                                now_iso = datetime.now(timezone.utc).isoformat()
+                                self._upsert_work_ledger_entry(
+                                    issue_key=key,
+                                    issue_type="Story",
+                                    status=human_attention,
+                                    last_step=LastStep.VERIFY.value,
+                                    last_step_result=StepResult.FAILED.value,
+                                    auto_verify_runs=new_verify_runs,
+                                    last_failure_hash=new_failure_hash,
+                                    last_failure_type=failure_type.value if failure_type else None,
+                                    last_failure_at=now_iso,
+                                    verify_last_commit_sha=current_commit_sha,
+                                )
+
+                                return True
+
+                else:
+                    # Verify cycles exhausted
+                    self.log("SUPERVISOR", f"[{key}] Auto-verify cycles exhausted ({auto_verify_runs}/{max_cycles}) - routing to {human_attention}")
+
+                    # Route to HUMAN ATTENTION NEEDED
+                    names = self.jira.get_available_transition_names(key)
+                    chosen = choose_human_attention_transition(names)
+
+                    if chosen:
+                        self.jira.transition_issue(key, chosen)
+                        self.log("SUPERVISOR", f"[{key}] Transitioned to {chosen}")
+
+                    comment = f"""Supervisor Verification: BLOCKED — auto-verify cycles exhausted
+
+**Auto-verify cycles:** {auto_verify_runs}/{max_cycles}
+
+Maximum auto-verify attempts reached. Manual intervention required."""
+                    self.jira.add_comment(key, comment)
+
+                    self._upsert_work_ledger_entry(
+                        issue_key=key,
+                        issue_type="Story",
+                        status=human_attention,
+                        last_step=LastStep.VERIFY.value,
+                        last_step_result=StepResult.FAILED.value,
+                    )
+
+                    return True
+
+            # Fallback: Auto-verify not enabled or no automatable items - use original logic
             # PATCH 2: Compute verify failure state
             verify_reason = f"unchecked_items_{unchecked_count}"
-            work_entry = self.work_ledger.get(key)
 
             # PATCH 2: Check comment de-dup
             if _should_post_verify_comment(work_entry, verify_reason, report_hash):
@@ -5609,29 +5948,45 @@ Commit and push were NOT performed.""")
 
             # Commit and push changes to feature branch
             # PATCH 5: Skip commit if Claude already committed (claude_committed=True)
+            # AUTOVERIFY-AUTOFIX-LOOP-SAFETY-1 PATCH 4: Respect git_push_enabled()
             commit_success = False
+            push_enabled = git_push_enabled()
             if claude_committed:
-                # Claude already committed - just push
-                self.log("IMPLEMENTER", f"Claude already committed ({head_sha_after[:8]}), pushing...")
-                commit_success = self.git.push()
-                if commit_success:
-                    self.log("IMPLEMENTER", f"Pushed Claude's commit to {self.config.feature_branch}")
+                # Claude already committed - push if enabled
+                if push_enabled:
+                    self.log("IMPLEMENTER", f"Claude already committed ({head_sha_after[:8]}), pushing...")
+                    commit_success = self.git.push()
+                    if commit_success:
+                        self.log("IMPLEMENTER", f"Pushed Claude's commit to {self.config.feature_branch}")
+                    else:
+                        self.log("IMPLEMENTER", "Failed to push Claude's commit")
                 else:
-                    self.log("IMPLEMENTER", "Failed to push Claude's commit")
+                    self.log("IMPLEMENTER", f"Claude already committed ({head_sha_after[:8]}), push disabled via ENGINEO_GIT_PUSH_ENABLED=0")
+                    commit_success = True  # Commit succeeded, push skipped
             elif modified_files:
                 self.log("IMPLEMENTER", "Committing changes to git...")
                 commit_success = self._commit_implementation(key, summary, modified_files, allow_docs)
                 if commit_success:
-                    self.log("IMPLEMENTER", f"Changes committed and pushed to {self.config.feature_branch}")
+                    if push_enabled:
+                        self.log("IMPLEMENTER", f"Changes committed and pushed to {self.config.feature_branch}")
+                    else:
+                        self.log("IMPLEMENTER", f"Changes committed to {self.config.feature_branch} (push disabled)")
                 else:
                     self.log("IMPLEMENTER", "Failed to commit changes - manual commit required")
 
             # Add success comment to Jira
             # PATCH 5: Properly reflect commit status when Claude committed
+            # AUTOVERIFY-AUTOFIX-LOOP-SAFETY-1 PATCH 4: Reflect push disabled state
             if claude_committed:
-                commit_status = "Claude committed and pushed" if commit_success else "Claude committed (push pending)"
+                if push_enabled:
+                    commit_status = "Claude committed and pushed" if commit_success else "Claude committed (push pending)"
+                else:
+                    commit_status = "Claude committed (push disabled)"
             else:
-                commit_status = "Committed and pushed" if commit_success else "Changes pending commit"
+                if push_enabled:
+                    commit_status = "Committed and pushed" if commit_success else "Changes pending commit"
+                else:
+                    commit_status = "Committed (push disabled)" if commit_success else "Changes pending commit"
             resolved_report_path = canonical_report_path  # Use canonical path from fail-fast check
             self.jira.add_comment(key, f"""
 Implementation completed by IMPLEMENTER.

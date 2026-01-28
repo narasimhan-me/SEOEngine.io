@@ -114,6 +114,14 @@ class WorkLedgerEntry:
     - reconcile_last_commented_fingerprint: string|null - dedup: last fingerprint commented
     - decomposition_skipped_at: ISO-8601 UTC string|null - when decomposition was skipped
     - decomposition_skip_reason: string|null - reason for decomposition skip
+
+    AUTOVERIFY-AUTOFIX-LOOP-SAFETY-1 PATCH 3 fields:
+    - auto_verify_runs: int - count of auto-verify cycles (bounded by max_verify_cycles)
+    - auto_fix_attempts: int - count of auto-fix attempts (bounded by max_auto_fix_attempts)
+    - last_failure_hash: string|null - hash of last failure (cmd+exit+output) for loop detection
+    - last_failure_type: string|null - classification of last failure (CODE_ERROR, TEST_FAILURE, etc.)
+    - last_failure_at: ISO-8601 UTC string|null - when last failure occurred
+    - verify_last_commit_sha: string|null - commit SHA at last verification (for "code changed" bypass)
     """
     issueKey: str
     issueType: str = "Story"
@@ -147,6 +155,13 @@ class WorkLedgerEntry:
     # EA/KAN: decomposition skip evidence
     decomposition_skipped_at: Optional[str] = None
     decomposition_skip_reason: Optional[str] = None
+    # AUTOVERIFY-AUTOFIX-LOOP-SAFETY-1 PATCH 3: Auto-verify/fix loop tracking
+    auto_verify_runs: int = 0
+    auto_fix_attempts: int = 0
+    last_failure_hash: Optional[str] = None
+    last_failure_type: Optional[str] = None
+    last_failure_at: Optional[str] = None
+    verify_last_commit_sha: Optional[str] = None
 
     def to_dict(self) -> dict:
         """Convert entry to dictionary for JSON serialization."""
@@ -188,6 +203,13 @@ class WorkLedgerEntry:
             # EA/KAN: decomposition skip evidence (backward compatible)
             decomposition_skipped_at=data.get('decomposition_skipped_at'),
             decomposition_skip_reason=data.get('decomposition_skip_reason'),
+            # AUTOVERIFY-AUTOFIX-LOOP-SAFETY-1 PATCH 3: Auto-verify/fix loop tracking (backward compatible)
+            auto_verify_runs=data.get('auto_verify_runs', 0),
+            auto_fix_attempts=data.get('auto_fix_attempts', 0),
+            last_failure_hash=data.get('last_failure_hash'),
+            last_failure_type=data.get('last_failure_type'),
+            last_failure_at=data.get('last_failure_at'),
+            verify_last_commit_sha=data.get('verify_last_commit_sha'),
         )
 
 

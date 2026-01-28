@@ -397,3 +397,77 @@ Jira workflows may have custom statuses (e.g., "Backlog", "Ready for Dev", "Wait
 | Stories for verification | `statusCategory = 'In Progress' OR status = 'BLOCKED'` |
 
 **Includes:** All In Progress statuses plus explicitly BLOCKED status.
+
+**Excludes (AUTOVERIFY-AUTOFIX-LOOP-SAFETY-1):**
+- `HUMAN TO REVIEW AND CLOSE` (requires human review)
+- `HUMAN ATTENTION NEEDED` (requires human intervention)
+
+## Auto-Verify (AUTOVERIFY-AUTOFIX-LOOP-SAFETY-1)
+
+The engine can automatically execute and verify checklist items marked with commands.
+
+### Enabling Auto-Verify
+
+```bash
+export ENGINEO_AUTOVERIFY_ENABLED=1
+```
+
+### Authoring Automatable Checklist Items
+
+#### Explicit AUTO Tag (Preferred)
+
+```markdown
+<!-- AUTO:CMD=pnpm type-check -->
+- [ ] Run type check
+```
+
+#### Backtick Fallback
+
+```markdown
+- [ ] Run `pnpm lint` to check code style
+```
+
+Only allowlisted commands without shell metacharacters are executed.
+
+### Command Allowlist
+
+Default allowlist (pnpm build disabled by default):
+- `pnpm type-check`
+- `pnpm lint`
+- `pnpm test`
+- `pnpm test:e2e`
+
+Configure via:
+```bash
+export ENGINEO_AUTOVERIFY_ALLOWLIST="pnpm type-check,pnpm lint,pnpm test"
+export ENGINEO_AUTOVERIFY_BUILD_ENABLED=1  # Enable pnpm build
+```
+
+### Human State Routing
+
+| Scenario | Transition |
+|----------|------------|
+| All automatable pass, manual items remain | HUMAN TO REVIEW AND CLOSE |
+| Automatable fails, auto-fix exhausted | HUMAN ATTENTION NEEDED |
+| Verify cycles exhausted | HUMAN ATTENTION NEEDED |
+
+### Configuration
+
+| Setting | Default | Env Variable |
+|---------|---------|--------------|
+| Auto-verify enabled | `false` | `ENGINEO_AUTOVERIFY_ENABLED` |
+| Command allowlist | See above | `ENGINEO_AUTOVERIFY_ALLOWLIST` |
+| Build enabled | `false` | `ENGINEO_AUTOVERIFY_BUILD_ENABLED` |
+| Command timeout | 300s | `ENGINEO_AUTOVERIFY_COMMAND_TIMEOUT` |
+| Max auto-fix attempts | 2 | `ENGINEO_MAX_AUTO_FIX_ATTEMPTS` |
+| Max verify cycles | 3 | `ENGINEO_MAX_VERIFY_CYCLES` |
+| Git push enabled | `false` | `ENGINEO_GIT_PUSH_ENABLED` |
+
+### Artifacts
+
+| Artifact | Path | Description |
+|----------|------|-------------|
+| Evidence file | `reports/{STORY_KEY}-evidence-{timestamp}.txt` | Redacted command output |
+| Summary file | `reports/{STORY_KEY}-auto-verify-summary.json` | Structured summary |
+
+See [docs/ENGINE-RUN-ARTIFACTS.md](../../docs/ENGINE-RUN-ARTIFACTS.md) for full documentation.

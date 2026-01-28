@@ -6,6 +6,29 @@ This document tracks all implementation phases and their completion status.
 
 
 
+
+## [KAN-36] Implement: [EA-25] EPIC 19 — EMPTY-STATE-CONTRACT-1
+
+**Implemented:** 2026-01-28 11:42 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `docs/IMPLEMENTATION_PLAN.md`
+- `scripts/autonomous-agent/.env.example`
+- `scripts/autonomous-agent/README.md`
+- `scripts/autonomous-agent/engine.py`
+- `scripts/autonomous-agent/tests/test_verify_backoff_no_spam.py`
+- `scripts/autonomous-agent/work_ledger.py`
+- `docs/EA-DONE-TICKETS-AND-LINKED-KAN.md`
+- `docs/ENGINE-RUN-ARTIFACTS.md`
+- `scripts/autonomous-agent/__init__.py`
+- `scripts/autonomous-agent/auto_verify.py`
+- `scripts/autonomous-agent/contracts.py`
+- `scripts/autonomous-agent/tests/test_autoverify_parser.py`
+- `scripts/autonomous-agent/tests/test_autoverify_workflow_transitions.py`
+
+---
+
 ## [KAN-34] Implement: [EA-24] EPIC 18 — KEYBOARD-&-FOCUS-INTEGRITY-1
 
 **Implemented:** 2026-01-28 11:09 UTC
@@ -3966,3 +3989,53 @@ _None at this time._
 | 7.49    | 2026-01-24 | **ISSUES-ENGINE-REMOUNT-1 FIXUP-7**: Trust copy tightening for Issues preview Apply CTA. (1) Updated page.tsx: changed inline preview Apply button label from "Apply to Shopify" to "Apply saved draft to Shopify" for trust clarity (no behavior change; data-testid="issue-apply-to-shopify-button" preserved; disabled gating unchanged; loading label "Applying…" unchanged; title attribute already clarifies "Applies saved draft only. Does not use AI."). **Copy-only trust tightening.** **No Playwright test changes required** - tests use stable data-testid selector. **Core files:** issues/page.tsx. **Phase ISSUES-ENGINE-REMOUNT-1 now COMPLETE.**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | 7.50    | 2026-01-24 | **ISSUES-ENGINE-REMOUNT-1 FIXUP-8**: Doc/Playwright alignment + config fix. **PATCH A (Manual testing doc copy alignment):** Updated DRAFT-CLARITY-AND-ACTION-TRUST-1.md Scenario 7 to reflect new button labels (replaced "Fix next" with "Fix now" in 4 instances; replaced "Apply button" with "Apply saved draft to Shopify button" in 4 instances; Issues preview Apply button trust copy now aligned with UI from FIXUP-7). **PATCH B (Playwright selector hardening):** Replaced text-based selector `button:has-text("Fix next")` with stable data-testid selector `[data-testid="issue-fix-next-button"]` in 2 instances; updated 3 comment references from "Fix next" to "Fix now" for consistency; hardened tests against UI copy drift. **PATCH C (Config fix + regression verification):** Fixed playwright.config.ts testDir from './tests/e2e' to './tests' (corrected test discovery: 38 tests in ./tests vs 2 in ./tests/e2e); verified test execution: 14 tests discovered and ran; selector changes validated (no selector-related errors); tests blocked by missing API server (environmental; not code-related). **Core files:** draft-clarity-and-action-trust-1.spec.ts, DRAFT-CLARITY-AND-ACTION-TRUST-1.md, playwright.config.ts. **Phase ISSUES-ENGINE-REMOUNT-1 doc/test alignment complete.**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | 7.51    | 2026-01-27 | **AUTONOMOUS-AGENT-RESUME-STATE-MACHINE-RECONCILE-1**: Autonomous execution engine hardening with persistent state and reconciliation. **PATCH 1 (Work Ledger):** Created work_ledger.py with WorkLedgerEntry dataclass (issueKey, issueType, parentKey, status_last_observed, last_step, children, decomposition_fingerprint, last_commit_sha, verification_report_path, last_error_fingerprint, last_error_at) and WorkLedger class with atomic writes (temp file + os.replace), crash safety, CRUD operations. **PATCH 2 (Dispatcher Priority):** Implemented dispatch_once() priority state machine: Recover > Verify/Close > Implement > Decompose > Intake; JQL helpers for status/statusCategory queries; --once CLI flag. **PATCH 3 (Idempotent Decomposition):** Created decomposition_manifest.py with SHA256 fingerprinting, intent_id computation, three modes (new/delta/skip); canonical path reports/{EPIC}-decomposition.json. **PATCH 4 (Canonical Report Contract):** Enforced reports/{ISSUE}-verification.md as only valid path (no timestamps/run_id); fail-fast validation with near-match suggestions. **PATCH 5 (Subprocess Hardening):** Added _is_fatal_claude_output() for "No messages returned", UnhandledPromiseRejection, cli.js stack traces; bounded retries (3 attempts, exponential backoff); error fingerprint recording. **PATCH 6 (Timeout Standardization):** Default CLAUDE_TIMEOUT_SECONDS=14400 (4 hours); CLI > env > default precedence. **PATCH 7 (Role Naming):** _format_log_line() with role normalization (CLAUDE→IMPLEMENTER+tool, SYSTEM→SUPERVISOR); model/tool parameters in log(). **PATCH 8 (BLOCKED Handling):** Evidence-based auto-close (report exists + checklist complete + commit evidence); reconcile_epic()/reconcile_idea() for cascading completion; BLOCKED status included in Verify/Close queue. **Core files:** work_ledger.py (NEW), decomposition_manifest.py (NEW), engine.py, .gitignore. **Tests:** test_work_ledger.py, test_dispatcher_priority.py, test_decomposition_manifest.py, test_report_path_resolution.py, test_subprocess_fatal_terminates_and_records_ledger.py, test_timeout_default_14400.py, test_log_formatter_role_model_tool.py, test_blocked_autoclose_and_epic_reconcile.py. **Docs:** docs/agent-resume-reconcile.md. **Manual Testing:** (1) Simulate "No messages returned" - confirm no hang + bounded retries + last_error_fingerprint recorded; (2) Restart agent mid-run - confirm resume via Work Ledger recover queue; (3) Run epic decomposition twice with unchanged description - confirm zero duplicates; change description - confirm delta mode creates only missing stories; (4) Create story with complete report + commits - confirm auto-close to Done. |
+
+
+## AUTONOMOUS-AGENT-AUTOVERIFY-AUTOFIX-LOOP-SAFETY-1
+
+**Date:** 2026-01-28
+**Status:** COMPLETE
+
+### Summary
+
+Implemented auto-verify functionality for automatable checklist items with bounded auto-fix attempts and human state routing. The engine can now automatically execute commands marked in verification reports, update reports with results, and route to appropriate human states when automation is exhausted.
+
+### Key Features
+
+1. **Auto-Verify Parser**: Detects automatable items via `<!-- AUTO:CMD=... -->` tags or backtick commands
+2. **Command Execution**: Sequential execution with timeout, output capture, and failure classification
+3. **Failure Type Classification**: CODE_ERROR, TEST_FAILURE, LINT_ERROR, TYPE_ERROR, ENV_ERROR, TIMEOUT
+4. **Human State Routing**: Routes to HUMAN TO REVIEW AND CLOSE or HUMAN ATTENTION NEEDED as appropriate
+5. **Loop Safety**: Same failure hash without code change prevents retry loops
+6. **Git Push Control**: Configurable push gating via ENGINEO_GIT_PUSH_ENABLED
+
+### Files Created
+
+- `scripts/autonomous-agent/contracts.py` - Configuration contracts and limits
+- `scripts/autonomous-agent/auto_verify.py` - Parser, runner, and report updater
+- `scripts/autonomous-agent/__init__.py` - Module initialization
+- `scripts/autonomous-agent/tests/test_autoverify_parser.py` - Parser unit tests
+- `scripts/autonomous-agent/tests/test_autoverify_workflow_transitions.py` - Workflow tests
+- `docs/ENGINE-RUN-ARTIFACTS.md` - Artifact documentation
+
+### Files Modified
+
+- `scripts/autonomous-agent/engine.py` - v3.3 with auto-verify wiring
+- `scripts/autonomous-agent/work_ledger.py` - New schema fields
+- `scripts/autonomous-agent/.env.example` - New env vars
+- `scripts/autonomous-agent/README.md` - Auto-verify documentation
+- `scripts/autonomous-agent/tests/test_verify_backoff_no_spam.py` - commit_changed tests
+
+### DoD Checklist
+
+- [x] contracts.py with configurable defaults + env overrides
+- [x] auto_verify.py with parser/runner/updater
+- [x] WorkLedgerEntry schema extended (backward compatible)
+- [x] Engine v3.3 with auto-verify flow wiring
+- [x] Git push gating via ENGINEO_GIT_PUSH_ENABLED
+- [x] Human state routing (HUMAN TO REVIEW AND CLOSE, HUMAN ATTENTION NEEDED)
+- [x] JiraClient.get_stories_for_verify_close excludes human states
+- [x] _should_attempt_verify commit_changed bypass
+- [x] Unit tests for parser and workflow transitions
+- [x] Documentation updated (ENGINE-RUN-ARTIFACTS.md, README.md)
+
