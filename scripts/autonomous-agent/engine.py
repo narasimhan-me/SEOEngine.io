@@ -173,7 +173,14 @@ VERIFICATION_REPORT_SKELETON_TEMPLATE = """# {issue_key} Verification Report
 
 ## Manual Testing
 
-[IMPLEMENTER: Describe manual testing performed]
+[IMPLEMENTER: Complete the following manual testing checklist]
+
+- [ ] Run engine with an Epic already marked Done and a Story Done but no manifest evidence; confirm Idea closes successfully
+- [ ] Confirm no repeated [RECOVER] ... missing artifact for Epics/Ideas
+- [ ] Trigger implementer step and confirm no NameError: name 'issue_key' is not defined in retry path
+- [ ] Confirm "commit exists but no modified files" case records commit + file list correctly
+
+**Notes**: [IMPLEMENTER: Add any additional testing notes or observations here]
 
 ---
 
@@ -214,6 +221,24 @@ def _jql_issuetype_in(types: List[str]) -> str:
 
 def _contract_idea_key_prefix() -> str:
     return os.environ.get("ENGINEO_CONTRACT_IDEA_KEY_PREFIX", "EA-").strip() or "EA-"
+
+
+def _contract_epic_key_prefix() -> str:
+    """Get expected key prefix for Epic issues (sanity check only).
+
+    PATCH 4: Configurable via ENGINEO_CONTRACT_EPIC_KEY_PREFIX (default: KAN-).
+    Used as sanity check only - issuetype remains authoritative.
+    """
+    return os.environ.get("ENGINEO_CONTRACT_EPIC_KEY_PREFIX", "KAN-").strip() or "KAN-"
+
+
+def _contract_story_key_prefix() -> str:
+    """Get expected key prefix for Story/Bug issues (sanity check only).
+
+    PATCH 4: Configurable via ENGINEO_CONTRACT_STORY_KEY_PREFIX (default: KAN-).
+    Used as sanity check only - issuetype remains authoritative.
+    """
+    return os.environ.get("ENGINEO_CONTRACT_STORY_KEY_PREFIX", "KAN-").strip() or "KAN-"
 
 
 def _contract_idea_issue_types() -> List[str]:
@@ -1994,6 +2019,25 @@ class GitClient:
             return [sha.strip() for sha in output.strip().split('\n') if sha.strip()]
         return []
 
+    def get_files_changed_in_commit(self, commit_sha: str) -> List[str]:
+        """Get list of files changed in a specific commit.
+
+        PATCH 5: Used for "work produced" detection when Claude commits
+        but working tree is clean (no modified files from porcelain status).
+
+        Args:
+            commit_sha: The commit SHA (short or full form).
+
+        Returns:
+            List of file paths changed in the commit.
+        """
+        success, output = self._run(
+            'diff-tree', '--no-commit-id', '--name-only', '-r', commit_sha
+        )
+        if success and output.strip():
+            return [f.strip() for f in output.strip().split('\n') if f.strip()]
+        return []
+
     def unstage_file(self, filepath: str) -> bool:
         """Unstage a specific file from the index."""
         success, output = self._run('reset', 'HEAD', '--', filepath)
@@ -3672,9 +3716,18 @@ DESCRIPTION: <description of change needed>
         head_sha_after = self.git.get_head_sha()
         commit_detected = bool(head_sha_after and head_sha_before and head_sha_after != head_sha_before)
 
+        # PATCH 5: If commit detected but modified_files is empty, get files from commit
+        reported_files = modified_files[:]  # Start with porcelain status files
+        claude_committed = False
+        if commit_detected and not modified_files:
+            # Claude committed but working tree is clean - get files from the commit
+            reported_files = self.git.get_files_changed_in_commit(head_sha_after)
+            claude_committed = True
+            self.log("IMPLEMENTER", f"Commit detected ({head_sha_after[:8]}), working tree clean, files from commit: {len(reported_files)}")
+
         if success:
             self.log("IMPLEMENTER", f"Claude Code completed implementation")
-            self.log("IMPLEMENTER", f"Modified files: {', '.join(modified_files) if modified_files else 'None detected'}")
+            self.log("IMPLEMENTER", f"Modified files: {', '.join(reported_files) if reported_files else 'None detected'}")
 
             # FIXUP-1 PATCH 2: Enforce canonical report existence BEFORE commit/push
             exists, canonical_report_path, remediation = _verify_canonical_report_or_fail_fast(
@@ -3709,15 +3762,25 @@ Commit and push were NOT performed.""")
                 return True  # Continue run, but mark as handled
 
             # Update IMPLEMENTATION_PLAN.md only if docs allowed
-            if modified_files:
+            # PATCH 5: Use reported_files (includes files from Claude's commit if working tree clean)
+            if reported_files:
                 if allow_docs:
-                    self._update_implementation_plan(key, summary, modified_files)
+                    self._update_implementation_plan(key, summary, reported_files)
                 else:
                     self.log("IMPLEMENTER", "Skipping IMPLEMENTATION_PLAN.md update (docs not allowed by ALLOWED FILES)")
 
             # Commit and push changes to feature branch
+            # PATCH 5: Skip commit if Claude already committed (claude_committed=True)
             commit_success = False
-            if modified_files:
+            if claude_committed:
+                # Claude already committed - just push
+                self.log("IMPLEMENTER", f"Claude already committed ({head_sha_after[:8]}), pushing...")
+                commit_success = self.git.push()
+                if commit_success:
+                    self.log("IMPLEMENTER", f"Pushed Claude's commit to {self.config.feature_branch}")
+                else:
+                    self.log("IMPLEMENTER", "Failed to push Claude's commit")
+            elif modified_files:
                 self.log("IMPLEMENTER", "Committing changes to git...")
                 commit_success = self._commit_implementation(key, summary, modified_files, allow_docs)
                 if commit_success:
@@ -3726,7 +3789,11 @@ Commit and push were NOT performed.""")
                     self.log("IMPLEMENTER", "Failed to commit changes - manual commit required")
 
             # Add success comment to Jira
-            commit_status = "Committed and pushed" if commit_success else "Changes pending commit"
+            # PATCH 5: Properly reflect commit status when Claude committed
+            if claude_committed:
+                commit_status = "Claude committed and pushed" if commit_success else "Claude committed (push pending)"
+            else:
+                commit_status = "Committed and pushed" if commit_success else "Changes pending commit"
             resolved_report_path = canonical_report_path  # Use canonical path from fail-fast check
             self.jira.add_comment(key, f"""
 Implementation completed by IMPLEMENTER.
@@ -3735,7 +3802,7 @@ Branch: {self.config.feature_branch}
 Status: {commit_status}
 Verification report: {resolved_report_path}
 Files modified:
-{chr(10).join(['- ' + f for f in modified_files]) if modified_files else '(see git log for details)'}
+{chr(10).join(['- ' + f for f in reported_files]) if reported_files else '(see git log for details)'}
 
 Ready for Supervisor verification.
 """)
@@ -4468,6 +4535,11 @@ Attempted transition: {chosen}"""
             self.log("SUPERVISOR", f"[{epic_key}] RECONCILE skip: issuetype '{issue_type_name}' not in contract epic types")
             return False
 
+        # PATCH 4: Key prefix sanity check (warning only, continue processing)
+        epic_prefix = _contract_epic_key_prefix()
+        if not epic_key.startswith(epic_prefix):
+            self.log("SUPERVISOR", f"[{epic_key}] WARNING: Epic key does not start with expected prefix '{epic_prefix}'")
+
         # === GUARD 2: Already Done guard ===
         epic_status = epic_issue.get("fields", {}).get("status", {}) or {}
         epic_status_name = epic_status.get("name", "")
@@ -4684,6 +4756,7 @@ Manual transition required."""
         non_done_epics = []
         epics_missing_decomp = []
         epic_statuses = []  # For fingerprint computation
+        now_iso = datetime.now(timezone.utc).isoformat()
 
         for epic in epics:
             epic_key = epic.get('key', '')
@@ -4698,6 +4771,35 @@ Manual transition required."""
             has_fingerprint = epic_entry and epic_entry.decomposition_fingerprint
             has_skip_evidence = epic_entry and epic_entry.decomposition_skipped_at
             has_decomp_evidence = has_manifest or has_fingerprint or has_skip_evidence
+
+            # === PATCH 3: Inferred evidence for Done Epics missing decomposition ===
+            # If Epic is Done but missing evidence, try to infer from resolved children
+            is_epic_done = _is_done_status(epic_status_name, epic_status_category)
+            if is_epic_done and not has_decomp_evidence:
+                # Attempt inferred evidence: check if all children are terminal
+                epic_children = self.jira.get_children_for_epic(epic_key)
+                if epic_children:
+                    all_children_terminal = True
+                    for child in epic_children:
+                        child_status = child.get('fields', {}).get('status', {}) or {}
+                        child_status_name = child_status.get('name', '')
+                        child_status_category = (child_status.get('statusCategory', {}) or {}).get('name', '')
+                        if not _is_terminal_child_status(child_status_name, child_status_category):
+                            all_children_terminal = False
+                            break
+
+                    if all_children_terminal:
+                        # Backfill durable marker on Epic ledger
+                        self.log("SUPERVISOR", f"[{epic_key}] Inferred decomposition evidence from {len(epic_children)} resolved children")
+                        if not epic_entry:
+                            # Create entry for Epic
+                            epic_entry = WorkLedgerEntry(issueKey=epic_key, issueType="Epic")
+                        epic_entry.decomposition_skipped_at = now_iso
+                        epic_entry.decomposition_skip_reason = "inferred_from_resolved_children"
+                        self.work_ledger.upsert(epic_entry)
+                        self.work_ledger.save()
+                        # Mark as having evidence for this run
+                        has_decomp_evidence = True
 
             # Include decomposition flag in fingerprint
             decomp_flag = "D" if has_decomp_evidence else "N"
@@ -5304,6 +5406,11 @@ Ready for Developer implementation.
         description = self.jira.parse_adf_to_text(issue['fields'].get('description', {}))
         status = issue['fields']['status']['name'].lower()
 
+        # PATCH 4: Key prefix sanity check (warning only, continue processing)
+        story_prefix = _contract_story_key_prefix()
+        if not key.startswith(story_prefix):
+            self.log("IMPLEMENTER", f"[{key}] WARNING: Story/Bug key does not start with expected prefix '{story_prefix}'")
+
         self.log("IMPLEMENTER", f"Implementing Story: [{key}] {summary}")
 
         # Check if docs modifications are allowed by ALLOWED FILES constraints
@@ -5390,9 +5497,18 @@ Expected paths searched:
         head_sha_after = self.git.get_head_sha()
         commit_detected = bool(head_sha_after and head_sha_before and head_sha_after != head_sha_before)
 
+        # PATCH 5: If commit detected but modified_files is empty, get files from commit
+        reported_files = modified_files[:]  # Start with porcelain status files
+        claude_committed = False
+        if commit_detected and not modified_files:
+            # Claude committed but working tree is clean - get files from the commit
+            reported_files = self.git.get_files_changed_in_commit(head_sha_after)
+            claude_committed = True
+            self.log("IMPLEMENTER", f"Commit detected ({head_sha_after[:8]}), working tree clean, files from commit: {len(reported_files)}")
+
         if success:
             self.log("IMPLEMENTER", f"Claude Code completed implementation")
-            self.log("IMPLEMENTER", f"Modified files: {', '.join(modified_files) if modified_files else 'None detected'}")
+            self.log("IMPLEMENTER", f"Modified files: {', '.join(reported_files) if reported_files else 'None detected'}")
 
             # FIXUP-1 PATCH 2: Enforce canonical report existence BEFORE commit/push
             exists, canonical_report_path, remediation = _verify_canonical_report_or_fail_fast(
@@ -5427,15 +5543,25 @@ Commit and push were NOT performed.""")
                 return True  # Continue run, but mark as handled
 
             # Update IMPLEMENTATION_PLAN.md only if docs allowed
-            if modified_files:
+            # PATCH 5: Use reported_files (includes files from Claude's commit if working tree clean)
+            if reported_files:
                 if allow_docs:
-                    self._update_implementation_plan(key, summary, modified_files)
+                    self._update_implementation_plan(key, summary, reported_files)
                 else:
                     self.log("IMPLEMENTER", "Skipping IMPLEMENTATION_PLAN.md update (docs not allowed by ALLOWED FILES)")
 
             # Commit and push changes to feature branch
+            # PATCH 5: Skip commit if Claude already committed (claude_committed=True)
             commit_success = False
-            if modified_files:
+            if claude_committed:
+                # Claude already committed - just push
+                self.log("IMPLEMENTER", f"Claude already committed ({head_sha_after[:8]}), pushing...")
+                commit_success = self.git.push()
+                if commit_success:
+                    self.log("IMPLEMENTER", f"Pushed Claude's commit to {self.config.feature_branch}")
+                else:
+                    self.log("IMPLEMENTER", "Failed to push Claude's commit")
+            elif modified_files:
                 self.log("IMPLEMENTER", "Committing changes to git...")
                 commit_success = self._commit_implementation(key, summary, modified_files, allow_docs)
                 if commit_success:
@@ -5444,7 +5570,11 @@ Commit and push were NOT performed.""")
                     self.log("IMPLEMENTER", "Failed to commit changes - manual commit required")
 
             # Add success comment to Jira
-            commit_status = "Committed and pushed" if commit_success else "Changes pending commit"
+            # PATCH 5: Properly reflect commit status when Claude committed
+            if claude_committed:
+                commit_status = "Claude committed and pushed" if commit_success else "Claude committed (push pending)"
+            else:
+                commit_status = "Committed and pushed" if commit_success else "Changes pending commit"
             resolved_report_path = canonical_report_path  # Use canonical path from fail-fast check
             self.jira.add_comment(key, f"""
 Implementation completed by IMPLEMENTER.
@@ -5453,7 +5583,7 @@ Branch: {self.config.feature_branch}
 Status: {commit_status}
 Verification report: {resolved_report_path}
 Files modified:
-{chr(10).join(['- ' + f for f in modified_files]) if modified_files else '(see git log for details)'}
+{chr(10).join(['- ' + f for f in reported_files]) if reported_files else '(see git log for details)'}
 
 Ready for Supervisor verification.
 """)
@@ -5730,7 +5860,7 @@ Begin implementation now.
                                 # PATCH 5-A: Fatal output detection using rolling buffer (boundary-safe)
                                 if _is_fatal_claude_output(recent_output_buf):
                                     # FIXUP-2 PATCH 2: Include tool/model metadata
-                                    self.log("IMPLEMENTER", f"[{issue_key}] Fatal error detected, killing process", model=MODEL_IMPLEMENTER, tool="claude-code-cli")
+                                    self.log("IMPLEMENTER", f"[{story_key}] Fatal error detected, killing process", model=MODEL_IMPLEMENTER, tool="claude-code-cli")
                                     try:
                                         os.killpg(os.getpgid(process.pid), 15)  # SIGTERM
                                         process.wait(timeout=5)

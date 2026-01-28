@@ -363,6 +363,144 @@ class TestResumableEntries(unittest.TestCase):
             resumable = ledger.get_resumable_entries()
             self.assertEqual(len(resumable), 0)
 
+    def test_epic_with_reconcile_step_missing_report_not_resumable(self):
+        """PATCH 2: Epic entry with last_step=RECONCILE + missing report must NOT be resumable.
+
+        Epics/Ideas are NOT resumable solely due to missing canonical reports.
+        Only implement issue types (Story/Bug) are resumable when missing reports.
+        """
+        with tempfile.TemporaryDirectory() as tmpdir:
+            ledger = WorkLedger(tmpdir)
+
+            # Epic with RECONCILE step but missing verification report
+            entry = WorkLedgerEntry(
+                issueKey="KAN-10",
+                issueType="Epic",
+                last_step="RECONCILE",
+                verification_report_path="",  # Missing report
+            )
+            ledger.upsert(entry)
+
+            resumable = ledger.get_resumable_entries()
+            # Epic should NOT be resumable due to missing report
+            self.assertEqual(len(resumable), 0)
+
+    def test_idea_with_reconcile_step_missing_report_not_resumable(self):
+        """PATCH 2: Idea entry with last_step=RECONCILE + missing report must NOT be resumable."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            ledger = WorkLedger(tmpdir)
+
+            # Idea with RECONCILE step but missing verification report
+            entry = WorkLedgerEntry(
+                issueKey="EA-19",
+                issueType="Idea",
+                last_step="RECONCILE",
+                verification_report_path="",  # Missing report
+            )
+            ledger.upsert(entry)
+
+            resumable = ledger.get_resumable_entries()
+            # Idea should NOT be resumable due to missing report
+            self.assertEqual(len(resumable), 0)
+
+    def test_story_with_verify_step_missing_report_is_resumable(self):
+        """PATCH 2: Story entry with last_step=VERIFY + missing report MUST be resumable."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            ledger = WorkLedger(tmpdir)
+
+            # Story with VERIFY step but missing verification report
+            entry = WorkLedgerEntry(
+                issueKey="KAN-17",
+                issueType="Story",
+                last_step="VERIFY",
+                verification_report_path="",  # Missing report
+            )
+            ledger.upsert(entry)
+
+            resumable = ledger.get_resumable_entries()
+            # Story MUST be resumable due to missing report
+            self.assertEqual(len(resumable), 1)
+            self.assertEqual(resumable[0].issueKey, "KAN-17")
+
+    def test_bug_with_verify_step_missing_report_is_resumable(self):
+        """PATCH 2: Bug entry with last_step=VERIFY + missing report MUST be resumable."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            ledger = WorkLedger(tmpdir)
+
+            # Bug with VERIFY step but missing verification report
+            entry = WorkLedgerEntry(
+                issueKey="KAN-20",
+                issueType="Bug",
+                last_step="VERIFY",
+                verification_report_path="",  # Missing report
+            )
+            ledger.upsert(entry)
+
+            resumable = ledger.get_resumable_entries()
+            # Bug MUST be resumable due to missing report
+            self.assertEqual(len(resumable), 1)
+            self.assertEqual(resumable[0].issueKey, "KAN-20")
+
+    def test_epic_with_error_fingerprint_is_still_resumable(self):
+        """PATCH 2: Epic with error fingerprint IS resumable (error-based resumption)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            ledger = WorkLedger(tmpdir)
+
+            # Epic with error fingerprint (failed during processing)
+            entry = WorkLedgerEntry(
+                issueKey="KAN-10",
+                issueType="Epic",
+                last_step="RECONCILE",
+                last_error_fingerprint="error_hash",
+                last_error_at="2026-01-27T12:00:00Z",
+            )
+            ledger.upsert(entry)
+
+            resumable = ledger.get_resumable_entries()
+            # Epic with error IS resumable (error-based, not report-based)
+            self.assertEqual(len(resumable), 1)
+            self.assertEqual(resumable[0].issueKey, "KAN-10")
+
+    def test_mixed_types_only_implement_types_resumable_for_missing_reports(self):
+        """PATCH 2: Mixed issue types - only Story/Bug resumable for missing reports."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            ledger = WorkLedger(tmpdir)
+
+            # Add Epic with missing report
+            ledger.upsert(WorkLedgerEntry(
+                issueKey="KAN-10",
+                issueType="Epic",
+                last_step="RECONCILE",
+                verification_report_path="",
+            ))
+            # Add Idea with missing report
+            ledger.upsert(WorkLedgerEntry(
+                issueKey="EA-19",
+                issueType="Idea",
+                last_step="RECONCILE",
+                verification_report_path="",
+            ))
+            # Add Story with missing report
+            ledger.upsert(WorkLedgerEntry(
+                issueKey="KAN-17",
+                issueType="Story",
+                last_step="VERIFY",
+                verification_report_path="",
+            ))
+            # Add Bug with missing report
+            ledger.upsert(WorkLedgerEntry(
+                issueKey="KAN-20",
+                issueType="Bug",
+                last_step="VERIFY",
+                verification_report_path="",
+            ))
+
+            resumable = ledger.get_resumable_entries()
+            # Only Story and Bug should be resumable
+            resumable_keys = {e.issueKey for e in resumable}
+            self.assertEqual(resumable_keys, {"KAN-17", "KAN-20"})
+            self.assertEqual(len(resumable), 2)
+
 
 class TestHelperFunctions(unittest.TestCase):
     """Test helper functions."""

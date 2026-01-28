@@ -25,6 +25,28 @@ from enum import Enum
 WORK_LEDGER_FILENAME = "work_ledger.json"
 WORK_LEDGER_VERSION = 1
 
+# Default implement issue types (for resumable-entry detection)
+DEFAULT_IMPLEMENT_ISSUE_TYPES = "Story,Bug"
+
+
+def _get_implement_issue_types() -> set:
+    """Get the set of implement issue types from config.
+
+    Parses ENGINEO_CONTRACT_IMPLEMENT_ISSUE_TYPES (default: Story,Bug).
+    Returns lowercase set for case-insensitive comparison.
+
+    Fail-closed: if parsing fails, returns {"story", "bug"}.
+    """
+    try:
+        raw = os.environ.get("ENGINEO_CONTRACT_IMPLEMENT_ISSUE_TYPES", DEFAULT_IMPLEMENT_ISSUE_TYPES)
+        types = [t.strip().lower() for t in raw.split(",") if t.strip()]
+        if types:
+            return set(types)
+    except Exception:
+        pass
+    # Fail-closed fallback
+    return {"story", "bug"}
+
 
 class LastStep(str, Enum):
     """Terminal step states for work ledger entries."""
@@ -322,8 +344,13 @@ class WorkLedger:
         1. last_step is set AND
         2. Either:
            a. Required artifact missing (canonical verification report for VERIFY/RECONCILE)
+              ONLY for implement issue types (Story/Bug by default)
            b. last_error_fingerprint is present (terminal failure, may have retries)
         3. AND NOT a non-retryable error (AGENT_TEMPLATE_ERROR)
+
+        PATCH 2: Epics/Ideas are NOT resumable solely due to missing canonical reports.
+        Only implement issue types (configurable via ENGINEO_CONTRACT_IMPLEMENT_ISSUE_TYPES)
+        are resumable when missing canonical verification reports.
 
         Args:
             canonical_report_checker: Optional callable(issue_key) -> bool
@@ -334,6 +361,9 @@ class WorkLedger:
         """
         # FIXUP-1 PATCH 2: Non-retryable fingerprint for AGENT_TEMPLATE_ERROR
         agent_template_error_fp = compute_error_fingerprint(LastStep.IMPLEMENTER.value, "AGENT_TEMPLATE_ERROR")
+
+        # PATCH 2: Get implement issue types (Story/Bug by default)
+        implement_types = _get_implement_issue_types()
 
         resumable = []
         for entry in self._entries.values():
@@ -350,7 +380,13 @@ class WorkLedger:
                 continue
 
             # Check for missing artifacts in VERIFY/RECONCILE paths
+            # PATCH 2: Only implement issue types (Story/Bug) are resumable due to missing reports
+            # Epics/Ideas are NOT resumable solely due to missing canonical reports
             if entry.last_step in (LastStep.VERIFY.value, LastStep.RECONCILE.value):
+                # Skip non-implement types (Epic, Idea) for missing report resumption
+                if entry.issueType.lower() not in implement_types:
+                    continue
+
                 if canonical_report_checker:
                     if not canonical_report_checker(entry.issueKey):
                         resumable.append(entry)

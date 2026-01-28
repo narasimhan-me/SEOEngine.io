@@ -573,8 +573,8 @@ class TestIdeaReconciliation(unittest.TestCase):
         self.assertFalse(result)
         engine.jira.transition_issue.assert_not_called()
 
-    def test_idea_not_reconciled_if_child_epic_missing_decomposition_evidence(self):
-        """Idea not reconciled when a child Epic is missing decomposition evidence."""
+    def test_idea_not_reconciled_if_child_epic_missing_decomposition_no_children(self):
+        """PATCH 3: Idea blocked when Epic missing decomposition has no children (cannot infer)."""
         # Create Epic entry without decomposition evidence
         from work_ledger import WorkLedgerEntry
         epic_without_decomp = MagicMock(spec=WorkLedgerEntry)
@@ -603,12 +603,109 @@ class TestIdeaReconciliation(unittest.TestCase):
             {'key': 'KAN-11', 'fields': {'status': {'name': 'Done', 'statusCategory': {'name': 'Done'}}, 'summary': 'Epic 2'}},
         ]
 
+        # Mock KAN-11 has NO children - cannot infer evidence
+        engine.jira.get_children_for_epic.return_value = []
+
         result = engine.reconcile_idea("EA-19")
 
         self.assertFalse(result)
         engine.jira.transition_issue.assert_not_called()
         # Should have posted a comment about missing decomposition
         engine.jira.add_comment.assert_called()
+
+    def test_idea_not_reconciled_if_child_epic_missing_decomposition_children_not_terminal(self):
+        """PATCH 3: Idea blocked when Epic missing decomposition has non-terminal children."""
+        from work_ledger import WorkLedgerEntry
+        epic_without_decomp = MagicMock(spec=WorkLedgerEntry)
+        epic_without_decomp.decomposition_fingerprint = None
+        epic_without_decomp.decomposition_skipped_at = None
+
+        epic_entries = {
+            'KAN-10': MagicMock(spec=WorkLedgerEntry, decomposition_fingerprint="abc123", decomposition_skipped_at=None),
+            'KAN-11': epic_without_decomp,  # Missing decomposition evidence
+        }
+
+        engine = self._create_mock_engine(epic_entries=epic_entries)
+
+        engine.jira.get_issue.return_value = {
+            'key': 'EA-19',
+            'fields': {
+                'issuetype': {'name': 'Idea'},
+                'status': {'name': 'In Progress', 'statusCategory': {'name': 'In Progress'}},
+            }
+        }
+
+        engine.jira.get_epics_for_idea.return_value = [
+            {'key': 'KAN-10', 'fields': {'status': {'name': 'Done', 'statusCategory': {'name': 'Done'}}, 'summary': 'Epic 1'}},
+            {'key': 'KAN-11', 'fields': {'status': {'name': 'Done', 'statusCategory': {'name': 'Done'}}, 'summary': 'Epic 2'}},
+        ]
+
+        # Mock KAN-11 has children but one is NOT terminal
+        engine.jira.get_children_for_epic.return_value = [
+            {'key': 'KAN-20', 'fields': {'status': {'name': 'In Progress', 'statusCategory': {'name': 'In Progress'}}}},  # Not terminal
+        ]
+
+        result = engine.reconcile_idea("EA-19")
+
+        self.assertFalse(result)
+        engine.jira.transition_issue.assert_not_called()
+        engine.jira.add_comment.assert_called()
+
+    def test_idea_reconciled_with_inferred_evidence_from_resolved_children(self):
+        """PATCH 3: Idea reconciles when Epic missing decomposition has all children terminal (inferred evidence)."""
+        from work_ledger import WorkLedgerEntry
+
+        # Create real WorkLedgerEntry for Epic without decomposition (will be backfilled)
+        epic_entry = WorkLedgerEntry(issueKey='KAN-11', issueType='Epic')
+        epic_entry.decomposition_fingerprint = None
+        epic_entry.decomposition_skipped_at = None
+
+        epic_entries = {
+            'KAN-10': MagicMock(spec=WorkLedgerEntry, decomposition_fingerprint="abc123", decomposition_skipped_at=None),
+        }
+
+        engine = self._create_mock_engine(epic_entries=epic_entries)
+
+        # Override work_ledger.get to return proper entry for KAN-11
+        original_get = engine.work_ledger.get
+
+        def mock_get(key):
+            if key == 'KAN-11':
+                return epic_entry
+            return original_get(key)
+
+        engine.work_ledger.get = MagicMock(side_effect=mock_get)
+
+        engine.jira.get_issue.return_value = {
+            'key': 'EA-19',
+            'fields': {
+                'issuetype': {'name': 'Idea'},
+                'status': {'name': 'In Progress', 'statusCategory': {'name': 'In Progress'}},
+            }
+        }
+
+        engine.jira.get_epics_for_idea.return_value = [
+            {'key': 'KAN-10', 'fields': {'status': {'name': 'Done', 'statusCategory': {'name': 'Done'}}, 'summary': 'Epic 1'}},
+            {'key': 'KAN-11', 'fields': {'status': {'name': 'Done', 'statusCategory': {'name': 'Done'}}, 'summary': 'Epic 2'}},
+        ]
+
+        # Mock KAN-11 has children and ALL are terminal (Done)
+        engine.jira.get_children_for_epic.return_value = [
+            {'key': 'KAN-20', 'fields': {'status': {'name': 'Done', 'statusCategory': {'name': 'Done'}}}},
+            {'key': 'KAN-21', 'fields': {'status': {'name': 'Done', 'statusCategory': {'name': 'Done'}}}},
+        ]
+
+        # Mock successful transition
+        engine.jira.get_available_transition_names.return_value = ['Done']
+        engine.jira.transition_issue.return_value = True
+
+        result = engine.reconcile_idea("EA-19")
+
+        self.assertTrue(result)
+        engine.jira.transition_issue.assert_called_once_with("EA-19", "Done")
+        # Verify epic_entry was backfilled with inferred evidence
+        self.assertIsNotNone(epic_entry.decomposition_skipped_at)
+        self.assertEqual(epic_entry.decomposition_skip_reason, "inferred_from_resolved_children")
 
     def test_idea_not_reconciled_if_already_done(self):
         """Idea not reconciled when it's already Done."""
