@@ -458,7 +458,6 @@ export function ContextPanelIssueDetails({
             priorityRationale={rationale}
             prioritizationFactors={factors}
             confidence={issue.confidence}
-            confidenceConsideration={issue.confidenceConsideration}
             compact={false}
           />
         );
