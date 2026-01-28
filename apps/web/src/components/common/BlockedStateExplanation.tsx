@@ -42,7 +42,7 @@ const categoryConfig: Record<
   { icon: IconManifestKey; bgClass: string; borderClass: string; textClass: string }
 > = {
   approval_required: {
-    icon: 'workflow.pending',
+    icon: 'status.warning',
     bgClass: 'bg-[hsl(var(--warning-background))]',
     borderClass: 'border-[hsl(var(--warning-foreground)/0.2)]',
     textClass: 'text-[hsl(var(--warning-foreground))]',
@@ -54,7 +54,7 @@ const categoryConfig: Record<
     textClass: 'text-[hsl(var(--danger-foreground))]',
   },
   system: {
-    icon: 'status.info',
+    icon: 'utility.visibility',
     bgClass: 'bg-[hsl(var(--info-background))]',
     borderClass: 'border-[hsl(var(--info-foreground)/0.2)]',
     textClass: 'text-[hsl(var(--info-foreground))]',
@@ -131,10 +131,9 @@ export function BlockedStateExplanation({
               {action.href ? (
                 <a
                   href={action.href}
-                  className={`inline-flex items-center text-sm font-medium ${config.textClass} hover:underline`}
+                  className={`text-sm font-medium ${config.textClass} hover:underline`}
                 >
                   {action.label}
-                  <Icon name="nav.external" size={14} className="ml-1" aria-hidden="true" />
                 </a>
               ) : (
                 <button
