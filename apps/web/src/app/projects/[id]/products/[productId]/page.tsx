@@ -58,6 +58,13 @@ import {
   type ProductMetadataSuggestion,
   type AutomationSuggestion,
 } from '@/components/products/optimization';
+// [APPLY-ACTION-GOVERNANCE-1] Import Apply governance utilities
+import {
+  deriveApplyGovernance,
+  applyGovernanceToMetadata,
+  type ApplyGovernanceResult,
+} from '@/lib/apply-governance';
+import { getRoleCapabilities, type RoleCapabilities } from '@/lib/api';
 import {
   ProductAnswersPanel,
   type ProductAnswersResponse,
@@ -274,6 +281,17 @@ export default function ProductOptimizationPage() {
 
   // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Draft lifecycle state
   const { setHasUnsavedChanges } = useUnsavedChanges();
+  // [APPLY-ACTION-GOVERNANCE-1] Role capabilities for governance
+  const [roleCapabilities, setRoleCapabilities] = useState<RoleCapabilities>({
+    canView: true,
+    canGenerateDrafts: true,
+    canRequestApproval: true,
+    canApprove: true,
+    canApply: true,
+    canModifySettings: true,
+    canManageMembers: true,
+    canExport: true,
+  });
   // [RIGHT-CONTEXT-PANEL-AUTONOMY-1 FIXUP-3] RCP descriptor hydration
   const {
     isOpen: rcpIsOpen,
@@ -322,6 +340,16 @@ export default function ProductOptimizationPage() {
   const canApplyToShopify = useMemo(() => {
     return draftState === 'saved' && savedDraft !== null;
   }, [draftState, savedDraft]);
+
+  // [APPLY-ACTION-GOVERNANCE-1] Derive Apply governance state
+  const applyGovernance: ApplyGovernanceResult = useMemo(() => {
+    return deriveApplyGovernance({
+      draftState,
+      roleCapabilities,
+      isApplying: applyingToShopify,
+      projectId,
+    });
+  }, [draftState, roleCapabilities, applyingToShopify, projectId]);
 
   // Sync unsaved changes with global provider
   useEffect(() => {
@@ -911,30 +939,56 @@ export default function ProductOptimizationPage() {
   }, [router, fetchData]);
 
   // [RIGHT-CONTEXT-PANEL-AUTONOMY-1 FIXUP-3] Hydrate RCP descriptor with product title
+  // [APPLY-ACTION-GOVERNANCE-1] Include Apply governance state in RCP metadata
   // Only runs when panel is open with matching product; does NOT reopen if dismissed
   useEffect(() => {
     if (
       !rcpIsOpen ||
       rcpDescriptor?.kind !== 'product' ||
-      rcpDescriptor.id !== productId ||
-      !product?.title ||
-      rcpDescriptor.title === product.title
+      rcpDescriptor.id !== productId
     ) {
       return;
     }
-    // Enrich descriptor with display title (in-place update, no close/reopen)
+
+    // Check if we need to update (title changed or governance changed)
+    const currentApplyState = rcpDescriptor.metadata?.applyState;
+    const needsTitleUpdate = product?.title && rcpDescriptor.title !== product.title;
+    const needsGovernanceUpdate = currentApplyState !== applyGovernance.state;
+
+    if (!needsTitleUpdate && !needsGovernanceUpdate) {
+      return;
+    }
+
+    // Build Apply governance metadata
+    const governanceMetadata = applyGovernanceToMetadata(applyGovernance);
+
+    // Enrich descriptor with display title and governance state
     rcpOpenPanel({
       kind: 'product',
       id: productId,
-      title: product.title,
+      title: product?.title || rcpDescriptor.title,
       scopeProjectId: projectId,
+      openHref: `/projects/${projectId}/products/${productId}`,
+      openHrefLabel: 'Open product details',
+      metadata: {
+        ...rcpDescriptor.metadata,
+        ...governanceMetadata,
+        draftState,
+        lastAppliedAt: appliedAt || product?.lastOptimizedAt || undefined,
+        status: product ? getProductStatus(product) : undefined,
+        issueCount: String(productIssues.length),
+      },
     });
   }, [
     rcpIsOpen,
     rcpDescriptor,
     productId,
     projectId,
-    product?.title,
+    product,
+    applyGovernance,
+    draftState,
+    appliedAt,
+    productIssues.length,
     rcpOpenPanel,
   ]);
 
@@ -1093,16 +1147,25 @@ export default function ProductOptimizationPage() {
                   <button
                     type="button"
                     data-testid="header-apply-to-shopify-button"
+                    data-apply-state={applyGovernance.state}
                     onClick={handleApplyToShopify}
-                    disabled={applyingToShopify || !canApplyToShopify}
+                    disabled={applyGovernance.state !== 'CAN_APPLY'}
+                    aria-disabled={applyGovernance.state !== 'CAN_APPLY'}
+                    aria-busy={applyGovernance.state === 'IN_PROGRESS'}
                     title={
-                      !canApplyToShopify
-                        ? 'Save draft first; Apply uses saved drafts only and never auto-saves.'
-                        : 'Apply saved draft to Shopify'
+                      applyGovernance.state === 'CANNOT_APPLY'
+                        ? applyGovernance.reason || 'Cannot apply'
+                        : applyGovernance.state === 'CAN_APPLY'
+                          ? 'Apply saved draft to Shopify'
+                          : 'Applying to Shopify...'
                     }
-                    className="inline-flex items-center rounded-md border border-transparent bg-[hsl(var(--success))] px-4 py-2 text-sm font-medium text-[hsl(var(--primary-foreground))] shadow-sm hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--success))] focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-60"
+                    className={`inline-flex items-center rounded-md border border-transparent px-4 py-2 text-sm font-medium shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                      applyGovernance.state === 'CAN_APPLY'
+                        ? 'bg-[hsl(var(--success))] text-[hsl(var(--primary-foreground))] hover:opacity-90 focus-visible:ring-[hsl(var(--success))]'
+                        : 'bg-muted text-muted-foreground cursor-not-allowed'
+                    }`}
                   >
-                    {applyingToShopify ? 'Applying…' : 'Apply to Shopify'}
+                    {applyGovernance.state === 'IN_PROGRESS' ? 'Applying…' : 'Apply to Shopify'}
                   </button>
                 </div>
               )}
@@ -1495,6 +1558,7 @@ export default function ProductOptimizationPage() {
                           draftState={draftState}
                           canApply={canApplyToShopify}
                           onSaveDraft={handleSaveDraft}
+                          applyGovernance={applyGovernance}
                         />
                       </div>
                     </div>
