@@ -10,6 +10,7 @@ import { RoleResolutionService } from '../common/role-resolution.service';
 import { ProjectsModule } from '../projects/projects.module';
 import { ShopifyModule } from '../shopify/shopify.module';
 import { ConfigModule } from '@nestjs/config';
+import { GeminiClient } from '../ai/gemini.client';
 
 @Module({
   // [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Import ProjectsModule for DeoIssuesService access
@@ -21,6 +22,7 @@ import { ConfigModule } from '@nestjs/config';
     ProductAnswerPackService,
     PrismaService,
     RoleResolutionService,
+    GeminiClient,
   ],
   exports: [ProductsService, AnswerBlockService],
 })

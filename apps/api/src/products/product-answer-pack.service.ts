@@ -9,6 +9,7 @@ import { PrismaService } from '../prisma.service';
 import { ShopifyService } from '../shopify/shopify.service';
 import { RoleResolutionService } from '../common/role-resolution.service';
 import { AnswerBlockService } from './answer-block.service';
+import { GeminiClient } from '../ai/gemini.client';
 
 import {
   type ComplianceMode,
@@ -27,7 +28,8 @@ export class ProductAnswerPackService {
     private readonly config: ConfigService,
     private readonly shopify: ShopifyService,
     private readonly roles: RoleResolutionService,
-    private readonly answerBlocks: AnswerBlockService
+    private readonly answerBlocks: AnswerBlockService,
+    private readonly gemini: GeminiClient
   ) {
     this.apiKey = this.config.get<string>('AI_API_KEY') || '';
     this.provider =
@@ -319,9 +321,17 @@ Existing description: ${product.description || ''}
     }
 
     if (this.provider === 'gemini') {
-      // Use existing Gemini key via AI_API_KEY; minimal implementation via the GeminiClient is elsewhere.
-      // For now, fall back to OpenAI-style call if configured.
-      this.logger.warn('AI_PROVIDER=gemini not yet supported for answer packs; using openai-compatible call');
+      const resp = await this.gemini.generateWithFallback({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.3,
+          maxOutputTokens: 2000,
+        },
+      });
+      const text =
+        resp?.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('') ||
+        '';
+      return String(text);
     }
 
     const model = this.config.get<string>('AI_OPENAI_MODEL') || 'gpt-4o-mini';
