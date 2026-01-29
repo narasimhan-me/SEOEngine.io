@@ -717,11 +717,30 @@ export class ShopifyService {
     if (!response.ok) {
       const errorText = await response.text();
       this.logger.error(
-        `[ShopifyGraphQL] HTTP error for operation ${
+        `[ShopifyGraphQL] HTTP ${response.status} for operation ${
           params.operationName ?? 'unknown'
-        }: ${errorText}`
+        } on ${shopDomain}: ${errorText}`
       );
-      throw new BadRequestException('Failed to call Shopify GraphQL Admin API');
+
+      // User-friendly messages based on status code
+      if (response.status === 429) {
+        throw new BadRequestException(
+          'Shopify rate limit reached. Please wait a moment and try again.'
+        );
+      }
+      if (response.status === 401 || response.status === 403) {
+        throw new BadRequestException(
+          'Shopify connection expired. Please reconnect your store.'
+        );
+      }
+      if (response.status >= 500) {
+        throw new BadRequestException(
+          'Shopify is temporarily unavailable. Please try again later.'
+        );
+      }
+      throw new BadRequestException(
+        'Unable to update Shopify. Please try again or contact support.'
+      );
     }
 
     const json = (await response.json()) as ShopifyGraphqlEnvelope<T>;
@@ -730,18 +749,35 @@ export class ShopifyService {
       this.logger.error(
         `[ShopifyGraphQL] GraphQL errors for operation ${
           params.operationName ?? 'unknown'
-        }: ${JSON.stringify(json.errors)}`
+        } on ${shopDomain}: ${JSON.stringify(json.errors)}`
       );
-      throw new BadRequestException('Failed to call Shopify GraphQL Admin API');
+
+      // Check for common GraphQL error types
+      const errorMsg = json.errors[0]?.message || '';
+      if (errorMsg.toLowerCase().includes('throttl')) {
+        throw new BadRequestException(
+          'Shopify rate limit reached. Please wait a moment and try again.'
+        );
+      }
+      if (errorMsg.toLowerCase().includes('access denied') || errorMsg.toLowerCase().includes('permission')) {
+        throw new BadRequestException(
+          'Missing Shopify permissions. Please reconnect your store with updated permissions.'
+        );
+      }
+      throw new BadRequestException(
+        'Shopify rejected the request. Please try again or contact support.'
+      );
     }
 
     if (!json.data) {
       this.logger.error(
         `[ShopifyGraphQL] Missing data for operation ${
           params.operationName ?? 'unknown'
-        }`
+        } on ${shopDomain}`
       );
-      throw new BadRequestException('Failed to call Shopify GraphQL Admin API');
+      throw new BadRequestException(
+        'Shopify returned an incomplete response. Please try again.'
+      );
     }
 
     return json.data;
@@ -1487,7 +1523,10 @@ export class ShopifyService {
     // Ensure metafield definitions exist for this project/store
     await this.ensureMetafieldDefinitions(product.projectId);
 
-    const ownerId = `gid://shopify/Product/${externalProductId}`;
+    // Handle both full GID and numeric ID formats
+    const ownerId = externalProductId.startsWith('gid://shopify/Product/')
+      ? externalProductId
+      : `gid://shopify/Product/${externalProductId}`;
 
     const { mappings, skippedUnknownQuestionIds } =
       mapAnswerBlocksToMetafieldPayloads(
@@ -2050,9 +2089,14 @@ export class ShopifyService {
       }
     `;
 
+    // Handle both full GID and numeric ID formats
+    const productGid = externalProductId.startsWith('gid://shopify/Product/')
+      ? externalProductId
+      : `gid://shopify/Product/${externalProductId}`;
+
     const input = {
-      id: `gid://shopify/Product/${externalProductId}`,
-      bodyHtml,
+      id: productGid,
+      descriptionHtml: bodyHtml,
     };
 
     const data = await this.executeShopifyGraphql<{
@@ -2102,8 +2146,13 @@ export class ShopifyService {
       }
     `;
 
+    // Handle both full GID and numeric ID formats
+    const productGid = externalProductId.startsWith('gid://shopify/Product/')
+      ? externalProductId
+      : `gid://shopify/Product/${externalProductId}`;
+
     const input = {
-      id: `gid://shopify/Product/${externalProductId}`,
+      id: productGid,
       seo: {
         title: seoTitle,
         description: seoDescription,

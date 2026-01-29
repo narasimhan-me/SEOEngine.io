@@ -160,11 +160,21 @@ export class ProductAnswerPackService {
     opts: AnswerPackPublishOptions
   ) {
     const results: Array<{ productId: string; ok: boolean; error?: string }> = [];
-    for (const pid of productIds) {
+    const delayMs = 5000; // 5 second delay between products to avoid rate limits
+
+    for (let i = 0; i < productIds.length; i++) {
+      const pid = productIds[i];
+
+      // Add delay between products (not before the first one)
+      if (i > 0) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+
       try {
         await this.generateAndPublish(pid, userId, opts);
         results.push({ productId: pid, ok: true });
       } catch (err: any) {
+        this.logger.error(`Bulk publish failed for product ${pid}: ${err?.message || err}`);
         results.push({ productId: pid, ok: false, error: err?.message || String(err) });
       }
     }

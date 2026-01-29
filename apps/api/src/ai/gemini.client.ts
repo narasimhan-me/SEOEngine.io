@@ -39,13 +39,10 @@ export function isAllModelsExhaustedError(
 }
 
 export const DEFAULT_GEMINI_MODEL_PRIORITY: string[] = [
-  'gemini-2.5-flash-lite',
-  'gemini-2.5-flash',
-  'gemini-2.5-pro',
   'gemini-2.0-flash',
   'gemini-2.0-flash-lite',
-  'gemini-2.0-flash-001',
-  'gemini-2.0-flash-lite-001',
+  'gemini-1.5-flash',
+  'gemini-1.5-pro',
 ];
 
 export function isRetryableGeminiError(err: unknown): boolean {
@@ -96,6 +93,9 @@ export class GeminiClient {
     const priorityEnv =
       this.configService.get<string>('GEMINI_MODEL_PRIORITY') || '';
     const legacyModel = this.configService.get<string>('GEMINI_MODEL') || '';
+
+    // eslint-disable-next-line no-console
+    console.log('[Gemini] Loaded AI_API_KEY prefix:', this.apiKey.slice(0, 8));
 
     let priority = DEFAULT_GEMINI_MODEL_PRIORITY;
 
@@ -196,11 +196,12 @@ export class GeminiClient {
     console.error('[Gemini] generateWithFallback exhausted all models', {
       fallbackChain: chain,
       attempts: chain.length,
+      lastError,
     });
 
-    // Create a specific error for all models exhausted
+    // Create a specific error for all models exhausted - user-friendly message
     const exhaustedError = new Error(
-      `[Gemini] All ${chain.length} models in fallback chain failed. Tried: ${chain.join(', ')}. Please try again later or contact support.`
+      'AI service is currently unavailable. Please try again in a few minutes.'
     ) as AllModelsExhaustedError;
     exhaustedError.code = 'ALL_MODELS_EXHAUSTED';
     exhaustedError.triedModels = [...chain];
@@ -338,9 +339,28 @@ export class GeminiClient {
 
     if (!response.ok) {
       const body = await response.text();
-      const error: GeminiApiError = new Error(
-        `[Gemini] generateContent error (status ${response.status}) for model ${model}: ${body}`
+
+      // Log detailed error for debugging
+      // eslint-disable-next-line no-console
+      console.error(
+        `[Gemini] API error (status ${response.status}) for model ${model}: ${body}`
       );
+
+      // User-friendly error message based on status
+      let userMessage: string;
+      if (response.status === 429) {
+        userMessage = 'AI service is busy. Please wait a moment and try again.';
+      } else if (response.status === 400) {
+        userMessage = 'AI request failed. Please check your configuration.';
+      } else if (response.status === 401 || response.status === 403) {
+        userMessage = 'AI service authentication failed. Please contact support.';
+      } else if (response.status >= 500) {
+        userMessage = 'AI service is temporarily unavailable. Please try again later.';
+      } else {
+        userMessage = 'AI generation failed. Please try again.';
+      }
+
+      const error: GeminiApiError = new Error(userMessage);
       error.status = response.status;
       throw error;
     }
