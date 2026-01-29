@@ -1880,6 +1880,41 @@ export const productsApi = {
       method: 'POST',
     }),
 
+
+  // ANSWER-PACK-1: Description rewrite + FAQ Answer Pack
+  generateAnswerPack: (
+    productId: string,
+    params?: { complianceMode?: 'supplements_us' | 'none'; questionCount?: number }
+  ) =>
+    fetchWithAuth(`/products/${productId}/answer-pack/generate`, {
+      method: 'POST',
+      body: JSON.stringify(params || {}),
+    }),
+
+  publishAnswerPack: (
+    productId: string,
+    params?: {
+      complianceMode?: 'supplements_us' | 'none';
+      questionCount?: number;
+      dryRun?: boolean;
+    }
+  ) =>
+    fetchWithAuth(`/products/${productId}/answer-pack/publish`, {
+      method: 'POST',
+      body: JSON.stringify(params || {}),
+    }),
+
+  bulkPublishAnswerPacks: (params: {
+    productIds: string[];
+    complianceMode?: 'supplements_us' | 'none';
+    questionCount?: number;
+    dryRun?: boolean;
+  }) =>
+    fetchWithAuth(`/products/answer-pack/bulk-publish`, {
+      method: 'POST',
+      body: JSON.stringify(params),
+    }),
+
   // MEDIA-1: Media & Accessibility endpoints
   getMediaAccessibility: (
     productId: string

@@ -4,6 +4,7 @@ import {
   Inject,
   forwardRef,
   Logger,
+  NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma.service';
@@ -1923,6 +1924,47 @@ export class ShopifyService {
     };
   }
 
+
+  /**
+   * Update product body_html in Shopify and locally.
+   * Intended for Answer Pack publishing (overwrite description).
+   */
+  async updateProductBodyHtml(
+    productId: string,
+    bodyHtml: string,
+    userId: string
+  ): Promise<{ ok: boolean }> {
+    if (!productId) throw new BadRequestException('Missing productId');
+
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+      include: { project: { include: { integrations: true } } },
+    });
+
+    if (!product) throw new NotFoundException('Product not found');
+
+    await this.roleResolution.assertProjectAccess(product.projectId, userId);
+
+    const shopifyIntegration = (product.project.integrations || []).find(
+      (i) => i.type === 'SHOPIFY'
+    );
+
+    if (!shopifyIntegration?.externalId || !shopifyIntegration?.accessToken) {
+      throw new BadRequestException('Shopify store not connected');
+    }
+
+    const externalProductId = product.externalId;
+
+    await this.updateShopifyProductBodyHtml(
+      shopifyIntegration.externalId,
+      shopifyIntegration.accessToken,
+      externalProductId,
+      bodyHtml
+    );
+
+    return { ok: true };
+  }
+
   /**
    * MEDIA-1: Sync ProductImage records from Shopify image data.
    * Upserts images and removes any that no longer exist in Shopify.
@@ -1987,6 +2029,54 @@ export class ShopifyService {
    * Update SEO fields for a product in Shopify via GraphQL Admin API
    * Uses productUpdate mutation to set seo.title and seo.description
    */
+  
+
+  /**
+   * Update product body_html in Shopify via GraphQL Admin API.
+   * Uses productUpdate mutation to set bodyHtml.
+   */
+  private async updateShopifyProductBodyHtml(
+    shopDomain: string,
+    accessToken: string,
+    externalProductId: string,
+    bodyHtml: string
+  ): Promise<void> {
+    const mutation = `
+      mutation UpdateProductBody($input: ProductInput!) {
+        productUpdate(input: $input) {
+          product { id }
+          userErrors { field message }
+        }
+      }
+    `;
+
+    const input = {
+      id: `gid://shopify/Product/${externalProductId}`,
+      bodyHtml,
+    };
+
+    const data = await this.executeShopifyGraphql<{
+      productUpdate: {
+        product: { id: string } | null;
+        userErrors: Array<{ field?: string[] | null; message: string }>;
+      } | null;
+    }>(shopDomain, accessToken, {
+      query: mutation,
+      variables: { input },
+      operationName: 'UpdateProductBody',
+    });
+
+    const userErrors = data.productUpdate?.userErrors ?? [];
+    if (userErrors.length > 0) {
+      this.logger.warn(
+        `[ShopifyGraphQL] productUpdate(bodyHtml) returned errors: ${userErrors
+          .map((e) => e.message)
+          .join('; ')}`
+      );
+      throw new BadRequestException('Failed to update product body in Shopify');
+    }
+  }
+
   private async updateShopifyProductSeo(
     shopDomain: string,
     accessToken: string,

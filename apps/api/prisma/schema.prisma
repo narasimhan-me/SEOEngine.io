@@ -255,6 +255,22 @@ model Product {
   images                         ProductImage[]
   mediaFixDrafts                 ProductMediaFixDraft[]
   mediaFixApplications           ProductMediaFixApplication[]
+
+  descriptionVersions            ProductDescriptionVersion[]
+}
+
+model ProductDescriptionVersion {
+  id               String   @id @default(cuid())
+  product          Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId        String
+  originalHtml     String
+  generatedHtml    String
+  status           String   // DRAFT | PUBLISHED
+  publishedAt      DateTime?
+  publishedByUserId String?
+  createdAt        DateTime @default(now())
+
+  @@index([productId, createdAt])
 }
 
 model AnswerBlock {

@@ -63,6 +63,7 @@ export function ProductAnswerBlocksPanel({
   const [saving, setSaving] = useState(false);
   const [automationRunning, setAutomationRunning] = useState(false);
   const [syncingToShopify, setSyncingToShopify] = useState(false);
+  const [publishingPack, setPublishingPack] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -261,6 +262,42 @@ export function ProductAnswerBlocksPanel({
       setSyncingToShopify(false);
     }
   }, [productId, isFreePlan, feedback]);
+
+
+  const handlePublishAnswerPack = useCallback(async () => {
+    if (!productId) return;
+    if (isFreePlan) {
+      feedback.showLimit(
+        'Answer Pack publishing is available on paid plans. Upgrade to enable.',
+        '/settings/billing'
+      );
+      return;
+    }
+    try {
+      setPublishingPack(true);
+      setError(null);
+      await productsApi.publishAnswerPack(productId, {
+        complianceMode: 'supplements_us',
+        questionCount: 10,
+        dryRun: false,
+      });
+      await loadBlocks();
+      feedback.showSuccess(
+        'Published Answer Pack: product description overwritten + Answer Blocks updated.'
+      );
+    } catch (err: unknown) {
+      // eslint-disable-next-line no-console
+      console.error('Error publishing Answer Pack', err);
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : 'Failed to publish Answer Pack. Please try again.';
+      setError(message);
+      feedback.showError(message);
+    } finally {
+      setPublishingPack(false);
+    }
+  }, [productId, isFreePlan, loadBlocks, feedback]);
 
   const formatUpdatedAt = (value: string) => {
     if (!value) return '';
@@ -498,6 +535,18 @@ export function ProductAnswerBlocksPanel({
                 }`}
               >
                 {saving ? 'Saving…' : 'Save Answer Blocks'}
+              </button>
+              <button
+                type="button"
+                onClick={handlePublishAnswerPack}
+                disabled={publishingPack || isFreePlan}
+                className={`inline-flex items-center rounded-md px-3 py-1.5 text-xs font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
+                  publishingPack || isFreePlan
+                    ? 'cursor-not-allowed border border-gray-200 bg-gray-100 text-gray-400'
+                    : 'border border-transparent bg-emerald-600 text-white hover:bg-emerald-700'
+                }`}
+              >
+                {publishingPack ? 'Publishing…' : 'Publish Answer Pack (Overwrite)'}
               </button>
               <button
                 type="button"
