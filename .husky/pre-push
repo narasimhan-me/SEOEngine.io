@@ -3,7 +3,7 @@ echo "🔍 Running pre-push checks..."
 # Run linting on source files
 echo "📝 Running linter on source files..."
 cd apps/api
-pnpm exec eslint "src/**/*.ts" --fix || {
+npx -y pnpm@8.15.9 exec eslint "src/**/*.ts" --fix || {
   echo "❌ Linting failed. Please fix the errors and try again."
   exit 1
 }
@@ -11,8 +11,8 @@ cd ../..
 
 # Run formatting check (if prettier is configured)
 echo "🎨 Checking code formatting..."
-if command -v prettier >/dev/null 2>&1 || pnpm exec prettier --version >/dev/null 2>&1; then
-  pnpm exec prettier --check "apps/api/src/**/*.ts" "apps/web/src/**/*.{ts,tsx}" || {
+if command -v prettier >/dev/null 2>&1 || npx -y pnpm@8.15.9 exec prettier --version >/dev/null 2>&1; then
+  npx -y pnpm@8.15.9 exec prettier --check "apps/api/src/**/*.ts" "apps/web/src/**/*.{ts,tsx}" || {
     echo "⚠️  Code formatting issues found. Run 'pnpm format' to fix."
     # Don't fail on format, just warn
   }
@@ -23,7 +23,7 @@ fi
 # Run TypeScript type checks
 echo "🔧 Running TypeScript type checks..."
 cd apps/api
-pnpm exec tsc --noEmit || {
+npx -y pnpm@8.15.9 exec tsc --noEmit || {
   echo "❌ TypeScript type check failed. Please fix the errors and try again."
   exit 1
 }
@@ -31,7 +31,7 @@ cd ../..
 
 # Run unit tests
 echo "🧪 Running unit tests..."
-pnpm test:unit || {
+npx -y pnpm@8.15.9 test:unit || {
   echo "❌ Unit tests failed. Please fix the failing tests and try again."
   exit 1
 }
@@ -44,7 +44,7 @@ echo "   1. Create database: CREATE DATABASE engineo_test;"
 echo "   2. Set DATABASE_URL_TEST in apps/api/.env.test"
 echo "   3. Run: cd apps/api && pnpm db:test:migrate"
 echo ""
-NODE_ENV=test ENGINEO_ENV=test pnpm test:api || {
+NODE_ENV=test ENGINEO_ENV=test npx -y pnpm@8.15.9 test:api || {
   echo ""
   echo "❌ Integration tests failed."
   echo ""

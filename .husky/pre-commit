@@ -3,7 +3,7 @@ echo "🔍 Running pre-commit checks..."
 # Run linting on staged source files only (exclude test files to avoid tsconfig conflicts)
 echo "📝 Running linter on source files..."
 cd apps/api
-pnpm exec eslint "src/**/*.ts" --fix || {
+npx -y pnpm@8.15.9 exec eslint "src/**/*.ts" --fix || {
   echo "❌ Linting failed. Please fix the errors and try again."
   exit 1
 }
@@ -12,7 +12,7 @@ cd ../..
 # Run TypeScript type checks
 echo "🔧 Running TypeScript type checks..."
 cd apps/api
-pnpm exec tsc --noEmit || {
+npx -y pnpm@8.15.9 exec tsc --noEmit || {
   echo "❌ TypeScript type check failed. Please fix the errors and try again."
   exit 1
 }
@@ -20,7 +20,7 @@ cd ../..
 
 # Run unit tests
 echo "🧪 Running unit tests..."
-pnpm test:unit || {
+npx -y pnpm@8.15.9 test:unit || {
   echo "❌ Unit tests failed. Please fix the failing tests and try again."
   exit 1
 }

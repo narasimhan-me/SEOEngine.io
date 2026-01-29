@@ -10,16 +10,11 @@ import { ShopifyService } from '../shopify/shopify.service';
 import { RoleResolutionService } from '../common/role-resolution.service';
 import { AnswerBlockService } from './answer-block.service';
 
-export type ComplianceMode = 'supplements_us' | 'none';
-
-interface GenerateOptions {
-  complianceMode: ComplianceMode;
-  questionCount: number;
-}
-
-interface PublishOptions extends GenerateOptions {
-  dryRun: boolean;
-}
+import {
+  type ComplianceMode,
+  type AnswerPackGenerateOptions,
+  type AnswerPackPublishOptions,
+} from './product-answer-pack.types';
 
 @Injectable()
 export class ProductAnswerPackService {
@@ -42,7 +37,7 @@ export class ProductAnswerPackService {
         | 'gemini') || 'openai';
   }
 
-  async generateDraft(productId: string, userId: string, opts: GenerateOptions) {
+  async generateDraft(productId: string, userId: string, opts: AnswerPackGenerateOptions) {
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
       include: { project: true },
@@ -66,7 +61,7 @@ export class ProductAnswerPackService {
   async generateAndPublish(
     productId: string,
     userId: string,
-    opts: PublishOptions
+    opts: AnswerPackPublishOptions
   ) {
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
@@ -127,10 +122,40 @@ export class ProductAnswerPackService {
     };
   }
 
+
+
+  async restoreLatest(productId: string, userId: string) {
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+      include: { project: true },
+    });
+    if (!product) throw new NotFoundException('Product not found');
+
+    await this.roles.assertProjectAccess(product.projectId, userId);
+
+    const latest = await this.prisma.productDescriptionVersion.findFirst({
+      where: { productId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!latest) {
+      throw new BadRequestException('No prior description version found');
+    }
+
+    await this.shopify.updateProductBodyHtml(productId, latest.originalHtml, userId);
+
+    await this.prisma.product.update({
+      where: { id: productId },
+      data: { description: latest.originalHtml },
+    });
+
+    return { ok: true };
+  }
+
   async bulkGenerateAndPublish(
     productIds: string[],
     userId: string,
-    opts: PublishOptions
+    opts: AnswerPackPublishOptions
   ) {
     const results: Array<{ productId: string; ok: boolean; error?: string }> = [];
     for (const pid of productIds) {
@@ -144,7 +169,7 @@ export class ProductAnswerPackService {
     return { count: results.length, results };
   }
 
-  private async generateFaqAnswerBlocks(product: any, opts: GenerateOptions) {
+  private async generateFaqAnswerBlocks(product: any, opts: AnswerPackGenerateOptions) {
     // Use existing AnswerEngine question list via shared constants indirectly.
     // We generate a minimal set here using an existing AnswerBlockService shape.
 
@@ -168,7 +193,7 @@ export class ProductAnswerPackService {
       }));
   }
 
-  private async generateProductDescription(product: any, opts: GenerateOptions) {
+  private async generateProductDescription(product: any, opts: AnswerPackGenerateOptions) {
     const prompt = this.buildDescriptionPrompt(product, opts);
     const data = await this.callAiJson(prompt);
     const html = String(data?.descriptionHtml || '').trim();
@@ -178,7 +203,7 @@ export class ProductAnswerPackService {
     return `${marker}\n${html}`;
   }
 
-  private buildDescriptionPrompt(product: any, opts: GenerateOptions): string {
+  private buildDescriptionPrompt(product: any, opts: AnswerPackGenerateOptions): string {
     const compliance = opts.complianceMode === 'supplements_us'
       ? `US SUPPLEMENTS COMPLIANCE MODE:
 - Do NOT claim to treat, cure, prevent, or diagnose any disease.
@@ -213,7 +238,7 @@ SEO description: ${product.seoDescription || ''}
 `; 
   }
 
-  private buildFaqPrompt(product: any, opts: GenerateOptions): string {
+  private buildFaqPrompt(product: any, opts: AnswerPackGenerateOptions): string {
     const compliance = opts.complianceMode === 'supplements_us'
       ? `US SUPPLEMENTS COMPLIANCE MODE: no disease claims, no guaranteed outcomes.
 `

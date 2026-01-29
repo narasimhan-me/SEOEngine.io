@@ -59,6 +59,19 @@ export class ProductAnswerPackController {
   }
 
   /**
+   * Restore latest overwritten product description.
+   */
+  @Post(':id/answer-pack/restore-latest')
+  @UseGuards(JwtAuthGuard)
+  async restoreLatest(
+    @Request() req: any,
+    @Param('id') productId: string
+  ) {
+    if (!productId) throw new BadRequestException('Missing productId');
+    return this.answerPack.restoreLatest(productId, req.user.id);
+  }
+
+  /**
    * Bulk publish Answer Packs for a list of productIds.
    */
   @Post('answer-pack/bulk-publish')

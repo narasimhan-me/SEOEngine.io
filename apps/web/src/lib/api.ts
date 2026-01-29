@@ -1904,6 +1904,11 @@ export const productsApi = {
       body: JSON.stringify(params || {}),
     }),
 
+  restoreLatestAnswerPack: (productId: string) =>
+    fetchWithAuth(`/products/${productId}/answer-pack/restore-latest`, {
+      method: 'POST',
+    }),
+
   bulkPublishAnswerPacks: (params: {
     productIds: string[];
     complianceMode?: 'supplements_us' | 'none';

@@ -299,6 +299,35 @@ export function ProductAnswerBlocksPanel({
     }
   }, [productId, isFreePlan, loadBlocks, feedback]);
 
+  const handleRestoreOriginal = useCallback(async () => {
+    if (!productId) return;
+    if (isFreePlan) {
+      feedback.showLimit(
+        'Restore is available on paid plans. Upgrade to enable.',
+        '/settings/billing'
+      );
+      return;
+    }
+    try {
+      setPublishingPack(true);
+      setError(null);
+      await productsApi.restoreLatestAnswerPack(productId);
+      feedback.showSuccess('Restored original Shopify product description.');
+    } catch (err: unknown) {
+      // eslint-disable-next-line no-console
+      console.error('Error restoring Answer Pack', err);
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : 'Failed to restore. Please try again.';
+      setError(message);
+      feedback.showError(message);
+    } finally {
+      setPublishingPack(false);
+    }
+  }, [productId, isFreePlan, feedback]);
+
+
   const formatUpdatedAt = (value: string) => {
     if (!value) return '';
     try {
@@ -547,6 +576,18 @@ export function ProductAnswerBlocksPanel({
                 }`}
               >
                 {publishingPack ? 'Publishing…' : 'Publish Answer Pack (Overwrite)'}
+              </button>
+              <button
+                type="button"
+                onClick={handleRestoreOriginal}
+                disabled={publishingPack || isFreePlan}
+                className={`inline-flex items-center rounded-md px-3 py-1.5 text-xs font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
+                  publishingPack || isFreePlan
+                    ? 'cursor-not-allowed border border-gray-200 bg-gray-100 text-gray-400'
+                    : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Restore Original
               </button>
               <button
                 type="button"
