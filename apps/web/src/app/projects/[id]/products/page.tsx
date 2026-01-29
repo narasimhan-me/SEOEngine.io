@@ -118,6 +118,7 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [bulkPublishing, setBulkPublishing] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [projectInfo, setProjectInfo] = useState<IntegrationStatus | null>(
@@ -264,6 +265,54 @@ export default function ProductsPage() {
       feedback.showError(message);
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const handleBulkPublishAnswerPacks = async () => {
+    try {
+      if (!products.length) return;
+      const top = products.slice(0, 10);
+      const productIds = top.map((p) => p.id);
+
+      const confirmed = window.confirm(
+        `Bulk publish Answer Packs for top ${productIds.length} products? This will OVERWRITE Shopify product descriptions.`
+      );
+      if (!confirmed) return;
+
+      setBulkPublishing(true);
+      setError('');
+
+      const result: any = await productsApi.bulkPublishAnswerPacks({
+        productIds,
+        complianceMode: 'supplements_us',
+        questionCount: 10,
+        dryRun: false,
+      });
+
+      const okCount = Array.isArray(result?.results)
+        ? result.results.filter((r: any) => r.ok).length
+        : 0;
+      const failCount = Array.isArray(result?.results)
+        ? result.results.filter((r: any) => !r.ok).length
+        : 0;
+
+      if (failCount > 0) {
+        feedback.showError(
+          `Bulk publish finished: ${okCount} succeeded, ${failCount} failed.`
+        );
+      } else {
+        feedback.showSuccess(
+          `Bulk publish finished: ${okCount || productIds.length} products published.`
+        );
+      }
+
+      await fetchProducts();
+    } catch (err: unknown) {
+      console.error('Error bulk publishing Answer Packs:', err);
+      const msg = err instanceof Error ? err.message : 'Bulk publish failed';
+      feedback.showError(msg);
+    } finally {
+      setBulkPublishing(false);
     }
   };
 
@@ -416,6 +465,15 @@ export default function ProductsPage() {
           </p>
         </div>
         {/* [AUTOMATION-TRIGGER-TRUTHFULNESS-1] CTA label is deterministic based on willGenerateAnswerBlocksOnProductSync */}
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+          <button
+            onClick={handleBulkPublishAnswerPacks}
+            disabled={bulkPublishing || syncing || !projectInfo?.shopify.connected || products.length === 0}
+            className="inline-flex w-full items-center justify-center rounded-md border border-emerald-600 bg-white px-4 py-2 text-sm font-medium text-emerald-700 shadow-sm hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+            title="Bulk publish Answer Packs for top 10 products (overwrites Shopify product descriptions)"
+          >
+            {bulkPublishing ? 'Publishing…' : 'Bulk Publish Answer Packs (Top 10)'}
+          </button>
         <button
           onClick={handleSyncProducts}
           disabled={syncing || !projectInfo?.shopify.connected}
@@ -465,6 +523,7 @@ export default function ProductsPage() {
             </>
           )}
         </button>
+        </div>
       </div>
 
       {/* [ROUTE-INTEGRITY-1] [SCOPE-CLARITY-1] ScopeBanner - show when from context is present */}
