@@ -26,7 +26,7 @@
     "jira:create": "ts-node --project apps/api/tsconfig.json scripts/create-jira-ticket.ts",
     "jira:read": "ts-node --project apps/api/tsconfig.json scripts/read-jira-tickets.ts",
     "jira": "ts-node --project apps/api/tsconfig.json scripts/jira-crud.ts",
-    "prepare": "husky install"
+    "prepare": "husky install || true"
   },
   "engines": {
     "node": ">=20.0.0",

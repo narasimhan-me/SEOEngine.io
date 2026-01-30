@@ -13,12 +13,12 @@ const SHOPIFY_API_KEY = process.env.NEXT_PUBLIC_SHOPIFY_API_KEY;
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'EngineO.ai – Discovery Engine Optimization (DEO) Platform',
+  title: 'EngineO.ai – Answer-ready Shopify product pages',
   description:
-    'EngineO.ai is the Discovery Engine Optimization (DEO) platform that unifies SEO, AEO, PEO, and VEO to optimize your brand for search engines and AI assistants.',
+    'EngineO.ai rewrites your Shopify product pages and generates compliant FAQs, then publishes them to Shopify in one click — with safe rollback.',
   icons: {
-    icon: '/branding/engineo/logo-light.png',
-    apple: '/branding/engineo/logo-light.png',
+    icon: '/engineo-logo.svg',
+    apple: '/engineo-logo.svg',
   },
 };
 

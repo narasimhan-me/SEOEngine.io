@@ -1,0 +1,16 @@
+<svg width="192" height="48" viewBox="0 0 192 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="2" y="6" width="40" height="36" rx="10" fill="#020617"/>
+  <rect x="2" y="6" width="40" height="36" rx="10" fill="url(#grad)" fill-opacity="0.8"/>
+  <path d="M14 30c0-6 4-10 10-10 4.5 0 8 3.5 8 8 0 3.3-2.7 6-6 6h-3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M18 20c0-3.5 2.7-6 6-6 3 0 5.5 2.3 5.9 5.2" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="18" cy="30" r="2" fill="#22C55E"/>
+  <circle cx="26" cy="18" r="2" fill="#22C55E"/>
+  <defs>
+    <linearGradient id="grad" x1="2" y1="42" x2="42" y2="6" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#22C55E"/>
+      <stop offset="1" stop-color="#0EA5E9"/>
+    </linearGradient>
+  </defs>
+  <text x="52" y="22" fill="#020617" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="16" font-weight="600">EngineO.ai</text>
+  <text x="52" y="36" fill="#6B7280" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="11">Answer-ready Shopify product pages</text>
+</svg>
