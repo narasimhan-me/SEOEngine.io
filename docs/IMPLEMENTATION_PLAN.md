@@ -24,6 +24,19 @@ This document tracks all implementation phases and their completion status.
 
 
 
+
+## [KAN-73] Implement: [EA-43] Introduce explicit, deliberate intent confirmation before any automation can run.
+
+**Implemented:** 2026-01-30 22:32 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/web/src/app/projects/[id]/automation/playbooks/page.tsx`
+- `apps/web/src/components/common/AutomationIntentConfirmationModal.tsx`
+- `apps/web/tests/automation-intent-confirmation-1.spec.ts`
+
+---
+
 ## [KAN-71] Implement: [EA-42] Expose automation playbooks as concepts only, not actions.
 
 **Implemented:** 2026-01-30 22:18 UTC
