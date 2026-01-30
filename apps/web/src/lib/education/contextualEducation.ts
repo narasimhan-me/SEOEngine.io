@@ -1,5 +1,6 @@
 /**
  * [EA-36: CONTEXTUAL-EDUCATION-1] Contextual Education Content Registry
+ * [EA-46: PRIORITY-SIGNALS-7] Enhanced with priority context
  *
  * Provides lightweight, inline educational content for DEO issues.
  * All content is self-contained within the product - no external dependencies.
@@ -8,7 +9,11 @@
  * - Education never blocks user action
  * - Guidance is optional, not mandatory
  * - Users can complete any action without engaging with educational content
+ * - [EA-46] Priority explanations are transparent and visible
  */
+
+import { getIssuePrioritySignal } from '../issue-priority-mapping';
+import type { PrioritySignal } from '../priority-signals';
 
 export interface EducationalContent {
   /** Short explanation of why this issue matters */
@@ -17,6 +22,15 @@ export interface EducationalContent {
   whatFixAccomplishes: string;
   /** Optional: Quick tip for addressing the issue */
   quickTip?: string;
+}
+
+/**
+ * [EA-46] Extended educational content with priority context.
+ * Combines educational content with transparent priority signals.
+ */
+export interface EducationalContentWithPriority extends EducationalContent {
+  /** Priority signal with full transparency */
+  prioritySignal: PrioritySignal;
 }
 
 /**
@@ -131,4 +145,22 @@ export function getEducationalContent(issueKey: string): EducationalContent | nu
  */
 export function hasEducationalContent(issueKey: string): boolean {
   return issueKey in CONTEXTUAL_EDUCATION;
+}
+
+/**
+ * [EA-46] Get educational content enhanced with priority signal.
+ * Returns null if no educational content exists for the issue key.
+ */
+export function getEducationalContentWithPriority(
+  issueKey: string
+): EducationalContentWithPriority | null {
+  const education = CONTEXTUAL_EDUCATION[issueKey];
+  if (!education) {
+    return null;
+  }
+
+  return {
+    ...education,
+    prioritySignal: getIssuePrioritySignal(issueKey),
+  };
 }

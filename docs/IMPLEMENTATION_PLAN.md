@@ -27,6 +27,25 @@ This document tracks all implementation phases and their completion status.
 
 
 
+
+## [KAN-79] Implement: [EA-46] Refine prioritization signals with clearer impact framing.
+
+**Implemented:** 2026-01-30 23:20 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/web/src/components/issues/index.ts`
+- `apps/web/src/lib/education/contextualEducation.ts`
+- `apps/web/src/components/dashboard/`
+- `apps/web/src/components/issues/IssueCard.tsx`
+- `apps/web/src/components/issues/PrioritizedIssueList.tsx`
+- `apps/web/src/components/priority/`
+- `apps/web/src/lib/issue-priority-mapping.ts`
+- `apps/web/src/lib/priority-signals.ts`
+- `docs/priority-signals.md`
+
+---
+
 ## [KAN-77] Implement: [EA-45] Evolve dashboard signals to reflect playbooks and guidance, not just issues.
 
 **Implemented:** 2026-01-30 23:03 UTC
