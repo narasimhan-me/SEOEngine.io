@@ -71,6 +71,14 @@ export {
   isAiAssistantDismissedForContext,
 } from './trust-loop/aiAssistantPreferences';
 
+// [EA-36: CONTEXTUAL-EDUCATION-1] Re-export contextual education types and helpers
+export type { EducationalContent } from './education/contextualEducation';
+export {
+  CONTEXTUAL_EDUCATION,
+  getEducationalContent,
+  hasEducationalContent,
+} from './education/contextualEducation';
+
 // =============================================================================
 // DEO Score Types
 // =============================================================================

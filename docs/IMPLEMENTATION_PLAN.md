@@ -17,6 +17,23 @@ This document tracks all implementation phases and their completion status.
 
 
 
+
+## [KAN-59] Implement: [EA-36] Provide lightweight, contextual education inside the product — exactly where questions arise.
+
+**Implemented:** 2026-01-30 20:56 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/web/src/components/issues/IssueBadge.tsx`
+- `apps/web/src/components/issues/PriorityRationaleSection.tsx`
+- `apps/web/src/lib/deo-issues.ts`
+- `apps/web/src/components/issues/IssueExplanationTooltip.tsx`
+- `apps/web/src/components/issues/LearnMoreInline.tsx`
+- `apps/web/src/components/issues/index.ts`
+- `apps/web/src/lib/education/`
+
+---
+
 ## [KAN-57] Implement: [EA-35] Make pricing simple, honest, and aligned to real user value, not feature lists.
 
 **Implemented:** 2026-01-30 20:45 UTC
