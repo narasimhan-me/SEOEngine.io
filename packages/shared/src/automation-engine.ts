@@ -301,3 +301,93 @@ export const DEFAULT_AUTOMATION_SETTINGS: Omit<
   categories: DEFAULT_AUTOMATION_CATEGORIES,
   maxExecutionsPerDay: 100,
 };
+
+// =============================================================================
+// [EA-44] Automation Safety Rails
+// =============================================================================
+
+/**
+ * Safety rail check result status.
+ * PASSED: All safety checks passed, automation may proceed.
+ * BLOCKED: One or more safety checks failed, automation must not proceed.
+ */
+export type SafetyRailStatus = 'PASSED' | 'BLOCKED';
+
+/**
+ * Types of safety rail checks performed before automation execution.
+ * Each check enforces a specific system-level guardrail.
+ */
+export type SafetyRailCheckType =
+  | 'ENTITLEMENT_CHECK'      // User/system has permission for this automation
+  | 'SCOPE_BOUNDARY_CHECK'   // Automation stays within declared scope
+  | 'INTENT_CONFIRMATION'    // User explicitly confirmed intent (EA-43)
+  | 'GUARD_CONDITION'        // Pre-flight conditions are satisfied
+  | 'RATE_LIMIT_CHECK'       // Within daily/hourly execution limits
+  | 'ROLE_PERMISSION_CHECK'; // User role allows this action
+
+/**
+ * Result of a single safety rail check.
+ */
+export interface SafetyRailCheckResult {
+  /** The type of check performed */
+  checkType: SafetyRailCheckType;
+  /** Whether this check passed or failed */
+  passed: boolean;
+  /** Human-readable message explaining the result */
+  message: string;
+  /** Optional additional context for debugging/logging */
+  context?: Record<string, unknown>;
+}
+
+/**
+ * Complete result of all safety rail checks for an automation execution attempt.
+ */
+export interface SafetyRailEvaluation {
+  /** Overall status: PASSED only if ALL checks passed */
+  status: SafetyRailStatus;
+  /** Results of each individual check */
+  checks: SafetyRailCheckResult[];
+  /** ISO timestamp when evaluation was performed */
+  evaluatedAt: string;
+  /** Project ID being evaluated */
+  projectId: string;
+  /** User ID who initiated the automation */
+  userId: string;
+  /** Playbook or automation rule being executed */
+  automationId: string;
+  /** Declared scope boundary for this automation */
+  declaredScope: {
+    scopeId: string;
+    assetCount: number;
+    assetType: string;
+  };
+}
+
+/**
+ * Blocking reason codes for clear error messaging.
+ * Maps to specific UI error panels.
+ */
+export type SafetyRailBlockReason =
+  | 'ENTITLEMENT_BLOCKED'
+  | 'SCOPE_EXCEEDED'
+  | 'INTENT_NOT_CONFIRMED'
+  | 'GUARD_CONDITION_FAILED'
+  | 'RATE_LIMIT_EXCEEDED'
+  | 'ROLE_PERMISSION_DENIED';
+
+/**
+ * Error payload returned when safety rails block automation.
+ * Provides clear, actionable information for the user.
+ */
+export interface SafetyRailBlockedError {
+  /** Stable error code for programmatic handling */
+  code: 'AUTOMATION_SAFETY_BLOCKED';
+  /** The specific reason automation was blocked */
+  reason: SafetyRailBlockReason;
+  /** Human-readable explanation of why automation was blocked */
+  message: string;
+  /** The specific check(s) that failed */
+  failedChecks: SafetyRailCheckResult[];
+  /** Timestamp of the evaluation */
+  evaluatedAt: string;
+}

@@ -25,6 +25,23 @@ This document tracks all implementation phases and their completion status.
 
 
 
+
+## [KAN-75] Implement: [EA-44] Add system-level safety rails around automation.
+
+**Implemented:** 2026-01-30 22:49 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/api/src/projects/automation-playbooks.service.ts`
+- `apps/api/src/projects/projects.module.ts`
+- `packages/shared/src/automation-engine.ts`
+- `apps/api/src/projects/automation-safety-rails.service.ts`
+- `apps/web/src/components/common/SafetyRailBlockedPanel.tsx`
+- `apps/web/src/lib/automation-safety-rails.ts`
+- `apps/web/tests/automation-safety-rails-1.spec.ts`
+
+---
+
 ## [KAN-73] Implement: [EA-43] Introduce explicit, deliberate intent confirmation before any automation can run.
 
 **Implemented:** 2026-01-30 22:32 UTC

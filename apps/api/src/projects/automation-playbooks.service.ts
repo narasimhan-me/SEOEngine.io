@@ -18,6 +18,7 @@ import { AiService } from '../ai/ai.service';
 import { PlanId } from '../billing/plans';
 import { AiUsageQuotaService } from '../ai/ai-usage-quota.service';
 import { RoleResolutionService } from '../common/role-resolution.service';
+import { AutomationSafetyRailsService } from './automation-safety-rails.service';
 import type { AutomationAssetType, AssetRef } from '@engineo/shared';
 import { parseAssetRef } from '@engineo/shared';
 
@@ -165,13 +166,14 @@ export interface PlaybookDraftItem {
 
 /**
  * [ROLES-3] Updated with ProjectMember-aware access enforcement
+ * [EA-44] Updated with safety rails enforcement before apply
  *
  * Access control:
  * - previewPlaybook: OWNER/EDITOR can generate (canGenerateDrafts)
  * - generateDraft: OWNER/EDITOR can generate (canGenerateDrafts)
  * - getLatestDraft: Any ProjectMember can view (assertProjectAccess)
  * - estimatePlaybook: Any ProjectMember can view (assertProjectAccess)
- * - applyPlaybook: OWNER only (assertOwnerRole)
+ * - applyPlaybook: OWNER only (assertOwnerRole) + safety rails enforcement
  * - setAutomationEntryConfig: OWNER only (assertOwnerRole)
  *
  * VIEWER role is blocked from draft generation entirely.
@@ -184,7 +186,8 @@ export class AutomationPlaybooksService {
     private readonly tokenUsageService: TokenUsageService,
     private readonly aiService: AiService,
     private readonly aiUsageQuotaService: AiUsageQuotaService,
-    private readonly roleResolution: RoleResolutionService
+    private readonly roleResolution: RoleResolutionService,
+    private readonly safetyRails: AutomationSafetyRailsService
   ) {}
 
   /**
@@ -1200,23 +1203,12 @@ export class AutomationPlaybooksService {
     playbookId: AutomationPlaybookId,
     scopeId: string,
     rulesHash: string,
-    scopeProductIds?: string[] | null
+    scopeProductIds?: string[] | null,
+    options?: { intentConfirmed?: boolean }
   ): Promise<PlaybookApplyResult> {
     // [ROLES-3] Only OWNER can apply playbooks
     await this.roleResolution.assertOwnerRole(projectId, userId);
     const project = await this.getProjectOrThrow(projectId);
-
-    const planId = await this.entitlementsService.getUserPlan(userId);
-    if (planId === 'free') {
-      throw new ForbiddenException({
-        message:
-          'Bulk AI-powered SEO fixes are available on Pro and Business plans. Upgrade your plan to unlock Automation Playbooks.',
-        error: 'ENTITLEMENTS_LIMIT_REACHED',
-        code: 'ENTITLEMENTS_LIMIT_REACHED',
-        feature: 'automation_playbooks',
-        plan: planId,
-      });
-    }
 
     const affectedProductIds = await this.resolveAffectedProductIds(
       projectId,
@@ -1229,16 +1221,30 @@ export class AutomationPlaybooksService {
       affectedProductIds
     );
 
-    if (scopeId !== currentScopeId) {
-      throw new ConflictException({
-        message:
-          'The product scope has changed since the preview was generated. Please re-run the estimate to get an updated scopeId.',
-        error: 'PLAYBOOK_SCOPE_INVALID',
-        code: 'PLAYBOOK_SCOPE_INVALID',
-        expectedScopeId: currentScopeId,
-        providedScopeId: scopeId,
-      });
-    }
+    // Find the draft for safety rail context
+    const latestDraftForSafety = await this.prisma.automationPlaybookDraft.findFirst({
+      where: {
+        projectId,
+        playbookId,
+        scopeId,
+      },
+      orderBy: { updatedAt: 'desc' },
+      select: { id: true },
+    });
+
+    // [EA-44] Enforce safety rails before any automation execution
+    // This check is comprehensive and replaces individual entitlement/scope checks
+    await this.safetyRails.enforceOrBlock({
+      projectId,
+      userId,
+      automationId: playbookId,
+      declaredScopeId: scopeId,
+      currentScopeId,
+      declaredAssetCount: affectedProductIds.length,
+      assetType: 'products',
+      intentConfirmed: options?.intentConfirmed ?? true, // Default true for backward compat
+      draftId: latestDraftForSafety?.id,
+    });
 
     const totalAffectedProducts = affectedProductIds.length;
     const startedAt = new Date();
