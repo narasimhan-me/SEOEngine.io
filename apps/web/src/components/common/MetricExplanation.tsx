@@ -72,25 +72,25 @@ function SignalCategoryBadge({ category }: { category?: SignalCategory }) {
       label: 'Signal',
       bgClass: 'bg-slate-100',
       textClass: 'text-slate-600',
-      description: 'Advisory measurement - no action required',
+      description: 'Factual observation - what we measured (no action triggered)',
     },
     guidance: {
       label: 'Guidance Available',
       bgClass: 'bg-teal-50',
       textClass: 'text-teal-700',
-      description: 'Signal with related playbook - explore when ready',
+      description: 'Playbook guidance available - explore when ready (reading this does nothing)',
     },
     action: {
       label: 'Action',
       bgClass: 'bg-indigo-50',
       textClass: 'text-indigo-700',
-      description: 'User-initiated action available',
+      description: 'User-initiated action available - requires your explicit choice to run',
     },
     automation: {
       label: 'Automation Concept',
       bgClass: 'bg-amber-50',
       textClass: 'text-amber-700',
-      description: 'System capability - informational only',
+      description: 'System capability description - informational only, no execution',
     },
   };
 

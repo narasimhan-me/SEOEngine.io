@@ -41,6 +41,12 @@ export interface RecommendedPlaybook {
   fixTypeDescription: string;
   /** [EA-41] Plain-English explanation of why this action helps address the issue */
   whyThisHelps: string;
+  /**
+   * [EA-47] "What would happen if automated" explanation in future/conditional tense.
+   * Describes potential automation outcomes without triggering action.
+   * Must use conditional language (e.g., "would", "could", "if enabled").
+   */
+  automationOutcomeExplanation?: string;
 }
 
 /**
@@ -68,6 +74,8 @@ const ISSUE_TO_PLAYBOOK_MAP: Record<string, RecommendedPlaybook[]> = {
         'AI suggests titles for you to review, edit, and approve',
       whyThisHelps:
         'Search titles help your products appear in search results with clear, relevant descriptions. Without them, search engines may display generic text that doesn\'t attract clicks.',
+      automationOutcomeExplanation:
+        'If you chose to run this playbook, AI would generate title suggestions for each product missing a search title. These suggestions would appear as drafts for your review—nothing would be applied to your store until you explicitly approve each change.',
     },
   ],
   missing_seo_description: [
@@ -87,6 +95,8 @@ const ISSUE_TO_PLAYBOOK_MAP: Record<string, RecommendedPlaybook[]> = {
         'AI suggests descriptions for you to review, edit, and approve',
       whyThisHelps:
         'Search descriptions give potential customers a preview of your product before they click. A compelling description can improve click-through rates from search results.',
+      automationOutcomeExplanation:
+        'If you chose to run this playbook, AI would generate description suggestions for each product missing a search description. These suggestions would appear as drafts for your review—nothing would be applied to your store until you explicitly approve each change.',
     },
   ],
   not_answer_ready: [
@@ -105,6 +115,8 @@ const ISSUE_TO_PLAYBOOK_MAP: Record<string, RecommendedPlaybook[]> = {
         'Identifies products to improve, with tips on what to add',
       whyThisHelps:
         'AI assistants like ChatGPT and Google AI Overviews recommend products based on their content quality. Products with detailed, structured information are more likely to be surfaced in AI-generated recommendations.',
+      automationOutcomeExplanation:
+        'This playbook provides guidance only—it would identify products that could benefit from richer content and offer suggestions for what to add. No automated changes would be made; all content improvements would be done manually by you.',
     },
   ],
 };

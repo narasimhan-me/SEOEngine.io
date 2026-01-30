@@ -1,11 +1,17 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { X, Lightbulb, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, Lightbulb, ChevronDown, ChevronUp, Eye, Zap } from 'lucide-react';
 import type { RecommendedPlaybook } from '@/lib/issue-to-action-guidance';
 
 /**
+ * [EA-47] Explanation type for visual distinction between facts and recommendations
+ */
+type ExplanationType = 'observation' | 'recommendation';
+
+/**
  * [EA-41: ISSUE-TO-ACTION-GUIDANCE-1] Issue-to-Action Guidance Panel
+ * [EA-47] Enhanced with clear visual separation between observations and recommendations
  *
  * Displays a dismissible guidance panel linking an issue to recommended actions
  * with plain-English explanations of why the action helps.
@@ -107,10 +113,11 @@ export function IssueToActionGuidancePanel({
             />
           ))}
 
-          {/* [EA-45] Trust reminder with playbook reference */}
+          {/* [EA-45][EA-47] Trust reminder with explicit non-execution language */}
           <p className="text-[10px] text-muted-foreground/70 pt-2 border-t border-border">
-            This guidance is based on related playbooks. You decide if and when to take action.
-            No signal implies obligation or automatic execution.
+            <span className="font-medium">This is informational only.</span>{' '}
+            Reading this guidance does not trigger any action. You decide if and when to act.
+            Nothing happens until you explicitly choose to run a playbook.
           </p>
         </div>
       )}
@@ -119,8 +126,47 @@ export function IssueToActionGuidancePanel({
 }
 
 /**
+ * [EA-47] Explanation Type Badge for visual distinction
+ * Clearly labels content as observation (fact) vs recommendation (suggestion)
+ */
+function ExplanationTypeBadge({ type }: { type: ExplanationType }) {
+  const config = {
+    observation: {
+      label: 'Observation',
+      icon: Eye,
+      bgClass: 'bg-slate-100',
+      textClass: 'text-slate-600',
+      borderClass: 'border-slate-200',
+      description: 'What the system observed—factual information',
+    },
+    recommendation: {
+      label: 'Recommendation',
+      icon: Zap,
+      bgClass: 'bg-purple-50',
+      textClass: 'text-purple-700',
+      borderClass: 'border-purple-200',
+      description: 'What the system suggests—optional action',
+    },
+  };
+
+  const { label, icon: Icon, bgClass, textClass, borderClass, description } = config[type];
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium ${bgClass} ${textClass} ${borderClass}`}
+      title={description}
+      data-testid={`explanation-type-badge-${type}`}
+    >
+      <Icon className="h-3 w-3" aria-hidden="true" />
+      {label}
+    </span>
+  );
+}
+
+/**
  * Individual recommendation block within the guidance panel.
  * Displays the action name, why it helps, and what it affects.
+ * [EA-47] Enhanced with visual separation between observations and recommendations
  */
 function GuidanceRecommendation({
   recommendation,
@@ -147,25 +193,59 @@ function GuidanceRecommendation({
         </span>
       </div>
 
-      {/* Why this helps - plain English explanation */}
-      <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">
-        {recommendation.whyThisHelps}
-      </p>
+      {/* [EA-47] OBSERVATION SECTION - Factual information */}
+      <div className="mt-3 p-2.5 rounded-md border border-slate-200 bg-slate-50/50">
+        <div className="flex items-center gap-2 mb-1.5">
+          <ExplanationTypeBadge type="observation" />
+          <span className="text-[10px] text-slate-500 uppercase tracking-wider font-medium">
+            What we observed
+          </span>
+        </div>
+        <p className="text-xs text-foreground leading-relaxed">
+          {recommendation.whyThisHelps}
+        </p>
+      </div>
 
-      {/* What it does */}
-      <p className="mt-1.5 text-xs text-foreground">
-        <span className="font-medium">What it does:</span>{' '}
-        <span className="text-muted-foreground">{recommendation.oneLineWhatItDoes}</span>
-      </p>
+      {/* [EA-47] RECOMMENDATION SECTION - Suggested action */}
+      <div className="mt-2.5 p-2.5 rounded-md border border-purple-200 bg-purple-50/30">
+        <div className="flex items-center gap-2 mb-1.5">
+          <ExplanationTypeBadge type="recommendation" />
+          <span className="text-[10px] text-purple-600 uppercase tracking-wider font-medium">
+            What you could do
+          </span>
+        </div>
+        <p className="text-xs text-foreground">
+          <span className="font-medium">This playbook:</span>{' '}
+          <span className="text-muted-foreground">{recommendation.oneLineWhatItDoes}</span>
+        </p>
+        <p className="mt-1 text-[11px] text-muted-foreground">
+          <span className="font-medium">Would affect:</span> {recommendation.affects}
+        </p>
+      </div>
 
-      {/* Affects scope */}
-      <p className="mt-1 text-[11px] text-muted-foreground">
-        <span className="font-medium">Affects:</span> {recommendation.affects}
-      </p>
+      {/* [EA-47] AUTOMATION OUTCOME SECTION - What would happen if automated */}
+      {recommendation.automationOutcomeExplanation && (
+        <div
+          className="mt-2.5 p-2.5 rounded-md border border-amber-200 bg-amber-50/30"
+          data-testid="automation-outcome-explanation"
+        >
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium">
+              If automated
+            </span>
+            <span className="text-[10px] text-amber-600 italic">
+              (reading this does not trigger any action)
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            {recommendation.automationOutcomeExplanation}
+          </p>
+        </div>
+      )}
 
       {/* Preconditions - what user should know */}
       {recommendation.preconditions.length > 0 && (
-        <div className="mt-2">
+        <div className="mt-2.5 pt-2 border-t border-border/50">
           <p className="text-[10px] font-medium text-muted-foreground mb-1">
             Before you proceed
           </p>

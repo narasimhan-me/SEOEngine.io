@@ -28,6 +28,21 @@ This document tracks all implementation phases and their completion status.
 
 
 
+
+## [KAN-81] Implement: [EA-47] Ensure explanations remain clear as automation enters the picture.
+
+**Implemented:** 2026-01-30 23:34 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/web/src/components/common/MetricExplanation.tsx`
+- `apps/web/src/components/issues/IssueToActionGuidancePanel.tsx`
+- `apps/web/src/components/playbooks/AutomationCapabilityPanel.tsx`
+- `apps/web/src/lib/issue-to-action-guidance.ts`
+- `apps/web/tests/explanation-clarity-automation-1.spec.ts`
+
+---
+
 ## [KAN-79] Implement: [EA-46] Refine prioritization signals with clearer impact framing.
 
 **Implemented:** 2026-01-30 23:20 UTC

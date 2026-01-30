@@ -35,32 +35,37 @@ export function AutomationCapabilityPanel({
           <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
             Automation Available
           </h3>
+          {/* [EA-47] Explicit non-execution badge */}
+          <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-medium">
+            Reading only
+          </span>
         </div>
         <p className="text-xs text-muted-foreground mt-1">
-          This playbook can be automated. Automation is optional and always
-          under your control.
+          This playbook could be automated if you chose to enable it. Automation is optional and always
+          under your control.{' '}
+          <span className="font-medium">Reading this description does not trigger any action.</span>
         </p>
       </div>
 
       {/* Content */}
       <div className="p-4 space-y-4">
-        {/* What it does */}
+        {/* [EA-47] What it does - using conditional tense */}
         <div>
           <h4 className="text-xs font-medium text-foreground mb-1.5 flex items-center gap-1.5">
             <Target className="h-3.5 w-3.5 text-muted-foreground" />
-            What this automation does
+            What this automation would do
           </h4>
           <p className="text-sm text-muted-foreground leading-relaxed">
             {automationMeta.whatItDoes}
           </p>
         </div>
 
-        {/* Scope boundaries */}
+        {/* [EA-47] Scope boundaries - using conditional tense */}
         <div className="grid grid-cols-2 gap-3">
-          {/* What it touches */}
+          {/* What it would touch */}
           <div className="p-3 rounded-md bg-muted/30 border border-border/50">
             <h4 className="text-xs font-medium text-foreground mb-2">
-              Fields affected
+              Fields that would be affected
             </h4>
             <ul className="space-y-1">
               {automationMeta.fieldsAffected.map((field) => (
@@ -75,11 +80,11 @@ export function AutomationCapabilityPanel({
             </ul>
           </div>
 
-          {/* What it doesn't touch */}
+          {/* [EA-47] What it wouldn't touch */}
           <div className="p-3 rounded-md bg-muted/30 border border-border/50">
             <h4 className="text-xs font-medium text-foreground mb-2 flex items-center gap-1.5">
               <Ban className="h-3 w-3 text-muted-foreground" />
-              Does not touch
+              Would not touch
             </h4>
             <ul className="space-y-1">
               {automationMeta.doesNotTouch.map((item) => (
@@ -95,12 +100,12 @@ export function AutomationCapabilityPanel({
           </div>
         </div>
 
-        {/* Reversibility */}
+        {/* [EA-47] Reversibility - conditional tense */}
         <div className="flex items-start gap-3 p-3 rounded-md border border-border/50 bg-muted/20">
           <Undo2 className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
           <div>
             <p className="text-xs font-medium text-foreground mb-0.5">
-              {automationMeta.reversible ? 'Reversible' : 'Not reversible'}
+              {automationMeta.reversible ? 'Would be reversible' : 'Would not be reversible'}
             </p>
             <p className="text-xs text-muted-foreground leading-relaxed">
               {automationMeta.reversibilityNote}
@@ -108,12 +113,12 @@ export function AutomationCapabilityPanel({
           </div>
         </div>
 
-        {/* Trigger description */}
+        {/* [EA-47] Trigger description - conditional tense */}
         <div className="flex items-start gap-3 p-3 rounded-md border border-border/50 bg-muted/20">
           <Shield className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
           <div>
             <p className="text-xs font-medium text-foreground mb-0.5">
-              How it runs
+              How it would run
             </p>
             <p className="text-xs text-muted-foreground leading-relaxed">
               {automationMeta.triggerDescription}
@@ -121,11 +126,18 @@ export function AutomationCapabilityPanel({
           </div>
         </div>
 
-        {/* Scope description */}
+        {/* [EA-47] Scope description - conditional tense */}
         <div className="pt-2 border-t border-border/50">
           <p className="text-xs text-muted-foreground">
-            <span className="font-medium text-foreground">Scope:</span>{' '}
+            <span className="font-medium text-foreground">Would target:</span>{' '}
             {automationMeta.scopeDescription}
+          </p>
+        </div>
+
+        {/* [EA-47] Explicit non-execution reminder */}
+        <div className="pt-2 mt-2 border-t border-border/50 bg-slate-50/50 -mx-4 -mb-4 px-4 py-2 rounded-b-lg">
+          <p className="text-[10px] text-slate-500 text-center">
+            This is a description of what automation could do—nothing happens until you explicitly choose to enable it.
           </p>
         </div>
       </div>
