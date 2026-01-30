@@ -2,17 +2,21 @@
 
 /**
  * [DASHBOARD-SIGNAL-REWRITE-1] Metric Explanation Component
+ * [EA-45] Enhanced with signal category badges and playbook references
  *
  * Displays metric explanations with progressive disclosure:
  * - Inline: Shows label with info icon
  * - Tooltip: Shows "what it measures" on hover
  * - Expanded: Shows full explanation with "why it matters" and interpretation
  *
- * Trust Contract: Every metric can be understood without external research.
+ * Trust Contract:
+ * - Every metric can be understood without external research
+ * - Signals are clearly labeled as advisory (observation, guidance, action, automation)
+ * - No signal implies obligation or automatic execution
  */
 
 import { useState, useRef, useEffect } from 'react';
-import type { MetricDefinition, MetricType } from '@/lib/dashboard-metrics';
+import type { MetricDefinition, MetricType, SignalCategory } from '@/lib/dashboard-metrics';
 
 export interface MetricExplanationProps {
   /** Metric definition with all explanation content */
@@ -45,6 +49,52 @@ function MetricTypePill({ type }: { type: MetricType }) {
   };
 
   const { label, bgClass, textClass, description } = config[type];
+
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${bgClass} ${textClass}`}
+      title={description}
+    >
+      {label}
+    </span>
+  );
+}
+
+/**
+ * [EA-45] Signal Category Badge for clear visual separation
+ * Distinguishes between signals, actions, and automation concepts
+ */
+function SignalCategoryBadge({ category }: { category?: SignalCategory }) {
+  if (!category) return null;
+
+  const config: Record<SignalCategory, { label: string; bgClass: string; textClass: string; description: string }> = {
+    observation: {
+      label: 'Signal',
+      bgClass: 'bg-slate-100',
+      textClass: 'text-slate-600',
+      description: 'Advisory measurement - no action required',
+    },
+    guidance: {
+      label: 'Guidance Available',
+      bgClass: 'bg-teal-50',
+      textClass: 'text-teal-700',
+      description: 'Signal with related playbook - explore when ready',
+    },
+    action: {
+      label: 'Action',
+      bgClass: 'bg-indigo-50',
+      textClass: 'text-indigo-700',
+      description: 'User-initiated action available',
+    },
+    automation: {
+      label: 'Automation Concept',
+      bgClass: 'bg-amber-50',
+      textClass: 'text-amber-700',
+      description: 'System capability - informational only',
+    },
+  };
+
+  const { label, bgClass, textClass, description } = config[category];
 
   return (
     <span
@@ -160,11 +210,24 @@ export function MetricExplanation({
             role="tooltip"
             className="absolute top-full left-0 mt-2 z-50 w-72 rounded-lg bg-white border border-gray-200 p-3 text-xs shadow-lg"
           >
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
               <span className="font-medium text-gray-900">{metric.label}</span>
-              <MetricTypePill type={metric.type} />
+              <div className="flex items-center gap-1">
+                <MetricTypePill type={metric.type} />
+                <SignalCategoryBadge category={metric.signalCategory} />
+              </div>
             </div>
             <p className="text-gray-600 mb-2">{metric.whatItMeasures}</p>
+            {/* [EA-45] Advisory note for trust clarity */}
+            {metric.advisoryNote && (
+              <p className="text-[10px] text-gray-400 italic mb-2">{metric.advisoryNote}</p>
+            )}
+            {/* [EA-45] Playbook reference if available */}
+            {metric.relatedPlaybookId && (
+              <p className="text-[10px] text-teal-600 mb-2">
+                Playbook available: Explore guidance when ready
+              </p>
+            )}
             <button
               type="button"
               onClick={(e) => {
@@ -189,9 +252,10 @@ export function MetricExplanation({
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="font-semibold text-gray-900">{metric.label}</h3>
                   <MetricTypePill type={metric.type} />
+                  <SignalCategoryBadge category={metric.signalCategory} />
                 </div>
                 <button
                   type="button"
@@ -221,6 +285,14 @@ export function MetricExplanation({
                   <p className="text-gray-600">{metric.howToInterpret}</p>
                 </div>
 
+                {/* [EA-45] Related playbook guidance reference */}
+                {metric.relatedPlaybookId && (
+                  <div className="bg-teal-50 border border-teal-100 rounded-md p-2 text-xs text-teal-800">
+                    <strong>Guidance available:</strong> A playbook is available for this signal.
+                    Explore it when you&apos;re ready to improve this area.
+                  </div>
+                )}
+
                 {metric.technicalTerm && (
                   <div className="pt-2 border-t border-gray-100">
                     <span className="text-xs text-gray-500">
@@ -238,6 +310,13 @@ export function MetricExplanation({
                 {metric.limitations && (
                   <div className="bg-amber-50 border border-amber-100 rounded-md p-2 text-xs text-amber-800">
                     <strong>Note:</strong> {metric.limitations}
+                  </div>
+                )}
+
+                {/* [EA-45] Advisory nature statement */}
+                {metric.advisoryNote && (
+                  <div className="pt-2 border-t border-gray-100">
+                    <p className="text-[11px] text-gray-400 italic">{metric.advisoryNote}</p>
                   </div>
                 )}
               </div>

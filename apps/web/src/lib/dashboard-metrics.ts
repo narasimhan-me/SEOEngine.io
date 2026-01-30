@@ -18,6 +18,15 @@
 export type MetricType = 'signal' | 'recommendation';
 
 /**
+ * [EA-45] Signal category for distinguishing signal vs action vs automation.
+ * - 'observation': Pure signal measurement (advisory only)
+ * - 'guidance': Signal with related playbook/guidance available
+ * - 'action': User-initiated action recommendation
+ * - 'automation': System-managed capability (informational only)
+ */
+export type SignalCategory = 'observation' | 'guidance' | 'action' | 'automation';
+
+/**
  * Metric definition with full explanation metadata.
  */
 export interface MetricDefinition {
@@ -39,6 +48,21 @@ export interface MetricDefinition {
   dataSource?: string;
   /** Known limitations or caveats (trust-building transparency) */
   limitations?: string;
+  /**
+   * [EA-45] Signal category for visual/textual separation.
+   * Defaults to 'observation' if not specified.
+   */
+  signalCategory?: SignalCategory;
+  /**
+   * [EA-45] Related playbook ID if this signal has associated guidance.
+   * Informational only - does not trigger any actions.
+   */
+  relatedPlaybookId?: string;
+  /**
+   * [EA-45] Advisory nature statement shown in tooltips.
+   * Explicitly states this signal is informational, not prescriptive.
+   */
+  advisoryNote?: string;
 }
 
 /**
@@ -90,6 +114,7 @@ export const DEO_COMPONENT_METRICS: Record<string, MetricDefinition> = {
 
 /**
  * Individual signal metrics for the signals summary panel
+ * [EA-45] Updated with signalCategory and relatedPlaybookId for playbook/guidance integration
  */
 export const DEO_SIGNAL_METRICS: Record<string, MetricDefinition> = {
   // Crawl & Technical Signals
@@ -102,6 +127,9 @@ export const DEO_SIGNAL_METRICS: Record<string, MetricDefinition> = {
     type: 'signal',
     technicalTerm: 'Crawl health',
     dataSource: 'HTTP response codes from our automated crawl',
+    signalCategory: 'guidance',
+    relatedPlaybookId: 'technical-health-remediation',
+    advisoryNote: 'This is an observation. You decide if and when to take action.',
   },
   indexability: {
     id: 'indexability',
@@ -153,6 +181,9 @@ export const DEO_SIGNAL_METRICS: Record<string, MetricDefinition> = {
     type: 'signal',
     technicalTerm: 'Answer surface presence',
     dataSource: 'Analysis of Answer Blocks, FAQ content, and structured data',
+    signalCategory: 'guidance',
+    relatedPlaybookId: 'answer-readiness-optimization',
+    advisoryNote: 'This is an observation. You decide if and when to take action.',
   },
   brandNavigationalStrength: {
     id: 'brandNavigationalStrength',
@@ -184,6 +215,9 @@ export const DEO_SIGNAL_METRICS: Record<string, MetricDefinition> = {
     type: 'signal',
     technicalTerm: 'Content depth',
     dataSource: 'Analysis of description length, detail, and keyword usage',
+    signalCategory: 'guidance',
+    relatedPlaybookId: 'content-depth-improvement',
+    advisoryNote: 'This is an observation. You decide if and when to take action.',
   },
   contentFreshness: {
     id: 'contentFreshness',
@@ -205,6 +239,9 @@ export const DEO_SIGNAL_METRICS: Record<string, MetricDefinition> = {
     type: 'signal',
     technicalTerm: 'Entity coverage',
     dataSource: 'Analysis of product titles, brands, and categories',
+    signalCategory: 'guidance',
+    relatedPlaybookId: 'entity-coverage-expansion',
+    advisoryNote: 'This is an observation. You decide if and when to take action.',
   },
   entityAccuracy: {
     id: 'entityAccuracy',

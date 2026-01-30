@@ -422,47 +422,75 @@ export default function InsightsPage() {
 
       {/* Opportunities Section */}
       <section className="mt-8">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Opportunities
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">
+            Opportunities
+          </h2>
+          {/* [EA-45] Legend for signal vs action vs automation */}
+          <div className="flex items-center gap-3 text-[10px] text-gray-400">
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-teal-200"></span> Guidance
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-indigo-200"></span> Action
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-amber-200"></span> Automation
+            </span>
+          </div>
+        </div>
+        {/* [EA-45] Advisory statement */}
+        <p className="text-xs text-gray-400 mb-4 italic">
+          These suggestions are based on your data. You decide what to pursue and when.
+        </p>
         {opportunities.length === 0 ? (
           <p className="text-sm text-gray-500">No opportunities identified</p>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {opportunities.map((opp) => (
-              <Link
-                key={opp.id}
-                href={opp.href}
-                className="block rounded-lg border border-gray-200 bg-white p-4 hover:border-blue-300 hover:shadow-sm transition-all"
-              >
-                <div className="flex items-start justify-between">
-                  <h3 className="text-sm font-medium text-gray-900">
-                    {opp.title}
-                  </h3>
-                  <span
-                    className={`text-[10px] px-1.5 py-0.5 rounded uppercase font-medium ${
-                      opp.estimatedImpact === 'high'
-                        ? 'bg-green-100 text-green-700'
-                        : opp.estimatedImpact === 'medium'
-                          ? 'bg-yellow-100 text-yellow-700'
-                          : 'bg-gray-100 text-gray-600'
-                    }`}
-                  >
-                    {opp.estimatedImpact}
-                  </span>
-                </div>
-                <p className="mt-1 text-xs text-gray-500">{opp.why}</p>
-                <div className="mt-2 flex items-center gap-2">
-                  <span className="text-[10px] text-gray-400 uppercase">
-                    {opp.pillarId}
-                  </span>
-                  <span className="text-[10px] text-gray-400">|</span>
-                  <span className="text-[10px] text-gray-400">
-                    {opp.fixType}
-                  </span>
-                </div>
-              </Link>
-            ))}
+            {opportunities.map((opp) => {
+              // [EA-45] Determine fix type styling
+              const fixTypeConfig = {
+                automation: { bg: 'bg-amber-50', text: 'text-amber-700', label: 'Automation' },
+                manual: { bg: 'bg-indigo-50', text: 'text-indigo-700', label: 'Action' },
+                guidance: { bg: 'bg-teal-50', text: 'text-teal-700', label: 'Guidance' },
+              }[opp.fixType] || { bg: 'bg-gray-100', text: 'text-gray-600', label: opp.fixType };
+
+              return (
+                <Link
+                  key={opp.id}
+                  href={opp.href}
+                  className="block rounded-lg border border-gray-200 bg-white p-4 hover:border-blue-300 hover:shadow-sm transition-all"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="text-sm font-medium text-gray-900">
+                      {opp.title}
+                    </h3>
+                    <span
+                      className={`text-[10px] px-1.5 py-0.5 rounded uppercase font-medium ${
+                        opp.estimatedImpact === 'high'
+                          ? 'bg-green-100 text-green-700'
+                          : opp.estimatedImpact === 'medium'
+                            ? 'bg-yellow-100 text-yellow-700'
+                            : 'bg-gray-100 text-gray-600'
+                      }`}
+                    >
+                      {opp.estimatedImpact}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">{opp.why}</p>
+                  <div className="mt-2 flex items-center gap-2">
+                    <span className="text-[10px] text-gray-400 uppercase">
+                      {opp.pillarId}
+                    </span>
+                    <span className="text-[10px] text-gray-400">|</span>
+                    {/* [EA-45] Fix type with clear visual distinction */}
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${fixTypeConfig.bg} ${fixTypeConfig.text}`}>
+                      {fixTypeConfig.label}
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         )}
       </section>

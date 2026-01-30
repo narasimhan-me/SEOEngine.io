@@ -26,6 +26,22 @@ This document tracks all implementation phases and their completion status.
 
 
 
+
+## [KAN-77] Implement: [EA-45] Evolve dashboard signals to reflect playbooks and guidance, not just issues.
+
+**Implemented:** 2026-01-30 23:03 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/web/src/app/projects/[id]/insights/opportunity-signals/page.tsx`
+- `apps/web/src/app/projects/[id]/insights/page.tsx`
+- `apps/web/src/components/common/MetricExplanation.tsx`
+- `apps/web/src/components/issues/IssueToActionGuidancePanel.tsx`
+- `apps/web/src/components/projects/DeoSignalsSummary.tsx`
+- `apps/web/src/lib/dashboard-metrics.ts`
+
+---
+
 ## [KAN-75] Implement: [EA-44] Add system-level safety rails around automation.
 
 **Implemented:** 2026-01-30 22:49 UTC

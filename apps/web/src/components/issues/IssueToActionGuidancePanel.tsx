@@ -73,7 +73,11 @@ export function IssueToActionGuidancePanel({
         >
           <Lightbulb className="h-4 w-4 text-primary flex-shrink-0" aria-hidden="true" />
           <span className="text-xs font-medium text-foreground truncate">
-            You might consider
+            Guidance Available
+          </span>
+          {/* [EA-45] Signal category badge for clear distinction */}
+          <span className="text-[9px] px-1.5 py-0.5 rounded bg-teal-50 text-teal-700 flex-shrink-0">
+            Advisory
           </span>
           {isExpanded ? (
             <ChevronUp className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" aria-hidden="true" />
@@ -103,9 +107,10 @@ export function IssueToActionGuidancePanel({
             />
           ))}
 
-          {/* Trust reminder - subtle footer */}
+          {/* [EA-45] Trust reminder with playbook reference */}
           <p className="text-[10px] text-muted-foreground/70 pt-2 border-t border-border">
-            This is a suggestion based on the issue type. You decide if and when to take action.
+            This guidance is based on related playbooks. You decide if and when to take action.
+            No signal implies obligation or automatic execution.
           </p>
         </div>
       )}
