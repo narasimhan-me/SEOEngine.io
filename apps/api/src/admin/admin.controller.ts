@@ -322,4 +322,64 @@ export class AdminController {
       limit: limit ? parseInt(limit, 10) : 50,
     });
   }
+
+  // ===========================================================================
+  // [D10] Automation Oversight (EA-48)
+  // ===========================================================================
+
+  /**
+   * GET /admin/automation/runs - Read-only view of automation run history
+   * [EA-48] Enhanced run history with playbook details, scope, and safety rail info.
+   */
+  @Get('automation/runs')
+  @RequireAdminCapability('read')
+  async getAutomationRuns(
+    @Query('projectId') projectId?: string,
+    @Query('playbookId') playbookId?: string,
+    @Query('runType') runType?: string,
+    @Query('status') status?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string
+  ) {
+    return this.adminService.getAutomationRuns({
+      projectId,
+      playbookId,
+      runType,
+      status,
+      startDate: startDate ? new Date(startDate) : undefined,
+      endDate: endDate ? new Date(endDate) : undefined,
+      page: page ? parseInt(page, 10) : 1,
+      limit: limit ? parseInt(limit, 10) : 20,
+    });
+  }
+
+  /**
+   * GET /admin/automation/scopes - Read-only view of automation scopes and boundaries
+   * [EA-48] Shows what areas automation can affect across projects.
+   */
+  @Get('automation/scopes')
+  @RequireAdminCapability('read')
+  async getAutomationScopes(
+    @Query('projectId') projectId?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string
+  ) {
+    return this.adminService.getAutomationScopes({
+      projectId,
+      page: page ? parseInt(page, 10) : 1,
+      limit: limit ? parseInt(limit, 10) : 20,
+    });
+  }
+
+  /**
+   * GET /admin/automation/limits - Read-only view of automation limits and thresholds
+   * [EA-48] Shows rate limits, budgets, and execution thresholds.
+   */
+  @Get('automation/limits')
+  @RequireAdminCapability('read')
+  async getAutomationLimits() {
+    return this.adminService.getAutomationLimits();
+  }
 }

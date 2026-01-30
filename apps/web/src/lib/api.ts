@@ -2621,6 +2621,60 @@ export const adminApi = {
     const qs = params.toString() ? `?${params.toString()}` : '';
     return fetchWithAuth(`/admin/governance-audit-events${qs}`);
   },
+
+  // ===========================================================================
+  // [D10] Automation Oversight (EA-48)
+  // ===========================================================================
+
+  /**
+   * [EA-48] Get automation run history with enhanced details.
+   * Read-only view of automation runs including playbook info and outcomes.
+   */
+  getAutomationRuns: (filters?: {
+    projectId?: string;
+    playbookId?: string;
+    runType?: string;
+    status?: string;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+  }) => {
+    const params = new URLSearchParams();
+    if (filters?.projectId) params.set('projectId', filters.projectId);
+    if (filters?.playbookId) params.set('playbookId', filters.playbookId);
+    if (filters?.runType) params.set('runType', filters.runType);
+    if (filters?.status) params.set('status', filters.status);
+    if (filters?.startDate) params.set('startDate', filters.startDate);
+    if (filters?.endDate) params.set('endDate', filters.endDate);
+    if (filters?.page) params.set('page', String(filters.page));
+    if (filters?.limit) params.set('limit', String(filters.limit));
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return fetchWithAuth(`/admin/automation/runs${qs}`);
+  },
+
+  /**
+   * [EA-48] Get automation scopes and boundaries.
+   * Read-only view of what areas automation can affect.
+   */
+  getAutomationScopes: (filters?: {
+    projectId?: string;
+    page?: number;
+    limit?: number;
+  }) => {
+    const params = new URLSearchParams();
+    if (filters?.projectId) params.set('projectId', filters.projectId);
+    if (filters?.page) params.set('page', String(filters.page));
+    if (filters?.limit) params.set('limit', String(filters.limit));
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return fetchWithAuth(`/admin/automation/scopes${qs}`);
+  },
+
+  /**
+   * [EA-48] Get automation limits and thresholds.
+   * Read-only view of rate limits, budgets, and execution constraints.
+   */
+  getAutomationLimits: () => fetchWithAuth('/admin/automation/limits'),
 };
 
 /** [ENTERPRISE-GEO-1] Governance audit event response types */

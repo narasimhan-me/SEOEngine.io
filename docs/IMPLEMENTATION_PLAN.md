@@ -29,6 +29,21 @@ This document tracks all implementation phases and their completion status.
 
 
 
+
+## [KAN-83] Implement: [EA-48] Expand admin shell for read-only oversight of automation and playbooks.
+
+**Implemented:** 2026-01-30 23:48 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/api/src/admin/admin.controller.ts`
+- `apps/api/src/admin/admin.service.ts`
+- `apps/web/src/components/layout/AdminSideNav.tsx`
+- `apps/web/src/lib/api.ts`
+- `apps/web/src/app/admin/automation-oversight/`
+
+---
+
 ## [KAN-81] Implement: [EA-47] Ensure explanations remain clear as automation enters the picture.
 
 **Implemented:** 2026-01-30 23:34 UTC

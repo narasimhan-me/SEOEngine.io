@@ -1444,6 +1444,291 @@ export class AdminService {
   }
 
   // ===========================================================================
+  // [D10] Automation Oversight (EA-48) - Read-Only
+  // ===========================================================================
+
+  /**
+   * [EA-48] Get automation run history with enhanced details.
+   * Read-only view of automation runs including playbook info, scope, and outcomes.
+   */
+  async getAutomationRuns(filters: {
+    projectId?: string;
+    playbookId?: string;
+    runType?: string;
+    status?: string;
+    startDate?: Date;
+    endDate?: Date;
+    page?: number;
+    limit?: number;
+  }) {
+    const {
+      projectId,
+      playbookId,
+      runType,
+      status,
+      startDate,
+      endDate,
+      page = 1,
+      limit = 20,
+    } = filters;
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+    if (projectId) where.projectId = projectId;
+    if (playbookId) where.playbookId = playbookId;
+    if (runType) where.runType = runType;
+    if (status) where.status = status;
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) where.createdAt.gte = startDate;
+      if (endDate) where.createdAt.lte = endDate;
+    }
+
+    const [runs, total] = await Promise.all([
+      this.prisma.automationPlaybookRun.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          projectId: true,
+          playbookId: true,
+          runType: true,
+          status: true,
+          aiUsed: true,
+          reused: true,
+          errorCode: true,
+          errorMessage: true,
+          scopeId: true,
+          resultRef: true,
+          createdAt: true,
+          updatedAt: true,
+          project: {
+            select: {
+              name: true,
+              domain: true,
+              user: { select: { id: true, email: true } },
+            },
+          },
+          createdBy: {
+            select: { id: true, email: true, name: true },
+          },
+        },
+      }),
+      this.prisma.automationPlaybookRun.count({ where }),
+    ]);
+
+    // Enrich with scope details if available
+    const enrichedRuns = runs.map((run) => ({
+      id: run.id,
+      projectId: run.projectId,
+      projectName: run.project.name,
+      projectDomain: run.project.domain,
+      ownerEmail: run.project.user.email,
+      playbookId: run.playbookId,
+      runType: run.runType,
+      status: run.status,
+      aiUsed: run.aiUsed,
+      reused: run.reused,
+      errorCode: run.errorCode,
+      errorMessage: run.errorMessage,
+      scopeId: run.scopeId,
+      createdAt: run.createdAt,
+      updatedAt: run.updatedAt,
+      createdBy: run.createdBy
+        ? {
+            id: run.createdBy.id,
+            email: run.createdBy.email,
+            name: run.createdBy.name,
+          }
+        : null,
+    }));
+
+    return {
+      runs: enrichedRuns,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  /**
+   * [EA-48] Get automation scopes and their boundaries.
+   * Read-only view of what areas automation can affect.
+   */
+  async getAutomationScopes(filters: {
+    projectId?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    const { projectId, page = 1, limit = 20 } = filters;
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+    if (projectId) where.projectId = projectId;
+
+    // Get unique scopes from recent drafts
+    const [drafts, total] = await Promise.all([
+      this.prisma.automationPlaybookDraft.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        distinct: ['scopeId'],
+        select: {
+          id: true,
+          projectId: true,
+          playbookId: true,
+          scopeId: true,
+          rulesHash: true,
+          assetType: true,
+          status: true,
+          affectedTotal: true,
+          draftGenerated: true,
+          appliedAt: true,
+          expiresAt: true,
+          createdAt: true,
+          project: {
+            select: {
+              name: true,
+              domain: true,
+            },
+          },
+        },
+      }),
+      this.prisma.automationPlaybookDraft.count({
+        where,
+      }),
+    ]);
+
+    const scopes = drafts.map((draft) => ({
+      draftId: draft.id,
+      projectId: draft.projectId,
+      projectName: draft.project.name,
+      projectDomain: draft.project.domain,
+      playbookId: draft.playbookId,
+      scopeId: draft.scopeId,
+      rulesHash: draft.rulesHash,
+      assetType: draft.assetType,
+      status: draft.status,
+      boundaries: {
+        affectedTotal: draft.affectedTotal,
+        draftGenerated: draft.draftGenerated,
+      },
+      applied: !!draft.appliedAt,
+      appliedAt: draft.appliedAt,
+      expired: draft.expiresAt ? draft.expiresAt < new Date() : false,
+      expiresAt: draft.expiresAt,
+      createdAt: draft.createdAt,
+    }));
+
+    return {
+      scopes,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  /**
+   * [EA-48] Get automation limits and thresholds.
+   * Read-only view of rate limits, budgets, and execution constraints.
+   */
+  async getAutomationLimits() {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    // Get usage by plan for current month
+    const usageByPlan = await this.prisma.$queryRaw<
+      Array<{ plan: string; userCount: bigint; totalRuns: bigint; aiRuns: bigint }>
+    >`
+      SELECT
+        COALESCE(s.plan, 'free') as plan,
+        COUNT(DISTINCT u.id)::bigint as "userCount",
+        COUNT(r.id)::bigint as "totalRuns",
+        SUM(CASE WHEN r."aiUsed" = true THEN 1 ELSE 0 END)::bigint as "aiRuns"
+      FROM "User" u
+      LEFT JOIN "Subscription" s ON s."userId" = u.id
+      LEFT JOIN "AutomationPlaybookRun" r ON r."createdByUserId" = u.id
+        AND r."createdAt" >= ${monthStart}
+      GROUP BY COALESCE(s.plan, 'free')
+    `;
+
+    // Plan limits configuration (read-only reference)
+    const planLimits = {
+      free: { aiRunsPerMonth: 10, maxExecutionsPerDay: 10 },
+      starter: { aiRunsPerMonth: 100, maxExecutionsPerDay: 50 },
+      pro: { aiRunsPerMonth: 500, maxExecutionsPerDay: 200 },
+      enterprise: { aiRunsPerMonth: -1, maxExecutionsPerDay: -1 }, // -1 = unlimited
+    };
+
+    // Get quota resets this month
+    const quotaResets = await this.prisma.aiMonthlyQuotaReset.count({
+      where: { monthStart: { gte: monthStart } },
+    });
+
+    // Get users near quota limit
+    const usersNearLimit = await this.prisma.$queryRaw<
+      Array<{ userId: string; email: string; plan: string; aiRuns: bigint; limit: number }>
+    >`
+      SELECT
+        u.id as "userId",
+        u.email,
+        COALESCE(s.plan, 'free') as plan,
+        COUNT(r.id)::bigint as "aiRuns",
+        CASE
+          WHEN s.plan = 'enterprise' THEN -1
+          WHEN s.plan = 'pro' THEN 500
+          WHEN s.plan = 'starter' THEN 100
+          ELSE 10
+        END as limit
+      FROM "User" u
+      LEFT JOIN "Subscription" s ON s."userId" = u.id
+      LEFT JOIN "AutomationPlaybookRun" r ON r."createdByUserId" = u.id
+        AND r."createdAt" >= ${monthStart}
+        AND r."aiUsed" = true
+      GROUP BY u.id, u.email, s.plan
+      HAVING
+        CASE
+          WHEN s.plan = 'enterprise' THEN false
+          WHEN s.plan = 'pro' THEN COUNT(r.id) >= 450
+          WHEN s.plan = 'starter' THEN COUNT(r.id) >= 90
+          ELSE COUNT(r.id) >= 8
+        END
+      ORDER BY "aiRuns" DESC
+      LIMIT 20
+    `;
+
+    return {
+      planLimits,
+      currentMonthUsage: usageByPlan.map((p) => ({
+        plan: p.plan,
+        userCount: Number(p.userCount),
+        totalRuns: Number(p.totalRuns),
+        aiRuns: Number(p.aiRuns),
+        limit: planLimits[p.plan as keyof typeof planLimits]?.aiRunsPerMonth ?? 10,
+      })),
+      quotaResetsThisMonth: quotaResets,
+      usersNearLimit: usersNearLimit.map((u) => ({
+        userId: u.userId,
+        email: u.email,
+        plan: u.plan,
+        aiRuns: Number(u.aiRuns),
+        limit: u.limit,
+        percentUsed: u.limit === -1 ? 0 : Math.round((Number(u.aiRuns) / u.limit) * 100),
+      })),
+      evaluatedAt: new Date().toISOString(),
+    };
+  }
+
+  // ===========================================================================
   // Helpers
   // ===========================================================================
 
