@@ -31,6 +31,8 @@ import {
   derivePriorityRationale,
 } from '@/lib/issues/prioritizationSignals';
 import { ImpactIndicator } from './ImpactIndicator';
+// [EA-41: ISSUE-TO-ACTION-GUIDANCE-1] Import guidance helpers
+import { getIssueToActionGuidance } from '@/lib/issue-to-action-guidance';
 
 // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Re-export ISSUE_UI_CONFIG for backwards compatibility
 export { ISSUE_UI_CONFIG } from '@/lib/issue-ui-config';
@@ -344,6 +346,23 @@ function IssueCard({
               </div>
             </div>
           )}
+          {/* [EA-41: ISSUE-TO-ACTION-GUIDANCE-1] Inline guidance hint for actionable issues */}
+          {actionable && (() => {
+            const issueType = issue.type || issue.id;
+            const guidance = getIssueToActionGuidance(issueType);
+            const firstGuidance = guidance[0];
+            if (firstGuidance?.whyThisHelps) {
+              return (
+                <p
+                  className="mt-1.5 text-[10px] text-gray-500 italic"
+                  data-testid="issue-card-guidance-hint"
+                >
+                  You might consider: {firstGuidance.name.toLowerCase()}
+                </p>
+              );
+            }
+            return null;
+          })()}
           {/* [ISSUE-FIX-KIND-CLARITY-1] Visible CTA showing "Fix" or "Review" based on fixKind */}
           {actionable && (
             <span

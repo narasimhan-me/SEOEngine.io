@@ -34,6 +34,8 @@ import { IssueContextualHelp } from '@/components/assistant/IssueContextualHelp'
 // [ERROR-&-BLOCKED-STATE-UX-1] Import blocked state derivation and action destinations
 import { deriveBlockedState, getBlockedStateCopy } from '@/lib/issues/blockedState';
 import { getIssueActionDestinations } from '@/lib/issues/issueActionDestinations';
+// [EA-41: ISSUE-TO-ACTION-GUIDANCE-1] Import guidance panel component
+import { IssueToActionGuidancePanel } from '@/components/issues/IssueToActionGuidancePanel';
 
 /**
  * [ISSUES-ENGINE-REMOUNT-1] Read-only issue details renderer for RCP.
@@ -66,12 +68,14 @@ interface ContextPanelIssueDetailsProps {
 type LoadState = 'loading' | 'loaded' | 'not_found' | 'error';
 
 /**
- * [ISSUE-TO-ACTION-GUIDANCE-1] Automation guidance section component.
+ * [EA-41: ISSUE-TO-ACTION-GUIDANCE-1] Enhanced automation guidance section.
  * [RIGHT-CONTEXT-PANEL-AUTONOMY-1] Strictly informational (NO CTAs/links in body).
- * [ISSUE-TO-ACTION-GUIDANCE-1 FIXUP-1] Trust language alignment:
- *   - Non-actionable states use "Automation Guidance" label (no "Recommended" when nothing to recommend)
- *   - Actionable + mapped states use "Recommended Action" label (recommendation is present)
- * Shows playbook info when issue is actionable and has a mapping.
+ * [EA-41] Trust Contract:
+ *   - Guidance is always optional and dismissible
+ *   - Language uses suggestive framing ("You might consider...")
+ *   - No auto-selection or auto-run of any action
+ *   - Visually distinct from execution controls
+ * Shows enhanced guidance panel when issue is actionable and has a mapping.
  * Shows "No automated action available." for informational or blocked issues.
  */
 function AutomationGuidanceSection({ issue }: { issue: DeoIssue }) {
@@ -86,8 +90,7 @@ function AutomationGuidanceSection({ issue }: { issue: DeoIssue }) {
   const guidance = getIssueToActionGuidance(issueType);
   const hasGuidance = guidance.length > 0;
 
-  // [FIXUP-1] If not actionable, show calm "no action" message with neutral label
-  // (no "Recommended" language when there is no recommendation)
+  // [EA-41] If not actionable, show calm "no action" message with neutral label
   if (!isActionable) {
     return (
       <div className="rounded-md border border-border bg-[hsl(var(--surface-card))] p-3">
@@ -101,7 +104,7 @@ function AutomationGuidanceSection({ issue }: { issue: DeoIssue }) {
     );
   }
 
-  // [FIXUP-1] If actionable but no guidance mapping, show calm "no action" message with neutral label
+  // [EA-41] If actionable but no guidance mapping, show calm "no action" message
   if (!hasGuidance) {
     return (
       <div className="rounded-md border border-border bg-[hsl(var(--surface-card))] p-3">
@@ -115,74 +118,14 @@ function AutomationGuidanceSection({ issue }: { issue: DeoIssue }) {
     );
   }
 
-  // [RIGHT-CONTEXT-PANEL-AUTONOMY-1] Render playbook info (informational only, no CTAs)
+  // [EA-41: ISSUE-TO-ACTION-GUIDANCE-1] Render enhanced guidance panel with dismiss capability
   return (
-    <div className="rounded-md border border-border bg-[hsl(var(--surface-card))] p-3">
-      <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-        Recommended Action
-      </p>
-      <div className="mt-2 space-y-3">
-        {guidance.map((playbook) => (
-          <PlaybookInfoBlock key={playbook.playbookId} playbook={playbook} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/**
- * [RIGHT-CONTEXT-PANEL-AUTONOMY-1] Informational playbook block (NO navigation CTAs).
- * Displays playbook name, description, affects, and preconditions.
- * Navigation is via RCP header external-link only.
- */
-function PlaybookInfoBlock({
-  playbook,
-}: {
-  playbook: {
-    playbookId: string;
-    name: string;
-    oneLineWhatItDoes: string;
-    affects: string;
-    preconditions: string[];
-  };
-}) {
-  return (
-    <div className="space-y-2">
-      {/* Playbook name */}
-      <p className="text-sm font-semibold text-foreground">{playbook.name}</p>
-
-      {/* One-line description */}
-      <p className="text-xs text-muted-foreground">
-        {playbook.oneLineWhatItDoes}
-      </p>
-
-      {/* Affects */}
-      <div>
-        <p className="text-[11px] font-medium text-muted-foreground">Affects</p>
-        <p className="text-xs text-foreground">{playbook.affects}</p>
-      </div>
-
-      {/* Preconditions */}
-      <div>
-        <p className="text-[11px] font-medium text-muted-foreground">
-          Before you proceed
-        </p>
-        <ul className="mt-1 space-y-0.5">
-          {playbook.preconditions.map((precondition, idx) => (
-            <li
-              key={idx}
-              className="text-xs text-muted-foreground flex items-start gap-1.5"
-            >
-              <span className="text-muted-foreground/60">•</span>
-              <span>{precondition}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {/* [RIGHT-CONTEXT-PANEL-AUTONOMY-1] NO in-body navigation links.
-          Header external-link is the only navigation affordance. */}
-    </div>
+    <IssueToActionGuidancePanel
+      issueTitle={issue.title}
+      recommendations={guidance}
+      defaultCollapsed={false}
+      testId="rcp-issue-guidance-panel"
+    />
   );
 }
 

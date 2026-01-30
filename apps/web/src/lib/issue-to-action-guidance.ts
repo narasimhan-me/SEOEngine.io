@@ -22,6 +22,7 @@ export type FixTypeLabel = 'AI' | 'Template' | 'Guidance' | 'Rule-based';
  * Recommended playbook descriptor with metadata for display in RCP and list views.
  * All fields are static/pre-computed; no runtime evaluation.
  * [ISSUE-FIX-KIND-CLARITY-1] fixTypeLabel and fixTypeDescription are now required per EA-20 EPIC 14.
+ * [EA-41: ISSUE-TO-ACTION-GUIDANCE-1] whyThisHelps provides plain-English explanation.
  */
 export interface RecommendedPlaybook {
   /** Canonical playbook ID (must be PlaybookId) */
@@ -38,6 +39,8 @@ export interface RecommendedPlaybook {
   fixTypeLabel: FixTypeLabel;
   /** [ISSUE-FIX-KIND-CLARITY-1] User-facing description of fix type (required) */
   fixTypeDescription: string;
+  /** [EA-41] Plain-English explanation of why this action helps address the issue */
+  whyThisHelps: string;
 }
 
 /**
@@ -63,6 +66,8 @@ const ISSUE_TO_PLAYBOOK_MAP: Record<string, RecommendedPlaybook[]> = {
       fixTypeLabel: 'AI',
       fixTypeDescription:
         'AI suggests titles for you to review, edit, and approve',
+      whyThisHelps:
+        'Search titles help your products appear in search results with clear, relevant descriptions. Without them, search engines may display generic text that doesn\'t attract clicks.',
     },
   ],
   missing_seo_description: [
@@ -80,6 +85,8 @@ const ISSUE_TO_PLAYBOOK_MAP: Record<string, RecommendedPlaybook[]> = {
       fixTypeLabel: 'AI',
       fixTypeDescription:
         'AI suggests descriptions for you to review, edit, and approve',
+      whyThisHelps:
+        'Search descriptions give potential customers a preview of your product before they click. A compelling description can improve click-through rates from search results.',
     },
   ],
   not_answer_ready: [
@@ -96,6 +103,8 @@ const ISSUE_TO_PLAYBOOK_MAP: Record<string, RecommendedPlaybook[]> = {
       fixTypeLabel: 'Guidance',
       fixTypeDescription:
         'Identifies products to improve, with tips on what to add',
+      whyThisHelps:
+        'AI assistants like ChatGPT and Google AI Overviews recommend products based on their content quality. Products with detailed, structured information are more likely to be surfaced in AI-generated recommendations.',
     },
   ],
 };

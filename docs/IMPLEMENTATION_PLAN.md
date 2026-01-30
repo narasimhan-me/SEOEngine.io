@@ -22,6 +22,21 @@ This document tracks all implementation phases and their completion status.
 
 
 
+
+## [KAN-69] Implement: [EA-41] Guide users from issue → recommended action, with explanation.
+
+**Implemented:** 2026-01-30 22:03 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/web/src/components/issues/IssuesList.tsx`
+- `apps/web/src/components/right-context-panel/ContextPanelIssueDetails.tsx`
+- `apps/web/src/lib/issue-to-action-guidance.ts`
+- `apps/web/src/components/issues/IssueToActionGuidancePanel.tsx`
+- `apps/web/tests/issue-to-action-guidance-1.spec.ts`
+
+---
+
 ## [KAN-67] Implement: [EA-40] Introduce a Playbooks shell that organizes fix strategies without executing anything.
 
 **Implemented:** 2026-01-30 21:48 UTC
