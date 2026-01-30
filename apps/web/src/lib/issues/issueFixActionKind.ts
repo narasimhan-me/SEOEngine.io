@@ -20,6 +20,8 @@ import {
   getIssueActionDestinations,
   type GetIssueActionDestinationsParams,
 } from './issueActionDestinations';
+// [FIXUP-4] Import inline preview support helper for single source of truth
+import { isInlineAiPreviewSupportedIssueType } from './inlineAiPreviewSupport';
 
 /**
  * Canonical fix action kinds for Issues Engine CTAs.
@@ -71,6 +73,8 @@ export interface IssueFixActionKindInfo {
  * 3. If fix destination exists and fixKind=DIAGNOSTIC → GUIDANCE_ONLY
  * 4. If fix destination exists otherwise → DIRECT_FIX
  *
+ * [FIXUP-4] AI_PREVIEW_FIX now also requires issueType to be in the inline preview allowlist.
+ *
  * @param params - Same params as getIssueActionDestinations
  * @returns IssueFixActionKind
  */
@@ -90,10 +94,14 @@ export function deriveIssueFixActionKind(
     const fixType = issue.fixType as DeoIssueFixType | undefined;
     const fixReady = issue.fixReady ?? false;
 
-    // AI fix with inline preview support
+    // [FIXUP-4] AI fix with inline preview support
     // Conditions: fixType === 'aiFix' AND fixReady === true AND has primaryProductId
+    // AND issueType is in the inline preview allowlist
     const supportsInlinePreview =
-      fixType === 'aiFix' && fixReady === true && !!issue.primaryProductId;
+      fixType === 'aiFix' &&
+      fixReady === true &&
+      !!issue.primaryProductId &&
+      isInlineAiPreviewSupportedIssueType(issueType);
 
     if (supportsInlinePreview) {
       return 'AI_PREVIEW_FIX';
@@ -125,6 +133,10 @@ export function deriveIssueFixActionKind(
 /**
  * Gets full fix action kind info including label, sublabel, and icon.
  *
+ * [FIXUP-4] GUIDANCE_ONLY now distinguishes between:
+ *   - DIAGNOSTIC issues → "Review guidance" (playbook.content icon)
+ *   - viewAffected exploration → "View affected" (nav.projects icon)
+ *
  * @param params - Same params as getIssueActionDestinations
  * @param blockedReasonOverride - [EA-16] Optional canonical blocked reason ID to override default
  * @returns IssueFixActionKindInfo with all UI metadata
@@ -150,13 +162,30 @@ export function getIssueFixActionKindInfo(
         sublabel: 'Manual changes required',
         iconKey: 'nav.projects',
       };
-    case 'GUIDANCE_ONLY':
+    case 'GUIDANCE_ONLY': {
+      // [FIXUP-4] Distinguish between DIAGNOSTIC guidance and viewAffected exploration
+      const destinations = getIssueActionDestinations(params);
+      const hasViewAffected =
+        destinations.viewAffected.kind !== 'none' && destinations.viewAffected.href;
+
+      // If viewAffected is available and no fix destination, this is exploration
+      if (hasViewAffected && destinations.fix.kind === 'none') {
+        return {
+          kind,
+          label: 'View affected',
+          sublabel: 'See affected items',
+          iconKey: 'nav.projects',
+        };
+      }
+
+      // Otherwise it's DIAGNOSTIC guidance (fix destination exists but fixKind=DIAGNOSTIC)
       return {
         kind,
         label: 'Review guidance',
         sublabel: 'No automatic fix available',
         iconKey: 'playbook.content',
       };
+    }
     case 'BLOCKED': {
       // [EA-16: ERROR-&-BLOCKED-STATE-UX-1] Use canonical blocked reason when provided
       const defaultReason = 'No fix destination is mapped for this issue type in the current context.';

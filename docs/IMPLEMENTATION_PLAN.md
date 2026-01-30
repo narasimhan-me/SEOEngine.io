@@ -2749,7 +2749,7 @@ Semantic CTA labels with fix-action kinds for Issues Decision Engine:
 2. **Issues Page CTA Updates**: Updated `apps/web/src/app/projects/[id]/issues/page.tsx`:
    - AI preview buttons show "Review AI fix" with sparkle icon
    - Direct fix links show "Fix in workspace" with inventory icon
-   - View affected links show "Review guidance" with article icon
+   - View affected links show "View affected" with inventory icon (updated in FIXUP-4)
    - Sublabels added via title attribute (e.g., "Preview changes before saving")
    - All existing `data-testid` selectors preserved for backward compatibility
 
@@ -2760,6 +2760,33 @@ Semantic CTA labels with fix-action kinds for Issues Decision Engine:
 4. **RCP Copy Alignment**: Updated `ContextPanelIssueDetails.tsx` Actionability section with fix-action kind sentence (no CTAs in RCP body, read-only panel).
 
 5. **Manual Testing**: Added FIXUP-3 section to `ISSUE-FIX-KIND-CLARITY-1.md` with 5 new scenarios (F3-001 through F3-005) and verification checklist.
+
+#### FIXUP-4 (2026-01-25)
+
+Preview eligibility tightening + viewAffected label fix:
+
+1. **Inline Preview Support Helper**: Created `apps/web/src/lib/issues/inlineAiPreviewSupport.ts`:
+   - `INLINE_AI_PREVIEW_SUPPORTED_ISSUE_TYPES` Set: `missing_seo_title`, `missing_seo_description`
+   - `isInlineAiPreviewSupportedIssueType(issueType)`: Single source of truth
+   - Prevents drift between derivation logic and UI rendering
+
+2. **AI_PREVIEW_FIX Tightened**: Updated `issueFixActionKind.ts`:
+   - AI_PREVIEW_FIX now requires `isInlineAiPreviewSupportedIssueType(issueType)` check
+   - Prevents "Review AI fix" CTA appearing for issues without inline preview UI
+
+3. **View Affected Label Fix**: Updated `getIssueFixActionKindInfo()`:
+   - GUIDANCE_ONLY issues with viewAffected (no fix) show "View affected" (exploration label)
+   - GUIDANCE_ONLY issues with fix (DIAGNOSTIC) still show "Review guidance"
+   - Correct semantic distinction between exploration and guidance
+
+4. **Issues UI Integration**: Updated `apps/web/src/app/projects/[id]/issues/page.tsx`:
+   - Imported `isInlineAiPreviewSupportedIssueType` helper
+   - Replaced inline `supportsInlineFix` check with centralized helper
+   - Added dev-time guardrail: console warning if AI_PREVIEW_FIX derived but `supportsInlineFix` is false
+
+5. **Manual Testing**: Added FIXUP-4 section to `ISSUE-FIX-KIND-CLARITY-1.md` with scenarios F4-001 (AI fix without inline preview) and F4-002 (View affected exploration label).
+
+6. **UI Drift Prevention (Completion Patch)**: Updated viewAffected CTA block in Issues page to use `fixActionKindInfo.label`, `fixActionKindInfo.iconKey`, and `fixActionKindInfo.sublabel` instead of hardcoded values. Ensures UI can't diverge from `getIssueFixActionKindInfo()` derivation.
 
 #### Core Files
 
@@ -3123,7 +3150,6 @@ Introduce canonical DataTable and DataList components aligned with Design System
 #### Scope
 
 **In Scope:**
-
 - Canonical DataTable component with semantic `<table>` markup
 - Canonical DataList component for list-style rows
 - Minimal column model (header label + cell renderer) and row model (id + data)
@@ -3137,7 +3163,6 @@ Introduce canonical DataTable and DataList components aligned with Design System
 - No horizontal overflow by default (truncation/wrapping)
 
 **Out of Scope:**
-
 - No feature migrations (existing tables unchanged)
 - No sorting/filtering changes
 - No bulk actions
@@ -3193,7 +3218,6 @@ Add a global Command Palette accessible via keyboard shortcut (Cmd+K / Ctrl+K) o
 #### Scope
 
 **In Scope:**
-
 - CommandPaletteProvider context with deterministic state (isOpen, query, open/close/toggle)
 - Global keyboard shortcut Cmd+K / Ctrl+K toggles palette
 - Focus management: store opener on open, restore on close
@@ -3211,7 +3235,6 @@ Add a global Command Palette accessible via keyboard shortcut (Cmd+K / Ctrl+K) o
 - Container-contained overlay (Shopify iframe safe)
 
 **Out of Scope:**
-
 - No destructive commands (delete, remove)
 - No write commands (create, update, save)
 - No apply commands (apply draft, apply fix)
@@ -3278,7 +3301,6 @@ Styling-only polish phase to establish clear visual hierarchy across navigation 
 #### Scope
 
 **In Scope:**
-
 - Global Nav (LayoutShell.tsx): Increased visual weight with font-medium base, font-semibold active state, primary color retained
 - Section Nav (ProjectSideNav.tsx): Demoted with font-medium heading (text-muted-foreground/80), neutral active state (bg-muted, no primary color)
 - Mobile drawer (layout.tsx): Token-only styling (bg-foreground/50 scrim, bg-[hsl(var(--surface-raised))] panel, border-border, token-based buttons)
@@ -3286,7 +3308,6 @@ Styling-only polish phase to establish clear visual hierarchy across navigation 
 - Focus-visible ring pattern standardized across all interactive elements
 
 **Out of Scope:**
-
 - No new components
 - No functional changes
 - No routing changes
@@ -3339,13 +3360,13 @@ PANEL-DEEP-LINKS-1 adds shareable Right Context Panel state via URL deep-links. 
 
 #### URL Schema
 
-| Parameter     | Required | Allowed Values                                                       |
-| ------------- | -------- | -------------------------------------------------------------------- |
-| `panel`       | Yes      | `details`, `recommendations`, `history`, `help`                      |
+| Parameter     | Required | Allowed Values                                           |
+| ------------- | -------- | -------------------------------------------------------- |
+| `panel`       | Yes      | `details`, `recommendations`, `history`, `help`          |
 | `entityType`  | Yes      | `product`, `page`, `collection`, `blog`, `issue`, `user`, `playbook` |
-| `entityId`    | Yes      | Any non-empty string (the entity's ID)                               |
-| `entityTitle` | No       | Optional entity title (fallback for panel title)                     |
-| `panelOpen`   | No       | Accepted but not required (legacy compatibility)                     |
+| `entityId`    | Yes      | Any non-empty string (the entity's ID)                   |
+| `entityTitle` | No       | Optional entity title (fallback for panel title)         |
+| `panelOpen`   | No       | Accepted but not required (legacy compatibility)         |
 
 #### Key Features
 
@@ -3493,9 +3514,9 @@ ISSUE-TO-ACTION-GUIDANCE-1 provides deterministic, static mapping from issue typ
 
 #### Initial Mappings
 
-| Issue Type                | Playbook ID               | Playbook Name                |
-| ------------------------- | ------------------------- | ---------------------------- |
-| `missing_seo_title`       | `missing_seo_title`       | Fix missing SEO titles       |
+| Issue Type | Playbook ID | Playbook Name |
+|------------|-------------|---------------|
+| `missing_seo_title` | `missing_seo_title` | Fix missing SEO titles |
 | `missing_seo_description` | `missing_seo_description` | Fix missing SEO descriptions |
 
 #### Affected Files
@@ -3759,6 +3780,57 @@ ISSUE-FIX-ROUTE-INTEGRITY-1 eliminates "dead clicks" in the Issues Engine by imp
 - "View affected" label preserved for Playwright test compatibility
 - Action buttons include `data-no-row-click` attribute and `stopPropagation` to prevent RCP opening
 - **FIXUP-4:** IFRI-005 test strengthened with explicit `right-context-panel` assertions (open/close via UI, not URL heuristic); manual testing doc updated to use `issue-fix-button` / `issue-view-affected-button` as canonical selectors with `issue-card-cta` nested for backward compatibility
+
+---
+
+### Phase ERROR-&-BLOCKED-STATE-UX-1: Blocked State UX Alignment ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-25
+**Design System Version:** 1.5
+**Activation:** Centralized blocked-state derivation and trust-safe error copy
+
+#### Overview
+
+ERROR-&-BLOCKED-STATE-UX-1 centralizes blocked-state derivation and user-facing copy across the Issues Engine and Right Context Panel (RCP). All blocked states use canonical, trust-safe explanations with clear next steps. Eliminates vague error messages and ensures consistent blocked state display across surfaces.
+
+#### Key Features
+
+1. **Centralized Blocked State Helper** (`blockedState.ts`): BlockedState type with 6 canonical reasons (PERMISSIONS_MISSING, SHOPIFY_SCOPE_MISSING, DRAFT_REQUIRED, DESTINATION_UNAVAILABLE, SYNC_PENDING, SYSTEM_ERROR), deriveBlockedState() function, getBlockedStateCopy() for user-facing text
+2. **Issues Table Blocked Chips**: Blocked chips use centralized copy.chipLabel, tooltip shows description + nextStep, data-no-row-click prevents row expansion, no Fix/Apply CTA when blocked
+3. **RCP "Why this is blocked" Line**: Actionability section shows blocked explanation when applicable, matches table tooltip content
+4. **Empty/Error State Alignment**: Sync-pending empty state uses SYNC_PENDING copy, error states use SYSTEM_ERROR-aligned copy
+5. **Dev-time Guardrails**: Console warnings for Fix/Apply CTA rendering while blocked, missing description copy, RCP vs table blocked state mismatch
+
+#### Canonical Blocked States
+
+| State | Chip Label | Description | Next Step |
+|-------|------------|-------------|-----------|
+| PERMISSIONS_MISSING | Blocked — permissions | You don't have permission to run fixes for this project. | Ask a project owner to grant access, then try again. |
+| SHOPIFY_SCOPE_MISSING | Blocked — Shopify permissions | Required Shopify permissions weren't granted, so fixes can't be applied. | Reconnect Shopify to grant the missing permissions. |
+| DRAFT_REQUIRED | Blocked — save draft | Save the draft before applying it to Shopify. | Click "Save draft", then apply the saved draft. |
+| DESTINATION_UNAVAILABLE | Blocked — unavailable | This action isn't available in the current UI. | Open the issue details to review context. |
+| SYNC_PENDING | Blocked — syncing | We can't show fixes yet because data sync is still in progress. | Try again after the sync completes. |
+| SYSTEM_ERROR | Blocked — system error | This action is unavailable due to a system error. | Retry, or refresh the page. |
+
+#### Priority Order
+
+When multiple blocked conditions apply: PERMISSIONS_MISSING → SHOPIFY_SCOPE_MISSING → DRAFT_REQUIRED → DESTINATION_UNAVAILABLE → SYNC_PENDING → SYSTEM_ERROR
+
+#### Core Files
+
+- `apps/web/src/lib/issues/blockedState.ts` (NEW)
+- `apps/web/src/app/projects/[id]/issues/page.tsx`
+- `apps/web/src/components/right-context-panel/ContextPanelContentRenderer.tsx`
+- `apps/web/src/components/right-context-panel/ContextPanelIssueDetails.tsx`
+
+#### Manual Testing
+
+- `docs/manual-testing/ERROR-&-BLOCKED-STATE-UX-1.md`
+
+#### Critical Path Map
+
+- CP-020 (UI Shell & Right Context Panel) - Updated with ERROR-&-BLOCKED-STATE-UX-1 checklist items
 
 ---
 

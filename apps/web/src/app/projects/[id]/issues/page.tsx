@@ -45,6 +45,8 @@ import { getIssueToActionGuidance } from '@/lib/issue-to-action-guidance';
 import { getIssueActionDestinations } from '@/lib/issues/issueActionDestinations';
 // [ISSUE-FIX-KIND-CLARITY-1 FIXUP-3] Import fix-action-kind helper for semantic CTAs
 import { getIssueFixActionKindInfo } from '@/lib/issues/issueFixActionKind';
+// [ISSUE-FIX-KIND-CLARITY-1 FIXUP-4] Import inline preview support helper (single source of truth)
+import { isInlineAiPreviewSupportedIssueType } from '@/lib/issues/inlineAiPreviewSupport';
 // [DRAFT-LIFECYCLE-VISIBILITY-1] Import draft lifecycle state helpers
 import {
   deriveDraftLifecycleState,
@@ -52,6 +54,8 @@ import {
   checkSavedDraftInSessionStorage,
   type DraftLifecycleState,
 } from '@/lib/issues/draftLifecycleState';
+// [ERROR-&-BLOCKED-STATE-UX-1] Import blocked state derivation and copy helpers
+import { deriveBlockedState, getBlockedStateCopy, buildBlockedTooltip } from '@/lib/issues/blockedState';
 // [EA-30: AI-ASSIST-ENTRY-POINTS-1] Import trust loop signal recording
 import { recordTrustLoopSignal } from '@/lib/trust-loop/trustLoopState';
 // [ISSUE-FIX-KIND-CLARITY-1 FIXUP-3] Import Icon component for CTA icons
@@ -251,6 +255,13 @@ export default function IssuesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [projectName, setProjectName] = useState<string | null>(null);
+  // [ERROR-&-BLOCKED-STATE-UX-1] Integration status for blocked state derivation
+  // [ERROR-&-BLOCKED-STATE-UX-1 FIXUP-2] Track whether integration-status fetch succeeded with trusted data
+  const [integrationStatusOk, setIntegrationStatusOk] = useState<boolean>(false);
+  const [shopifyConnected, setShopifyConnected] = useState<boolean>(false);
+  const [shopifyScope, setShopifyScope] = useState<string>('');
+  // [ERROR-&-BLOCKED-STATE-UX-1 FIXUP-2] Initialize to undefined (unknown), not null (known missing)
+  const [lastCrawledAt, setLastCrawledAt] = useState<string | null | undefined>(undefined);
   const [severityFilter, setSeverityFilter] = useState<SeverityFilter>('all');
   // [COUNT-INTEGRITY-1 PATCH 6 FIXUP] Don't auto-apply pillar param when click-integrity filters present
   // [COUNT-INTEGRITY-1.1 UI HARDEN] Include actionKeys in filter detection
@@ -441,7 +452,7 @@ export default function IssuesPage() {
           setError(
             results[0].reason instanceof Error
               ? results[0].reason.message
-              : 'Failed to load issues'
+              : 'Issues are unavailable due to a system error. Retry, or refresh the page.'
           );
         }
 
@@ -458,7 +469,7 @@ export default function IssuesPage() {
       }
     } catch (err: unknown) {
       console.error('Unexpected error fetching issues:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load issues');
+      setError(err instanceof Error ? err.message : 'Issues are unavailable due to a system error. Retry, or refresh the page.');
     } finally {
       setLoading(false);
     }
@@ -491,9 +502,17 @@ export default function IssuesPage() {
       if (response.ok) {
         const data = await response.json();
         setProjectName(data.projectName ?? null);
+        // [ERROR-&-BLOCKED-STATE-UX-1] Extract integration status for blocked state derivation
+        setShopifyConnected(data.shopify?.connected === true);
+        setShopifyScope(data.shopify?.scope ?? '');
+        // [ERROR-&-BLOCKED-STATE-UX-1 FIXUP-2] On success, set to null if missing (known missing) vs undefined (unknown)
+        setLastCrawledAt(data.lastCrawledAt ?? null);
+        // [ERROR-&-BLOCKED-STATE-UX-1 FIXUP-2] Mark integration-status as trusted (success with data)
+        setIntegrationStatusOk(true);
       }
     } catch (err) {
       console.error('Error fetching project info:', err);
+      // [ERROR-&-BLOCKED-STATE-UX-1 FIXUP-2] On failure, integrationStatusOk stays false (untrusted)
     }
   }, [projectId]);
 
@@ -719,31 +738,18 @@ export default function IssuesPage() {
   // [ISSUES-ENGINE-REMOUNT-1] Classification + hierarchy: derive three arrays
   const actionableNowIssues = useMemo(() => {
     const filtered = filteredIssues.filter(
-      (issue) =>
-        issue.actionability !== 'informational' &&
-        issue.isActionableNow === true
+      (issue) => issue.actionability !== 'informational' && issue.isActionableNow === true
     );
     // Sort: severity (critical → warning → info) → impact (assetTypeCounts total) → title
     return filtered.sort((a, b) => {
       // Severity order
       const severityOrder = { critical: 0, warning: 1, info: 2 };
-      const severityDiff =
-        severityOrder[a.severity] - severityOrder[b.severity];
+      const severityDiff = severityOrder[a.severity] - severityOrder[b.severity];
       if (severityDiff !== 0) return severityDiff;
 
       // Impact (total assetTypeCounts)
-      const aImpact =
-        (a.assetTypeCounts?.products ?? 0) +
-          (a.assetTypeCounts?.pages ?? 0) +
-          (a.assetTypeCounts?.collections ?? 0) ||
-        a.count ||
-        0;
-      const bImpact =
-        (b.assetTypeCounts?.products ?? 0) +
-          (b.assetTypeCounts?.pages ?? 0) +
-          (b.assetTypeCounts?.collections ?? 0) ||
-        b.count ||
-        0;
+      const aImpact = (a.assetTypeCounts?.products ?? 0) + (a.assetTypeCounts?.pages ?? 0) + (a.assetTypeCounts?.collections ?? 0) || a.count || 0;
+      const bImpact = (b.assetTypeCounts?.products ?? 0) + (b.assetTypeCounts?.pages ?? 0) + (b.assetTypeCounts?.collections ?? 0) || b.count || 0;
       if (bImpact !== aImpact) return bImpact - aImpact; // Descending impact
 
       // Stable tie-breaker (title → id)
@@ -757,29 +763,16 @@ export default function IssuesPage() {
 
   const blockedIssues = useMemo(() => {
     const filtered = filteredIssues.filter(
-      (issue) =>
-        issue.actionability !== 'informational' &&
-        issue.isActionableNow !== true
+      (issue) => issue.actionability !== 'informational' && issue.isActionableNow !== true
     );
     // Sort: severity → impact → title → id
     return filtered.sort((a, b) => {
       const severityOrder = { critical: 0, warning: 1, info: 2 };
-      const severityDiff =
-        severityOrder[a.severity] - severityOrder[b.severity];
+      const severityDiff = severityOrder[a.severity] - severityOrder[b.severity];
       if (severityDiff !== 0) return severityDiff;
 
-      const aImpact =
-        (a.assetTypeCounts?.products ?? 0) +
-          (a.assetTypeCounts?.pages ?? 0) +
-          (a.assetTypeCounts?.collections ?? 0) ||
-        a.count ||
-        0;
-      const bImpact =
-        (b.assetTypeCounts?.products ?? 0) +
-          (b.assetTypeCounts?.pages ?? 0) +
-          (b.assetTypeCounts?.collections ?? 0) ||
-        b.count ||
-        0;
+      const aImpact = (a.assetTypeCounts?.products ?? 0) + (a.assetTypeCounts?.pages ?? 0) + (a.assetTypeCounts?.collections ?? 0) || a.count || 0;
+      const bImpact = (b.assetTypeCounts?.products ?? 0) + (b.assetTypeCounts?.pages ?? 0) + (b.assetTypeCounts?.collections ?? 0) || b.count || 0;
       if (bImpact !== aImpact) return bImpact - aImpact;
 
       const aTitle = getSafeIssueTitle(a);
@@ -797,22 +790,11 @@ export default function IssuesPage() {
     // Sort: severity → impact → title → id
     return filtered.sort((a, b) => {
       const severityOrder = { critical: 0, warning: 1, info: 2 };
-      const severityDiff =
-        severityOrder[a.severity] - severityOrder[b.severity];
+      const severityDiff = severityOrder[a.severity] - severityOrder[b.severity];
       if (severityDiff !== 0) return severityDiff;
 
-      const aImpact =
-        (a.assetTypeCounts?.products ?? 0) +
-          (a.assetTypeCounts?.pages ?? 0) +
-          (a.assetTypeCounts?.collections ?? 0) ||
-        a.count ||
-        0;
-      const bImpact =
-        (b.assetTypeCounts?.products ?? 0) +
-          (b.assetTypeCounts?.pages ?? 0) +
-          (b.assetTypeCounts?.collections ?? 0) ||
-        b.count ||
-        0;
+      const aImpact = (a.assetTypeCounts?.products ?? 0) + (a.assetTypeCounts?.pages ?? 0) + (a.assetTypeCounts?.collections ?? 0) || a.count || 0;
+      const bImpact = (b.assetTypeCounts?.products ?? 0) + (b.assetTypeCounts?.pages ?? 0) + (b.assetTypeCounts?.collections ?? 0) || b.count || 0;
       if (bImpact !== aImpact) return bImpact - aImpact;
 
       const aTitle = getSafeIssueTitle(a);
@@ -937,9 +919,23 @@ export default function IssuesPage() {
 
     // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Reuse fixHref computed above - no dead-click risk
     if (fixType === 'aiFix' && fixReady && primaryProductId && fixHref) {
-      const supportsInlineFix =
-        issueType === 'missing_seo_title' ||
-        issueType === 'missing_seo_description';
+      // [ISSUE-FIX-KIND-CLARITY-1 FIXUP-4] Use centralized helper for inline preview support
+      const supportsInlineFix = isInlineAiPreviewSupportedIssueType(issueType);
+
+      // [ISSUE-FIX-KIND-CLARITY-1 FIXUP-4] Dev-time guardrail: warn if AI_PREVIEW_FIX is derived but inline preview UI can't render
+      if (process.env.NODE_ENV === 'development') {
+        const actionKindInfo = getIssueFixActionKindInfo({
+          projectId,
+          issue,
+          returnTo: getReturnToFromCurrentUrl(pathname, searchParams),
+        });
+        if (actionKindInfo.kind === 'AI_PREVIEW_FIX' && !supportsInlineFix) {
+          console.warn(
+            `[ISSUE-FIX-KIND-CLARITY] AI_PREVIEW_FIX derived for issue ${issueType} but supportsInlineFix is false. Check inlineAiPreviewSupport.ts allowlist.`
+          );
+        }
+      }
+
       if (supportsInlineFix) {
         return {
           kind: 'ai-fix-now' as const,
@@ -1283,6 +1279,7 @@ export default function IssuesPage() {
 
   // [ISSUES-ENGINE-REMOUNT-1] Create ContextDescriptor for RCP from issue
   // [DRAFT-LIFECYCLE-VISIBILITY-1 FIXUP-1] Pass draftLifecycleState to RCP for accurate echo
+  // [ERROR-&-BLOCKED-STATE-UX-1 PATCH 6] Pass blockedState to RCP for consistency check
   const getIssueDescriptor = useCallback(
     (issue: DeoIssue): ContextDescriptor => {
       const safeTitle = getSafeIssueTitle(issue);
@@ -1316,6 +1313,25 @@ export default function IssuesPage() {
         }
       }
 
+      // [ERROR-&-BLOCKED-STATE-UX-1 PATCH 6] Derive blocked state for RCP metadata
+      // [ERROR-&-BLOCKED-STATE-UX-1 FIXUP-3 PATCH 1] Only compute blockedState when integrationStatusOk is true
+      const destinations = getIssueActionDestinations({
+        projectId,
+        issue,
+        returnTo: currentIssuesPathWithQuery,
+      });
+      const blockedState = integrationStatusOk
+        ? deriveBlockedState({
+            issue,
+            destinations,
+            draftLifecycleState,
+            shopifyConnected,
+            shopifyScope,
+            lastCrawledAt,
+            uiErrorFlag: false,
+          })
+        : null;
+
       return {
         kind: 'issue',
         id: issue.id,
@@ -1336,10 +1352,18 @@ export default function IssuesPage() {
           collectionsCount: String(issue.assetTypeCounts?.collections ?? 0),
           // [DRAFT-LIFECYCLE-VISIBILITY-1 FIXUP-1] Draft lifecycle state for RCP echo
           draftLifecycleState,
+          // [ERROR-&-BLOCKED-STATE-UX-1 FIXUP-3 PATCH 1] Blocked state only when integration status is trusted
+          blockedState: blockedState ?? '',
+          // [ERROR-&-BLOCKED-STATE-UX-1 FIXUP-3 PATCH 1] Integration status only meaningful when trusted
+          shopifyConnected: integrationStatusOk ? String(shopifyConnected) : '',
+          shopifyScope: integrationStatusOk ? shopifyScope : '',
+          lastCrawledAt: integrationStatusOk ? (lastCrawledAt ?? '') : '',
+          // [ERROR-&-BLOCKED-STATE-UX-1 FIXUP-2 PATCH 4] Pass integrationStatusOk (trusted data) to RCP
+          integrationStatusOk: String(integrationStatusOk),
         },
       };
     },
-    [projectId, previewIssueId, previewValue, savedDraft, appliedAt]
+    [projectId, previewIssueId, previewValue, savedDraft, appliedAt, currentIssuesPathWithQuery, shopifyConnected, shopifyScope, lastCrawledAt, integrationStatusOk]
   );
 
   // [ISSUES-ENGINE-REMOUNT-1] DataTable columns definition
@@ -1355,11 +1379,7 @@ export default function IssuesPage() {
           const isOutsideEngineControl = row.actionability === 'informational';
           const fixHref = isOutsideEngineControl
             ? null
-            : buildIssueFixHref({
-                projectId,
-                issue: row,
-                from: 'issues_engine',
-              });
+            : buildIssueFixHref({ projectId, issue: row, from: 'issues_engine' });
           const isClickableIssue =
             !isOutsideEngineControl &&
             row.isActionableNow === true &&
@@ -1375,20 +1395,8 @@ export default function IssuesPage() {
 
           // [ISSUES-ENGINE-REMOUNT-1] Derive fixability and impact for meta line
           const fixType = row.fixType;
-          const fixabilityLabel =
-            fixType === 'aiFix'
-              ? 'AI'
-              : fixType === 'manualFix'
-                ? 'Manual'
-                : fixType === 'syncFix'
-                  ? 'Automation'
-                  : null;
-          const totalImpact =
-            (row.assetTypeCounts?.products ?? 0) +
-              (row.assetTypeCounts?.pages ?? 0) +
-              (row.assetTypeCounts?.collections ?? 0) ||
-            row.count ||
-            0;
+          const fixabilityLabel = fixType === 'aiFix' ? 'AI' : fixType === 'manualFix' ? 'Manual' : fixType === 'syncFix' ? 'Automation' : null;
+          const totalImpact = (row.assetTypeCounts?.products ?? 0) + (row.assetTypeCounts?.pages ?? 0) + (row.assetTypeCounts?.collections ?? 0) || row.count || 0;
 
           return (
             <div
@@ -1414,9 +1422,7 @@ export default function IssuesPage() {
                   </span>
                 </button>
               ) : (
-                <span className="font-semibold text-foreground">
-                  {safeTitle}
-                </span>
+                <span className="font-semibold text-foreground">{safeTitle}</span>
               )}
               {row.actionability === 'informational' && (
                 <span className="ml-2 inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
@@ -1448,15 +1454,7 @@ export default function IssuesPage() {
               )}
               {/* [ISSUES-ENGINE-REMOUNT-1] Compact meta line for priority signaling */}
               <div className="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground">
-                <span
-                  className={
-                    row.severity === 'critical'
-                      ? 'text-[hsl(var(--danger-foreground))]'
-                      : row.severity === 'warning'
-                        ? 'text-[hsl(var(--warning-foreground))]'
-                        : ''
-                  }
-                >
+                <span className={row.severity === 'critical' ? 'text-[hsl(var(--danger-foreground))]' : row.severity === 'warning' ? 'text-[hsl(var(--warning-foreground))]' : ''}>
                   {row.severity.charAt(0).toUpperCase() + row.severity.slice(1)}
                 </span>
                 {fixabilityLabel && (
@@ -1490,20 +1488,12 @@ export default function IssuesPage() {
             );
           }
           const parts: string[] = [];
-          if (counts.products > 0)
-            parts.push(
-              `${counts.products} product${counts.products !== 1 ? 's' : ''}`
-            );
-          if (counts.pages > 0)
-            parts.push(`${counts.pages} page${counts.pages !== 1 ? 's' : ''}`);
-          if (counts.collections > 0)
-            parts.push(
-              `${counts.collections} collection${counts.collections !== 1 ? 's' : ''}`
-            );
+          if (counts.products > 0) parts.push(`${counts.products} product${counts.products !== 1 ? 's' : ''}`);
+          if (counts.pages > 0) parts.push(`${counts.pages} page${counts.pages !== 1 ? 's' : ''}`);
+          if (counts.collections > 0) parts.push(`${counts.collections} collection${counts.collections !== 1 ? 's' : ''}`);
           return (
             <span className="text-sm text-muted-foreground">
-              {parts.join(', ') ||
-                `${row.count} item${row.count !== 1 ? 's' : ''}`}
+              {parts.join(', ') || `${row.count} item${row.count !== 1 ? 's' : ''}`}
             </span>
           );
         },
@@ -1539,9 +1529,7 @@ export default function IssuesPage() {
                 ? 'text-[hsl(var(--warning-foreground))]'
                 : 'text-muted-foreground';
           return (
-            <span
-              className={`inline-flex items-center gap-1.5 text-xs font-medium ${textColor}`}
-            >
+            <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${textColor}`}>
               <span className={`h-2 w-2 rounded-full ${dotColor}`} />
               {row.severity.charAt(0).toUpperCase() + row.severity.slice(1)}
             </span>
@@ -1611,7 +1599,50 @@ export default function IssuesPage() {
             );
           };
 
+          // [ERROR-&-BLOCKED-STATE-UX-1 FIXUP-1 PATCH 1] Compute blocked state FIRST, before any CTA rendering
+          // [ERROR-&-BLOCKED-STATE-UX-1 FIXUP-2] Only consider integration-status-dependent blocked reasons when data is trusted (ok)
+          const blockedState = integrationStatusOk
+            ? deriveBlockedState({
+                issue: row,
+                destinations,
+                draftLifecycleState: rowDraftState,
+                shopifyConnected,
+                shopifyScope,
+                lastCrawledAt,
+                uiErrorFlag: false,
+              })
+            : null; // Don't infer blocked state from missing/untrusted integration data
+
+          // [ERROR-&-BLOCKED-STATE-UX-1 FIXUP-1] If blocked, render blocked chip and skip all CTAs
+          if (blockedState) {
+            const blockedCopy = getBlockedStateCopy(blockedState);
+            const blockedTooltip = buildBlockedTooltip(blockedCopy);
+
+            // [PATCH 6 / FIXUP-1 PATCH 4] Dev-time guardrail: warn if blocked state has no description copy
+            // (inline explanation would be empty without description)
+            if (process.env.NODE_ENV !== 'production' && !blockedCopy.description) {
+              console.warn(`[ERROR-&-BLOCKED-STATE-UX-1] Blocked state ${blockedState} has no description copy (inline explanation empty)`);
+            }
+
+            return (
+              <div className="flex flex-col items-start gap-0.5" data-no-row-click>
+                <span
+                  className="inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
+                  title={blockedTooltip}
+                  data-testid="issue-blocked-chip"
+                  data-no-row-click
+                >
+                  {blockedCopy.chipLabel}
+                </span>
+                <span className="text-[10px] leading-snug text-muted-foreground">
+                  {blockedCopy.description}
+                </span>
+              </div>
+            );
+          }
+
           // [PATCH 2] Priority 1: Fix action (AI preview or direct navigation)
+          // Only reaches here if not blocked
           if (destinations.fix.kind !== 'none') {
             const fixAction = getFixAction(row); // Still needed to determine ai-fix-now vs link
 
@@ -1644,20 +1675,12 @@ export default function IssuesPage() {
 
             // [ISSUE-FIX-KIND-CLARITY-1 FIXUP-3] Direct fix navigation - use kind-based labels
             if (destinations.fix.href) {
-              const fixConfig = getIssueFixConfig(
-                (row.type as string | undefined) || row.id
-              );
+              const fixConfig = getIssueFixConfig((row.type as string | undefined) || row.id);
               const isDiagnostic = fixConfig?.fixKind === 'DIAGNOSTIC';
               // Use fixActionKindInfo for semantic label/icon
-              const ctaLabel = isDiagnostic
-                ? 'Review guidance'
-                : fixActionKindInfo.label;
-              const ctaIcon = isDiagnostic
-                ? 'playbook.content'
-                : fixActionKindInfo.iconKey;
-              const ctaTitle = isDiagnostic
-                ? 'No automatic fix available'
-                : fixActionKindInfo.sublabel;
+              const ctaLabel = isDiagnostic ? 'Review guidance' : fixActionKindInfo.label;
+              const ctaIcon = isDiagnostic ? 'playbook.content' : fixActionKindInfo.iconKey;
+              const ctaTitle = isDiagnostic ? 'No automatic fix available' : fixActionKindInfo.sublabel;
 
               return (
                 <div className="flex items-center gap-1">
@@ -1668,17 +1691,7 @@ export default function IssuesPage() {
                     title={ctaTitle}
                     className="inline-flex items-center gap-1.5 justify-center whitespace-nowrap rounded-md border border-border bg-muted px-2 py-1 text-xs font-medium text-foreground hover:bg-muted/80"
                   >
-                    <Icon
-                      name={
-                        ctaIcon as
-                          | 'workflow.ai'
-                          | 'nav.projects'
-                          | 'playbook.content'
-                          | 'status.blocked'
-                      }
-                      size={16}
-                      className="shrink-0"
-                    />
+                    <Icon name={ctaIcon as 'workflow.ai' | 'nav.projects' | 'playbook.content' | 'status.blocked'} size={16} className="shrink-0" />
                     <span data-testid="issue-card-cta">{ctaLabel}</span>
                   </GuardedLink>
                   {renderDraftIndicator()}
@@ -1687,26 +1700,20 @@ export default function IssuesPage() {
             }
           }
 
-          // [ISSUE-FIX-KIND-CLARITY-1 FIXUP-3] Priority 2: View affected - "Review guidance"
-          if (
-            destinations.viewAffected.kind !== 'none' &&
-            destinations.viewAffected.href
-          ) {
+          // [ISSUE-FIX-KIND-CLARITY-1 FIXUP-4] Priority 2: View affected - exploration (not guidance)
+          // Uses fixActionKindInfo to prevent label/icon drift
+          if (destinations.viewAffected.kind !== 'none' && destinations.viewAffected.href) {
             return (
               <div className="flex items-center gap-1">
                 <GuardedLink
                   href={destinations.viewAffected.href}
                   data-testid="issue-view-affected-button"
                   data-no-row-click
-                  title="See affected items"
+                  title={fixActionKindInfo.sublabel}
                   className="inline-flex items-center gap-1.5 justify-center whitespace-nowrap rounded-md border border-border bg-muted px-2 py-1 text-xs font-medium text-foreground hover:bg-muted/80"
                 >
-                  <Icon
-                    name="playbook.content"
-                    size={16}
-                    className="shrink-0"
-                  />
-                  <span data-testid="issue-card-cta">Review guidance</span>
+                  <Icon name={fixActionKindInfo.iconKey} size={16} className="shrink-0" />
+                  <span data-testid="issue-card-cta">{fixActionKindInfo.label}</span>
                 </GuardedLink>
                 {renderDraftIndicator()}
               </div>
@@ -1727,18 +1734,8 @@ export default function IssuesPage() {
                   className="inline-flex items-center justify-center whitespace-nowrap rounded-md border border-border bg-muted px-2 py-1 text-xs font-medium text-foreground hover:bg-muted/80"
                 >
                   Open
-                  <svg
-                    className="ml-1 h-3 w-3"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                    />
+                  <svg className="ml-1 h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                   </svg>
                 </a>
               );
@@ -1755,22 +1752,10 @@ export default function IssuesPage() {
             );
           }
 
-          // [PATCH 2] No actions available: explicit blocked state
-          const blockedReason =
-            destinations.fix.reasonBlocked ||
-            destinations.viewAffected.reasonBlocked ||
-            destinations.open.reasonBlocked ||
-            'No actions available';
-
+          // [ERROR-&-BLOCKED-STATE-UX-1 FIXUP-1] Fallback: no actions available (should be rare - blocked check above handles most cases)
           // [PATCH 3] Dev-time guardrail: warn about mapping gaps
-          if (
-            process.env.NODE_ENV !== 'production' &&
-            row.isActionableNow === true &&
-            destinations.fix.kind === 'none'
-          ) {
-            console.warn(
-              `[ISSUE-FIX-ROUTE-INTEGRITY-1] Mapping gap for issue ${row.id}: marked actionable but no fix destination. Reason: ${destinations.fix.reasonBlocked}`
-            );
+          if (process.env.NODE_ENV !== 'production' && row.isActionableNow === true && destinations.fix.kind === 'none') {
+            console.warn(`[ISSUE-FIX-ROUTE-INTEGRITY-1] Mapping gap for issue ${row.id}: marked actionable but no fix destination. Reason: ${destinations.fix.reasonBlocked}`);
           }
 
           // [ISSUE-FIX-KIND-CLARITY-1 FIXUP-3 PATCH 3] Dev-time trust guardrails for label consistency
@@ -1778,48 +1763,32 @@ export default function IssuesPage() {
             const { kind, label } = fixActionKindInfo;
             // AI_PREVIEW_FIX must include "Review" in label
             if (kind === 'AI_PREVIEW_FIX' && !label.includes('Review')) {
-              console.warn(
-                `[ISSUE-FIX-KIND-CLARITY-1] Trust violation: AI_PREVIEW_FIX label "${label}" should include "Review"`
-              );
+              console.warn(`[ISSUE-FIX-KIND-CLARITY-1] Trust violation: AI_PREVIEW_FIX label "${label}" should include "Review"`);
             }
             // DIRECT_FIX must not include misleading automation language
-            if (
-              kind === 'DIRECT_FIX' &&
-              (label.includes('AI') ||
-                label.includes('Apply') ||
-                label.includes('Automation'))
-            ) {
-              console.warn(
-                `[ISSUE-FIX-KIND-CLARITY-1] Trust violation: DIRECT_FIX label "${label}" should not include AI/Apply/Automation`
-              );
+            if (kind === 'DIRECT_FIX' && (label.includes('AI') || label.includes('Apply') || label.includes('Automation'))) {
+              console.warn(`[ISSUE-FIX-KIND-CLARITY-1] Trust violation: DIRECT_FIX label "${label}" should not include AI/Apply/Automation`);
             }
           }
+
+          // Fallback blocked chip for issues with no available actions
+          const fallbackCopy = getBlockedStateCopy('DESTINATION_UNAVAILABLE');
+          const fallbackTooltip = buildBlockedTooltip(fallbackCopy);
 
           return (
             <span
               className="inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
-              title={blockedReason}
+              title={fallbackTooltip}
               data-testid="issue-blocked-chip"
+              data-no-row-click
             >
-              Blocked
+              {fallbackCopy.chipLabel}
             </span>
           );
         },
       },
     ];
-  }, [
-    projectId,
-    fixingIssueId,
-    handleIssueClick,
-    handleOpenPreview,
-    getFixAction,
-    currentIssuesPathWithQuery,
-    previewIssueId,
-    previewValue,
-    savedDraft,
-    appliedAt,
-    getDraftState,
-  ]);
+  }, [projectId, fixingIssueId, handleIssueClick, handleOpenPreview, getFixAction, currentIssuesPathWithQuery, previewIssueId, previewValue, savedDraft, appliedAt, getDraftState, shopifyConnected, shopifyScope, lastCrawledAt, integrationStatusOk]);
 
   // [ISSUES-ENGINE-REMOUNT-1] Render expansion row content for ai-fix-now preview
   const renderExpandedContent = useCallback(
@@ -1847,9 +1816,7 @@ export default function IssuesPage() {
           {previewLoading ? (
             <p className="text-sm text-muted-foreground">Generating preview…</p>
           ) : previewError ? (
-            <p className="text-sm text-[hsl(var(--danger-foreground))]">
-              {previewError}
-            </p>
+            <p className="text-sm text-[hsl(var(--danger-foreground))]">{previewError}</p>
           ) : previewValue ? (
             <>
               {/* Draft state banner */}
@@ -1928,19 +1895,12 @@ export default function IssuesPage() {
                 // [DRAFT-LIFECYCLE-VISIBILITY-1 PATCH 6] Dev-time guardrails
                 if (process.env.NODE_ENV !== 'production') {
                   // Warn if Apply would be enabled but state is not SAVED_NOT_APPLIED
-                  if (
-                    getDraftState() === 'saved' &&
-                    previewDraftState !== 'SAVED_NOT_APPLIED'
-                  ) {
-                    console.warn(
-                      `[DRAFT-LIFECYCLE-VISIBILITY-1] State mismatch: legacyDraftState='saved' but previewDraftState='${previewDraftState}'`
-                    );
+                  if (getDraftState() === 'saved' && previewDraftState !== 'SAVED_NOT_APPLIED') {
+                    console.warn(`[DRAFT-LIFECYCLE-VISIBILITY-1] State mismatch: legacyDraftState='saved' but previewDraftState='${previewDraftState}'`);
                   }
                   // Warn if showing Applied but no appliedAt signal
                   if (previewDraftState === 'APPLIED' && !appliedAt) {
-                    console.warn(
-                      `[DRAFT-LIFECYCLE-VISIBILITY-1] Applied state shown but appliedAt is not set`
-                    );
+                    console.warn(`[DRAFT-LIFECYCLE-VISIBILITY-1] Applied state shown but appliedAt is not set`);
                   }
                 }
 
@@ -1987,9 +1947,7 @@ export default function IssuesPage() {
                         title="Applies saved draft only. Does not use AI."
                         className="inline-flex items-center rounded-md border border-[hsl(var(--success-background))]/50 bg-[hsl(var(--success-background))] px-3 py-1.5 text-xs font-medium text-[hsl(var(--success-foreground))] shadow-sm hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                       >
-                        {fixingIssueId === row.id
-                          ? 'Applying…'
-                          : 'Apply saved draft to Shopify'}
+                        {fixingIssueId === row.id ? 'Applying…' : 'Apply saved draft to Shopify'}
                       </button>
                     )}
 
@@ -2071,9 +2029,7 @@ export default function IssuesPage() {
       {error && (
         <div className="mb-6 rounded-lg border border-[hsl(var(--danger-background))]/50 bg-[hsl(var(--danger-background))] p-4">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-[hsl(var(--danger-foreground))]">
-              {error}
-            </p>
+            <p className="text-sm text-[hsl(var(--danger-foreground))]">{error}</p>
             <button
               onClick={fetchIssues}
               className="text-sm font-medium text-[hsl(var(--danger-foreground))] hover:opacity-80"
@@ -2105,9 +2061,7 @@ export default function IssuesPage() {
               />
             </svg>
             <div className="flex-1">
-              <p className="text-sm text-[hsl(var(--warning-foreground))]">
-                {countsSummaryWarning}
-              </p>
+              <p className="text-sm text-[hsl(var(--warning-foreground))]">{countsSummaryWarning}</p>
             </div>
             <button
               onClick={fetchIssues}
@@ -2177,25 +2131,19 @@ export default function IssuesPage() {
             <div className="text-2xl font-bold text-[hsl(var(--danger-foreground))]">
               {criticalCount !== null ? criticalCount : '—'}
             </div>
-            <div className="text-sm text-[hsl(var(--danger-foreground))]/80">
-              Critical issue types
-            </div>
+            <div className="text-sm text-[hsl(var(--danger-foreground))]/80">Critical issue types</div>
           </div>
           <div className="rounded-lg border border-[hsl(var(--warning-background))]/50 bg-[hsl(var(--warning-background))] p-4">
             <div className="text-2xl font-bold text-[hsl(var(--warning-foreground))]">
               {warningCount !== null ? warningCount : '—'}
             </div>
-            <div className="text-sm text-[hsl(var(--warning-foreground))]/80">
-              Warning issue types
-            </div>
+            <div className="text-sm text-[hsl(var(--warning-foreground))]/80">Warning issue types</div>
           </div>
           <div className="rounded-lg border border-[hsl(var(--info-background))]/50 bg-[hsl(var(--info-background))] p-4">
             <div className="text-2xl font-bold text-[hsl(var(--info-foreground))]">
               {infoCount !== null ? infoCount : '—'}
             </div>
-            <div className="text-sm text-[hsl(var(--info-foreground))]/80">
-              Info issue types
-            </div>
+            <div className="text-sm text-[hsl(var(--info-foreground))]/80">Info issue types</div>
           </div>
         </div>
       </div>
@@ -2330,36 +2278,64 @@ export default function IssuesPage() {
       </div>
 
       {/* [ISSUES-ENGINE-REMOUNT-1] Issues List: Three-section decision engine */}
+      {/* [ERROR-&-BLOCKED-STATE-UX-1 PATCH 4] Differentiate sync-pending empty state */}
+      {/* [ERROR-&-BLOCKED-STATE-UX-1 FIXUP-2] Only show sync-pending when integration-status is trusted (ok) and lastCrawledAt is explicitly null */}
       {filteredIssues.length === 0 ? (
-        <div className="rounded-lg border border-[hsl(var(--success-background))]/50 bg-[hsl(var(--success-background))] p-6 text-center">
-          <svg
-            className="mx-auto h-12 w-12 text-[hsl(var(--success-foreground))]"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-          <h3 className="mt-2 text-sm font-medium text-[hsl(var(--success-foreground))]">
-            {severityFilter === 'all' && pillarFilter === 'all'
-              ? effectiveMode === 'actionable'
-                ? 'No actionable issues'
-                : 'No issues detected'
-              : pillarFilter !== 'all'
-                ? `No ${effectiveMode === 'actionable' ? 'actionable ' : ''}issues for ${DEO_PILLARS.find((p) => p.id === pillarFilter)?.shortName ?? pillarFilter}`
-                : `No ${effectiveMode === 'actionable' ? 'actionable ' : ''}${severityFilter} issues`}
-          </h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {severityFilter === 'all' && pillarFilter === 'all'
-              ? 'Your project looks healthy based on the latest analysis.'
-              : 'Try selecting a different filter to see other issues.'}
-          </p>
-        </div>
+        integrationStatusOk && lastCrawledAt === null ? (
+          // [ERROR-&-BLOCKED-STATE-UX-1] SYNC_PENDING-aligned empty state
+          <div className="rounded-lg border border-[hsl(var(--warning-background))]/50 bg-[hsl(var(--warning-background))] p-6 text-center">
+            <svg
+              className="mx-auto h-12 w-12 text-[hsl(var(--warning-foreground))]"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <h3 className="mt-2 text-sm font-medium text-[hsl(var(--warning-foreground))]">
+              Syncing data
+            </h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              We can&apos;t show fixes yet because data sync is still in progress. Try again after the sync completes.
+            </p>
+          </div>
+        ) : (
+          // Normal empty state (sync complete, no issues)
+          <div className="rounded-lg border border-[hsl(var(--success-background))]/50 bg-[hsl(var(--success-background))] p-6 text-center">
+            <svg
+              className="mx-auto h-12 w-12 text-[hsl(var(--success-foreground))]"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <h3 className="mt-2 text-sm font-medium text-[hsl(var(--success-foreground))]">
+              {severityFilter === 'all' && pillarFilter === 'all'
+                ? effectiveMode === 'actionable'
+                  ? 'No actionable issues'
+                  : 'No issues detected'
+                : pillarFilter !== 'all'
+                  ? `No ${effectiveMode === 'actionable' ? 'actionable ' : ''}issues for ${DEO_PILLARS.find((p) => p.id === pillarFilter)?.shortName ?? pillarFilter}`
+                  : `No ${effectiveMode === 'actionable' ? 'actionable ' : ''}${severityFilter} issues`}
+            </h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {severityFilter === 'all' && pillarFilter === 'all'
+                ? 'Your project looks healthy based on the latest analysis.'
+                : 'Try selecting a different filter to see other issues.'}
+            </p>
+          </div>
+        )
       ) : (
         <div className="space-y-6">
           {/* [ISSUES-ENGINE-REMOUNT-1] Section 1: Actionable now (dominant, comfortable density) */}
@@ -2396,12 +2372,7 @@ export default function IssuesPage() {
                   stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5l7 7-7 7"
-                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
                 Blocked ({blockedIssues.length})
               </summary>
@@ -2433,12 +2404,7 @@ export default function IssuesPage() {
                   stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5l7 7-7 7"
-                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
                 Informational ({informationalIssues.length})
               </summary>
