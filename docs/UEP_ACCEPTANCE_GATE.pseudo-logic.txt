@@ -1,0 +1,318 @@
+UEP ACCEPTANCE GATE (AUTONOMOUS-BOT CONTRACT, PSEUDO-LOGIC ONLY)
+
+PURPOSE
+- Prevent any bot execution or KAN creation unless the EA epic is explicitly accepted by UEP.
+- Prevent runahead into post-MVP scope.
+
+ENTITIES / FIELDS (logical, not API-specific)
+- EA: Epic in Jira Product Discovery with key "EA-<number>"
+  EA.key, EA.number, EA.status, EA.labels, EA.description
+  EA.fields["UEP Acceptance"]
+  EA.board_state (bot-managed operational flag; not a Jira workflow status)
+- KAN: Execution artifacts (epic + stories) derived from an EA
+
+GLOBAL CONFIG (MUST BE CONFIGURABLE)
+- MVP_MODE in {"LABEL","MAX_NUMBER"} (exactly one)
+- MVP_SCOPE_LABEL = "mvp-scope" (used only if MVP_MODE="LABEL")
+- MVP_MAX_EA_NUMBER = <integer> (used only if MVP_MODE="MAX_NUMBER")
+- RETRY_LIMIT = 2
+- BOT_COMMENT_FINGERPRINT = "[ENGINEO-BOT:UEP-ACCEPTANCE-GATE]" (exact string)
+- BOARD_STATE_NONE = "NONE"
+- BOARD_STATE_HUMAN_REVIEW = "HUMAN TO REVIEW AND CLOSE"
+- BOARD_STATE_HUMAN_ERROR = "HUMAN ATTENTION NEEDED"
+
+NORMALIZATION (MUST APPLY BEFORE ALL STATUS/LABEL/LINE CHECKS)
+- Compare EA.status case-insensitively after trimming whitespace.
+- Compare labels case-insensitively.
+- When searching description lines, preserve original line starts but trim left whitespace before prefix match.
+
+-----------------------------------------------------------------------------
+A) STATE MACHINE RULES (EA BEHAVIOR GATES)
+
+STATUS SETS (EXACT STRING MEMBERSHIP AFTER NORMALIZATION)
+- READY_TO_RUN_STATUSES = {
+    "Ready for Execution",
+    "Ready to Run",
+    "UEP Accepted - Ready",
+    "Approved for Build"
+  }
+- ACTIVE_EXECUTION_STATUSES = {
+    "In Execution",
+    "Building",
+    "Testing",
+    "Verifying"
+  }
+- TERMINAL_STATUSES = {
+    "Done",
+    "Released",
+    "Cancelled"
+  }
+- DISALLOWED_STATUSES = {
+    "Implemented",
+    "Pending Acceptance",
+    "In Review",
+    "Draft",
+    "Parked",
+    "Deferred",
+    "Parked/Deferred",
+    "Backlog",
+    "Backlog (Unaccepted)",
+    "On Hold",
+    "Blocked",
+    "Rejected"
+  }
+
+ACCEPTANCE-ENFORCEMENT STATUSES (WHEN BOT MUST REQUEST UEP ACCEPTANCE IF MISSING)
+- These are statuses where lack of UEP acceptance is a blocking human action (even if execution is disallowed).
+- ACCEPTANCE_REQUIRED_STATUSES = READY_TO_RUN_STATUSES union {
+    "Implemented",
+    "Pending Acceptance"
+  }
+
+DEFAULT-TO-DENY RULE
+- If EA.status is not in READY_TO_RUN_STATUSES and not in ACTIVE_EXECUTION_STATUSES and not in TERMINAL_STATUSES:
+    treat it as DISALLOWED.
+
+DERIVED EA STATE (NOT STORED)
+FUNCTION EA_STATE(EA):
+    IF EA.status in READY_TO_RUN_STATUSES: RETURN "READY_CANDIDATE"
+    ELSE IF EA.status in ACTIVE_EXECUTION_STATUSES: RETURN "EXECUTING"
+    ELSE IF EA.status in TERMINAL_STATUSES: RETURN "TERMINAL"
+    ELSE: RETURN "NOT_RUNNABLE"
+
+NON-NEGOTIABLE BOT ACTIONS BY EA_STATE
+- IF EA_STATE(EA) == "READY_CANDIDATE":
+    Bot MAY create/update KAN and MAY execute ONLY IF:
+      is_EA_accepted(EA) == TRUE AND scope_guard_passes(EA) == TRUE.
+    Otherwise bot MUST STOP for this EA (no KAN create, no execution, no forward moves).
+- IF EA_STATE(EA) == "EXECUTING":
+    If is_EA_accepted(EA) becomes FALSE at any time:
+      bot MUST STOP immediately and MUST NOT continue execution or advance tickets.
+    If accepted remains TRUE and scope passes:
+      bot MAY continue execution/verification of existing KAN work.
+- IF EA_STATE(EA) == "NOT_RUNNABLE":
+    Bot MUST NOT create KAN.
+    Bot MUST NOT start or continue execution.
+    Bot MUST NOT move any tickets forward into execution states.
+    If EA.status in ACCEPTANCE_REQUIRED_STATUSES AND is_EA_accepted(EA) == FALSE:
+      Bot MUST create the single acceptance-request comment (idempotent) and set EA.board_state = BOARD_STATE_HUMAN_REVIEW.
+- IF EA_STATE(EA) == "TERMINAL":
+    Bot MUST NOT create KAN.
+    Bot MUST NOT execute.
+    Bot MAY perform read-only reconciliation/metrics only.
+
+EA WORKFLOW IMMUTABILITY RULE
+- Bot MUST NOT change EA.status under any circumstances.
+
+-----------------------------------------------------------------------------
+B) DECISION PROCEDURE (GUARDED, STOP-FIRST)
+
+FUNCTION select_next_EA():
+    CANDIDATES = ordered list of EA epics (existing bot priority rules apply)
+    FILTER OUT any EA where EA_STATE(EA) == "TERMINAL"
+    FOR EACH EA in CANDIDATES:
+      RESULT = evaluate_EA_for_work(EA)
+      IF RESULT.action == "PROCEED": RETURN EA
+      IF RESULT.action == "STOP_GLOBAL": STOP_GLOBAL("Scope/runahead guard triggered")
+    RETURN NONE
+
+ACCEPTANCE MARKERS (SUPPORTED; PRIORITY ORDER)
+1) Field "UEP Acceptance" == Yes
+2) Label includes "uep-accepted"
+3) (Fallback) EA description contains a line starting with: "UEP Acceptance: Accepted"
+
+CONFLICT RULE (DEFAULT-TO-DENY)
+- If EA.fields["UEP Acceptance"] is present and is not Yes/TRUE, then EA is NOT accepted
+    even if label/description indicates acceptance.
+
+FUNCTION is_EA_accepted(EA):
+    // Priority 1: field
+    IF EA.fields["UEP Acceptance"] is present:
+      IF EA.fields["UEP Acceptance"] in {"Yes", TRUE}: RETURN TRUE
+      ELSE: RETURN FALSE
+    // Priority 2: label
+    IF "uep-accepted" in EA.labels: RETURN TRUE
+    // Priority 3: description line prefix
+    IF description_has_acceptance_line(EA.description) == TRUE: RETURN TRUE
+    RETURN FALSE
+
+FUNCTION description_has_acceptance_line(text):
+    PREFIX = "UEP Acceptance: Accepted"
+    FOR EACH line in split_lines(text):
+      IF starts_with(trim_left(line), PREFIX): RETURN TRUE
+    RETURN FALSE
+
+FUNCTION evaluate_EA_for_work(EA):
+    // 0) Terminal: never act
+    IF EA_STATE(EA) == "TERMINAL": RETURN {action:"SKIP_EA"}
+    accepted = is_EA_accepted(EA)
+    // 1) Scope guard (anti-runahead): beyond MVP requires explicit UEP acceptance
+    IF scope_guard_passes(EA) == FALSE AND accepted == FALSE:
+      ensure_scope_comment_once(EA)
+      set_board_state(EA, BOARD_STATE_HUMAN_REVIEW)
+      RETURN {action:"STOP_GLOBAL"}
+    // 1b) Acceptance enforcement even when NOT_RUNNABLE (e.g., Implemented but unaccepted)
+    IF accepted == FALSE AND EA.status in ACCEPTANCE_REQUIRED_STATUSES:
+      ensure_acceptance_comment_once(EA, reason="UEP acceptance required before any KAN/execution work.")
+      set_board_state(EA, BOARD_STATE_HUMAN_REVIEW)
+      RETURN {action:"STOP_EA"}
+    // 2) Status gate
+    IF EA_STATE(EA) != "READY_CANDIDATE" AND EA_STATE(EA) != "EXECUTING":
+      RETURN {action:"SKIP_EA"}
+    // 3) Acceptance gate (non-negotiable)
+    IF accepted == FALSE:
+      ensure_acceptance_comment_once(EA, reason="UEP acceptance required before any KAN/execution work.")
+      set_board_state(EA, BOARD_STATE_HUMAN_REVIEW)
+      RETURN {action:"STOP_EA"}
+    // 4) Passed gates
+    clear_board_state_if_safe(EA)
+    RETURN {action:"PROCEED"}
+
+FUNCTION should_create_KAN(EA):
+    IF EA_STATE(EA) != "READY_CANDIDATE": RETURN FALSE
+    IF scope_guard_passes(EA) == FALSE: STOP("Beyond MVP gate")
+    IF is_EA_accepted(EA) == FALSE: STOP("Acceptance missing")
+    RETURN TRUE
+
+FUNCTION should_execute(EA):
+    IF EA_STATE(EA) not in {"READY_CANDIDATE","EXECUTING"}: RETURN FALSE
+    IF scope_guard_passes(EA) == FALSE: STOP("Beyond MVP gate")
+    IF is_EA_accepted(EA) == FALSE: STOP("Acceptance missing")
+    RETURN TRUE
+
+FUNCTION reconcile_statuses(EA, KAN):
+    // Never advance EA.status; only operate on KAN when gates pass
+    IF scope_guard_passes(EA) == FALSE: STOP("Beyond MVP gate")
+    IF is_EA_accepted(EA) == FALSE: STOP("Acceptance missing")
+    IF EA_STATE(EA) == "READY_CANDIDATE":
+      MAY move KAN tickets into execution states (per execution workflow)
+    ELSE IF EA_STATE(EA) == "EXECUTING":
+      MAY continue within execution/verification workflow
+    ELSE:
+      MUST NOT move any KAN forward
+
+STOP(reason):
+    abort current EA processing immediately
+    MUST NOT create/update KAN (except safe idempotent comments/board_state)
+    MUST NOT start/continue execution
+
+STOP_GLOBAL(reason):
+    abort entire bot run immediately after performing only idempotent scope/acceptance comments and board_state updates
+
+-----------------------------------------------------------------------------
+C) TICKET UPDATE RULES (COMMENTS + BOARD STATES)
+
+RULE C1 (MISSING ACCEPTANCE)
+- Trigger condition:
+    EA.status in ACCEPTANCE_REQUIRED_STATUSES AND is_EA_accepted(EA) == FALSE
+- Required bot behavior:
+    Leave EA.status unchanged
+    Create exactly one acceptance-request comment (idempotent) containing BOT_COMMENT_FINGERPRINT
+    Set EA.board_state = BOARD_STATE_HUMAN_REVIEW
+    STOP for this EA (no KAN create, no execution, no forward moves)
+
+ACCEPTANCE REQUEST COMMENT BODY (MUST INCLUDE CHECKLIST)
+- Title line: "UEP Acceptance Gate: Action required " + BOT_COMMENT_FINGERPRINT
+- Checklist (all items required):
+    "Set field 'UEP Acceptance' = Yes, OR add label 'uep-accepted', OR add description line starting with 'UEP Acceptance: Accepted'"
+    "Set EA status to one of READY_TO_RUN_STATUSES"
+    "Confirm MVP scope (label 'mvp-scope' or within configured EA max); otherwise request explicit UEP approval for post-MVP"
+    "After acceptance, rerun the bot"
+
+RULE C2 (IDEMPOTENT COMMENTING)
+FUNCTION ensure_acceptance_comment_once(EA, reason):
+    IF any existing EA comment contains BOT_COMMENT_FINGERPRINT:
+      DO NOTHING
+    ELSE:
+      add acceptance request comment (include reason line + checklist)
+
+FUNCTION ensure_scope_comment_once(EA):
+    IF any existing EA comment contains BOT_COMMENT_FINGERPRINT AND contains "Scope Guard":
+      DO NOTHING
+    ELSE:
+      add comment:
+        "Scope Guard: Beyond MVP gate " + BOT_COMMENT_FINGERPRINT
+        Checklist:
+          - "Add label 'mvp-scope' OR adjust MVP_MAX_EA_NUMBER configuration OR obtain explicit UEP approval to proceed post-MVP"
+          - "Ensure UEP acceptance marker is present"
+
+RULE C3 (BOARD STATE USE)
+- Set/maintain BOARD_STATE_HUMAN_REVIEW ONLY when a human must act (missing acceptance or scope approval).
+- Use BOARD_STATE_HUMAN_ERROR ONLY for errors that require human intervention (see Rule C4).
+- When gates pass and bot is proceeding, bot MAY set EA.board_state = BOARD_STATE_NONE ONLY if:
+    the board_state was previously set by the bot for review/error, AND
+    no further human action is required.
+
+RULE C4 (EXECUTION FAILURES)
+- For any failing bot action that involves writes/execution/verification:
+    retries = increment_retry_counter(EA, action_name)
+    IF retries <= RETRY_LIMIT:
+      retry action
+    ELSE:
+      set EA.board_state = BOARD_STATE_HUMAN_ERROR
+      add exactly one error comment per action_name (idempotent) including:
+        - action_name
+        - failure category summary (no stack traces)
+        - next human check items (short)
+      STOP("Retries exhausted; human intervention required")
+- Missing acceptance MUST NEVER use BOARD_STATE_HUMAN_ERROR.
+
+-----------------------------------------------------------------------------
+D) ANTI-RUNAHEAD / SCOPE GUARD (MVP GATE)
+
+FUNCTION scope_guard_passes(EA):
+    IF MVP_MODE == "LABEL":
+      IF "mvp-scope" in EA.labels: RETURN TRUE
+      ELSE: RETURN FALSE
+    ELSE IF MVP_MODE == "MAX_NUMBER":
+      IF EA.number <= MVP_MAX_EA_NUMBER: RETURN TRUE
+      ELSE: RETURN FALSE
+
+RULE D1 (BEYOND-GATE REQUIRES EXPLICIT ACCEPTANCE)
+- If scope_guard_passes(EA) == FALSE:
+    Bot MUST NOT proceed unless is_EA_accepted(EA) == TRUE.
+    If is_EA_accepted(EA) == FALSE, bot MUST STOP_GLOBAL and request UEP approval.
+
+RULE D2 (BEYOND-GATE STOP)
+- If scope_guard_passes(EA) == FALSE AND is_EA_accepted(EA) == FALSE:
+    Bot MUST STOP_GLOBAL (prevents runahead)
+    Bot MUST request UEP/human scope approval via a single idempotent scope comment
+    Bot MUST set EA.board_state = BOARD_STATE_HUMAN_REVIEW
+
+-----------------------------------------------------------------------------
+E) IDEMPOTENCY + LOOP PREVENTION
+
+RETRY COUNTERS
+- Maintain per (EA.key, action_name) retry counter across a run.
+- Max attempts = 1 initial try + RETRY_LIMIT retries.
+
+NO-SPAM RULE
+- If the same EA triggers the same STOP condition in consecutive runs AND EA acceptance markers/status/labels/description have not changed:
+    Do not add new comments
+    Preserve board_state
+    STOP immediately for that EA
+
+KAN CREATION IDEMPOTENCY (LOGICAL REQUIREMENT)
+- Creating KAN artifacts must be "find-or-update" based on deterministic linkage to EA (never "create blindly").
+
+-----------------------------------------------------------------------------
+F) WORKED EXAMPLES (EXPECTED OUTCOMES)
+
+EX1: EA-26 status="Implemented", no acceptance marker
+- EA_STATE="NOT_RUNNABLE" (Implemented is DISALLOWED)
+- Bot MUST NOT create KAN, MUST NOT execute, MUST NOT move tickets forward
+- Because "Implemented" is in ACCEPTANCE_REQUIRED_STATUSES and acceptance is missing:
+    bot MUST STOP_EA, add the single acceptance-request comment, and set board_state="HUMAN TO REVIEW AND CLOSE"
+- Outcome: STOP_EA (comment + human review)
+
+EX2: EA-17 status="Ready for Execution", UEP Acceptance field="Yes", labels include "mvp-scope"
+- EA_STATE="READY_CANDIDATE"
+- scope_guard_passes=TRUE, is_EA_accepted=TRUE
+- Bot MAY create/update KAN, MAY execute, MAY verify
+- Outcome: PROCEED
+
+EX3: EA-31 status="Parked/Deferred", label includes "uep-accepted"
+- EA_STATE="NOT_RUNNABLE" (Parked/Deferred is DISALLOWED)
+- Acceptance marker does not override status disallow
+- Bot MUST NOT create KAN, MUST NOT execute, MUST NOT move tickets forward
+- Outcome: SKIP_EA (no work)

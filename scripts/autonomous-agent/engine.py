@@ -7,7 +7,7 @@ This engine coordinates THREE STRICT ROLES:
 1) UEP v3.3
    - Combines: Lead PM, Tech Architect, UX Designer, CTO, CFO, Content Strategist
    - Acts as ONE integrated executive brain
-   - Produces high-level intent ONLY — never implementation
+   - Produces high-level intent ONLY - never implementation
    - NEVER writes patches or code
    - Defines WHAT we build, WHY we build it, UX/product expectations
    - Reads Ideas from Atlassian Product Discovery
@@ -1541,7 +1541,7 @@ ROLE_UEP = {
         'Content Strategist'
     ],
     'responsibilities': [
-        'Produce high-level intent ONLY — never implementation',
+        'Produce high-level intent ONLY - never implementation',
         'Define WHAT we build, WHY we build it, UX/product expectations',
         'Read Ideas from Atlassian Product Discovery',
         'Create Epics with business goals and acceptance criteria',
@@ -1779,7 +1779,7 @@ class JiraClient:
         'Backlog', 'To Do', and any custom statuses in the To Do category.
         """
         jql = f"project = {self.config.software_project} AND issuetype = Story AND statusCategory = 'To Do' ORDER BY created ASC"
-        return self.search_issues(jql, ['summary', 'status', 'statusCategory', 'description', 'parent'])
+        return self.search_issues(jql, ['summary', 'status', 'statusCategory', 'description', 'parent', 'issuetype'])
 
     def get_stories_in_progress(self) -> List[dict]:
         """Get Stories in progress (for verification)
@@ -1788,7 +1788,7 @@ class JiraClient:
         in-progress statuses (e.g., 'In Progress', 'In Review', etc.)
         """
         jql = f"project = {self.config.software_project} AND issuetype = Story AND statusCategory = 'In Progress' ORDER BY created ASC"
-        return self.search_issues(jql, ['summary', 'status', 'description', 'parent'])
+        return self.search_issues(jql, ['summary', 'status', 'description', 'parent', 'issuetype'])
 
     def get_work_items_in_progress(self) -> List[dict]:
         """Get Stories and Bugs with exact 'In Progress' status (for Step 4 verification).
@@ -1896,7 +1896,7 @@ class JiraClient:
     def create_epic(self, summary: str, description: str, parent_key: str = None, labels: List[str] = None) -> Optional[str]:
         """Create an Epic in the software project.
 
-        PATCH C: Added labels parameter for Idea→Epic mapping.
+        PATCH C: Added labels parameter for Idea->Epic mapping.
 
         Args:
             summary: Epic summary.
@@ -1916,7 +1916,7 @@ class JiraClient:
             }
         }
 
-        # PATCH C: Add labels for Idea→Epic mapping
+        # PATCH C: Add labels for Idea->Epic mapping
         if labels:
             payload['fields']['labels'] = labels
 
@@ -2770,6 +2770,11 @@ class ExecutionEngine:
         self.blocking_escalations = BlockingEscalationsStore(self.config.repo_path)
         self.blocking_escalations.load()
 
+        # Initialize state ledger for EA->KAN mapping persistence
+        self.state_path = Path(self.config.repo_path) / '.engineo' / 'state.json'
+        self.state = self._load_state_ledger()
+        self.log("SUPERVISOR", f"State ledger loaded: {len(self.state.get('ea_to_kan', {}))} EA mappings")
+
     def _utc_ts(self) -> str:
         """Generate UTC timestamp string for artifact naming."""
         return datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%SZ")
@@ -3472,7 +3477,7 @@ class ExecutionEngine:
         """Parse ALLOWED FILES and ALLOWED NEW FILES from Story description
 
         Guardrails v1 FIXUP-3: Robust line-walk parser that handles blank lines
-        between headers and bullets (common in ADF→text rendering).
+        between headers and bullets (common in ADF->text rendering).
 
         Guardrails v1 PATCH 3: Preserve glob wildcards (*) - only unwrap paired
         markdown bold markers (**text**), never strip single *.
@@ -3895,7 +3900,7 @@ Your role is to analyze Ideas (initiatives) and define business intent for Epics
 Your sole responsibility is to translate approved Product Discovery initiatives (EA-*) into an enforceable Epic description for Jira Software (KAN-*), so downstream agents can execute WITHOUT ambiguity or scope drift.
 
 HARD RULES (NON-NEGOTIABLE)
-1) NO GUESSING: If input is ambiguous/incomplete, do NOT invent. Output a "Blocked — Clarification Required" section with ONE precise question.
+1) NO GUESSING: If input is ambiguous/incomplete, do NOT invent. Output a "Blocked - Clarification Required" section with ONE precise question.
 2) NO SCOPE EXPANSION: Do not add new features, combine phases, or broaden objectives.
 3) CONTRACT FIRST: Output must be machine-enforceable. You MUST include these sections exactly:
    - SCOPE CLASS:
@@ -3947,7 +3952,7 @@ VERIFICATION REQUIRED:
 
 If you cannot choose SCOPE CLASS or ALLOWED ROOTS without guessing, set:
 SCOPE CLASS: UNKNOWN
-and include a "Blocked — Clarification Required" section with ONE question.
+and include a "Blocked - Clarification Required" section with ONE question.
 
 IMPORTANT: Output ONLY the markdown in the required format."""
 
@@ -4444,10 +4449,9 @@ DESCRIPTION: <description of change needed>
         }
 
     def step_3_story_implementation(self) -> bool:
-        """Developer: Implement Stories using Claude Code CLI"""
-        self.log("IMPLEMENTER", "STEP 3: Checking for Stories with 'To Do' status...")
+        """Developer: Implement Stories using Claude Code CLI.
 
-        Guardrails v1: Full enforcement of scope fence, diff budget, patch list, and verification artifact
+        Guardrails v1: Full enforcement of scope fence, diff budget, patch list, and verification artifact.
         Bug Execution Enablement: Bugs are executable with same guardrails; Story priority preserved.
         """
         self.log("DEVELOPER", "STEP 3: Checking for executable work items with 'To Do' status...")
@@ -4873,7 +4877,7 @@ Branch: {self.config.feature_branch}
             # PATCH 2: Check comment de-dup
             work_entry = self.work_ledger.get(key)
             if _should_post_verify_comment(work_entry, verify_reason, report_hash):
-                comment = f"""Supervisor Verification: PENDING — verification report not found
+                comment = f"""Supervisor Verification: PENDING - verification report not found
 
 {remediation}"""
                 self.jira.add_comment(key, comment)
@@ -4917,7 +4921,7 @@ Branch: {self.config.feature_branch}
 
             # PATCH 2: Check comment de-dup
             if _should_post_verify_comment(work_entry, verify_reason, report_hash):
-                comment = f"""Supervisor Verification: INVALID — cannot read report
+                comment = f"""Supervisor Verification: INVALID - cannot read report
 
 Report: {report_path}
 Error: {e}"""
@@ -5120,7 +5124,7 @@ Report `{report_path}` was missing the required `## Checklist` header.
                                         self.jira.transition_issue(key, chosen)
 
                                     # Post Jira comment
-                                    self.jira.add_comment(key, f"""Supervisor Auto-Verify: BLOCKED — dirty index
+                                    self.jira.add_comment(key, f"""Supervisor Auto-Verify: BLOCKED - dirty index
 
 Auto-verify artifact commit cannot proceed because the git index already has staged files:
 {chr(10).join(f'- {f}' for f in existing_staged[:10])}{'...' if len(existing_staged) > 10 else ''}
@@ -5158,7 +5162,7 @@ Auto-verify artifact commit cannot proceed because the git index already has sta
                                     if chosen:
                                         self.jira.transition_issue(key, chosen)
 
-                                    self.jira.add_comment(key, f"""Supervisor Auto-Verify: BLOCKED — git add failed
+                                    self.jira.add_comment(key, f"""Supervisor Auto-Verify: BLOCKED - git add failed
 
 Failed to stage autoverify artifacts: {files_to_stage}
 
@@ -5189,7 +5193,7 @@ Failed to stage autoverify artifacts: {files_to_stage}
                                     if chosen:
                                         self.jira.transition_issue(key, chosen)
 
-                                    self.jira.add_comment(key, f"""Supervisor Auto-Verify: BLOCKED — git commit failed
+                                    self.jira.add_comment(key, f"""Supervisor Auto-Verify: BLOCKED - git commit failed
 
 Failed to commit autoverify artifacts.
 
@@ -5239,7 +5243,7 @@ Failed to commit autoverify artifacts.
                                     self.log("SUPERVISOR", f"[{key}] Transitioned to {chosen}")
 
                                 # Post comment about what was auto-verified
-                                comment = f"""Supervisor Auto-Verify: PARTIAL PASS — manual items remain
+                                comment = f"""Supervisor Auto-Verify: PARTIAL PASS - manual items remain
 
 **Auto-verified items:** {len(av_result.items_checked)}
 **Manual items remaining:** {len(av_result.items_manual)}
@@ -5457,7 +5461,7 @@ The report MUST have all checklist items checked (- [x]) after fixing.
                                         self.blocking_escalations.save()
 
                                 # Post comment
-                                comment = f"""Supervisor Auto-Verify: FAILED — requires human attention
+                                comment = f"""Supervisor Auto-Verify: FAILED - requires human attention
 
 **Failed items:** {len(av_result.items_failed)}
 **Failure type:** {failure_type.value if failure_type else 'UNKNOWN'}
@@ -5499,7 +5503,7 @@ Story transitioned to {human_attention}."""
                         self.jira.transition_issue(key, chosen)
                         self.log("SUPERVISOR", f"[{key}] Transitioned to {chosen}")
 
-                    comment = f"""Supervisor Verification: BLOCKED — auto-verify cycles exhausted
+                    comment = f"""Supervisor Verification: BLOCKED - auto-verify cycles exhausted
 
 **Auto-verify cycles:** {auto_verify_runs}/{max_cycles}
 
@@ -5522,7 +5526,7 @@ Maximum auto-verify attempts reached. Manual intervention required."""
 
             # PATCH 2: Check comment de-dup
             if _should_post_verify_comment(work_entry, verify_reason, report_hash):
-                comment = f"""Supervisor Verification: INCOMPLETE — unchecked checklist items found
+                comment = f"""Supervisor Verification: INCOMPLETE - unchecked checklist items found
 
 Report: {report_path}
 Unchecked items: {unchecked_count}
@@ -5579,7 +5583,7 @@ Note: All checklist items must be checked (- [x]) for verification to pass."""
 
             # PATCH 2: Check comment de-dup
             if _should_post_verify_comment(work_entry, verify_reason, report_hash):
-                comment = f"""Supervisor Verification: BLOCKED — missing commit evidence
+                comment = f"""Supervisor Verification: BLOCKED - missing commit evidence
 
 Report: {report_path} (valid, checklist complete)
 
@@ -5625,7 +5629,7 @@ Note: Story will remain BLOCKED until commit evidence is found."""
 
                 # Comment de-dup uses (reason, report_hash)
                 if _should_post_verify_comment(work_entry, verify_reason, report_hash):
-                    comment = f"""Supervisor Verification: BLOCKED — active escalation prevents auto-close
+                    comment = f"""Supervisor Verification: BLOCKED - active escalation prevents auto-close
 Report: {report_path} (valid, checklist complete)
 Commit: {commit_evidence} (source: {commit_source})
 
@@ -5675,7 +5679,7 @@ Resolution required before auto-close can proceed."""
         transitioned = False
         if chosen is None:
             # No matching transition found
-            comment = f"""Supervisor Verification: PASSED — cannot auto-transition (no matching transition found)
+            comment = f"""Supervisor Verification: PASSED - cannot auto-transition (no matching transition found)
 
 Report: {report_path}
 Commit: {commit_evidence} (source: {commit_source})
@@ -5708,7 +5712,7 @@ Status: Transitioned to {chosen}"""
                 if not self.blocking_escalations.load_error:
                     self.blocking_escalations.resolve_all_for_issue(key)
         else:
-            comment = f"""Supervisor Verification: PASSED — auto-transition failed; manual move required
+            comment = f"""Supervisor Verification: PASSED - auto-transition failed; manual move required
 
 Report: {report_path}
 Commit: {commit_evidence} (source: {commit_source})
@@ -6295,9 +6299,10 @@ This is an automated escalation from the EngineO Autonomous Execution Engine.
     def _process_idea(self, issue: dict) -> bool:
         """UEP: Process a specific Idea (uses enhanced analysis).
 
-        PATCH C: Idempotent Idea→Epic mapping to prevent duplicate Epics.
+        PATCH C: Idempotent Idea->Epic mapping to prevent duplicate Epics.
         """
         key = issue['key']
+        ea_key = key  # Alias for EA-* key used throughout this function
         summary = issue['fields']['summary']
         description = self.jira.parse_adf_to_text(issue['fields'].get('description', {}))
         ea_label = self._ea_label(ea_key)
@@ -6403,7 +6408,7 @@ No new Epics created (idempotency check).
         # Use enhanced UEP analysis
         epics_to_create = self._uep_analyze_idea(key, summary, description)
 
-        # PATCH C: Define mapping label for Idea→Epic tracking
+        # PATCH C: Define mapping label for Idea->Epic tracking
         mapping_label = f"engineo-idea-{key}"
 
         created_epics = []
@@ -6419,7 +6424,7 @@ No new Epics created (idempotency check).
                 created_epics.append(epic_key)
 
         if created_epics:
-            # PATCH C: Persist Idea→Epic mapping to Work Ledger
+            # PATCH C: Persist Idea->Epic mapping to Work Ledger
             self._upsert_work_ledger_entry(
                 issue_key=key,
                 issue_type="Idea",
@@ -6451,6 +6456,7 @@ Business Intent Defined - Ready for Supervisor decomposition.
         PATCH 3: Uses decomposition manifest for idempotency and delta mode.
         """
         key = issue['key']
+        epic_key = key  # Alias for KAN-* Epic key used throughout this function
         summary = issue['fields']['summary']
         description = self.jira.parse_adf_to_text(issue['fields'].get('description', {}))
         status = issue['fields']['status']['name']
@@ -6682,15 +6688,9 @@ Failed stories:
             self.jira.add_comment(key, f"""
 Epic decomposed by SUPERVISOR v3.2 {mode_note}{partial_note}
 
-            if existing_story:
-                self.log("SUPERVISOR", f"Reused Story: {existing_story}")
-                reused_stories.append(existing_story)
-            else:
-                labels = [ea_label] if ea_label else None
-                story_key = self.jira.create_story(story_def['summary'], story_def['description'], epic_key, labels=labels)
-                if story_key:
-                    self.log("SUPERVISOR", f"Created Story: {story_key}")
-                    created_stories.append(story_key)
+**Stories created:**
+{story_list}
+""")
 
         all_stories = created_stories + reused_stories
 
@@ -6735,6 +6735,7 @@ Ready for Developer implementation.
         Bug Execution Enablement: Bugs are routed here and subject to same guardrails.
         """
         work_item_key = issue['key']
+        key = work_item_key  # Alias for compatibility
         work_item_type = issue['fields']['issuetype']['name']
         summary = issue['fields']['summary']
         description = self.jira.parse_adf_to_text(issue['fields'].get('description', {}))
@@ -6934,6 +6935,7 @@ Status: {commit_status}
 Verification report: {resolved_report_path}
 Files modified:
 {chr(10).join(['- ' + f for f in reported_files]) if reported_files else '(see git log for details)'}
+""")
 
         # Transition to In Progress if not already
         if 'to do' in status:
@@ -7376,14 +7378,14 @@ Begin implementation now.
                                 should_comment = False
 
                         if should_comment:
-                            self.jira.add_comment(story_key, f"""## AGENT_TEMPLATE_ERROR — Non-Retryable
+                            self.jira.add_comment(story_key, f"""## AGENT_TEMPLATE_ERROR - Non-Retryable
 
 **Signature matched:** `{signature_matched}`
 **Artifact path:** `{final_artifact_path}`
 
 This error indicates a deterministic agent/template bug that will not resolve with retries.
 
-**Status:** BLOCKED — non-retryable until template fixed
+**Status:** BLOCKED - non-retryable until template fixed
 
 ---
 *Detected by Engine PATCH 3*
@@ -7548,6 +7550,11 @@ Examples:
         '--show-work-ledger',
         action='store_true',
         help='Print work ledger summary and exit (no Jira/Git side effects)'
+    )
+    parser.add_argument(
+        '--until-done',
+        action='store_true',
+        help='Run until all work items are done (Guardrails v1)'
     )
 
     args = parser.parse_args()

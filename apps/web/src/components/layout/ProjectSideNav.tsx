@@ -123,14 +123,16 @@ export default function ProjectSideNav({ onNavigate }: ProjectSideNavProps) {
       data-testid="project-sidenav"
     >
       {/* [WORK-CANVAS-ARCHITECTURE-LOCK-1] Distinct container surface: "inside this project" visual cue */}
-      {/* Low-emphasis background (surface-card) with border to separate from center content without competing with left rail */}
-      <div className="rounded-md border border-border bg-[hsl(var(--surface-card))] p-2">
+      {/* [EA-31] Reduced visual weight: quieter border, tighter density for calm supporting UI */}
+      <div className="rounded-md border border-border/50 bg-[hsl(var(--surface-secondary,var(--surface-card)))] p-2">
         {/* [CENTER-PANE-NAV-REMODEL-1] Tighter spacing (space-y-4 instead of space-y-6) */}
-        <div className="space-y-4">
+        {/* [EA-31] Further tightened spacing for reduced density */}
+        <div className="space-y-3">
           {navSections.map((section) => (
             <div key={section.heading}>
               {/* [CENTER-PANE-NAV-REMODEL-1] Section headings: lighter weight, reduced opacity */}
-              <h3 className="px-2 mb-1.5 text-[10px] font-normal text-muted-foreground/60 uppercase tracking-wider">
+              {/* [EA-31] Further reduced opacity for calmer supporting UI */}
+              <h3 className="px-2 mb-1 text-[10px] font-normal text-muted-foreground/50 uppercase tracking-wider">
                 {section.heading}
               </h3>
               {/* [CENTER-PANE-NAV-REMODEL-1] Tighter item spacing */}
@@ -158,11 +160,12 @@ export default function ProjectSideNav({ onNavigate }: ProjectSideNavProps) {
                             : 'text-muted-foreground hover:text-foreground/80'
                         }`}
                       >
+                        {/* [EA-31] Reduced icon emphasis for minimal icon presence in supporting UI */}
                         {item.icon && (
                           <Icon
                             name={item.icon}
-                            size={16}
-                            className={active ? 'text-primary' : 'text-muted-foreground/80'}
+                            size={14}
+                            className={active ? 'text-primary/80' : 'text-muted-foreground/60'}
                             ariaLabel={undefined}
                           />
                         )}

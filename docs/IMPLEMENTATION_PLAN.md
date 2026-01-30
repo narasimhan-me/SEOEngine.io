@@ -14,6 +14,43 @@ This document tracks all implementation phases and their completion status.
 
 
 
+
+## [KAN-53] Implement: [EA-31] EA-31 - Visual hierarchy & calmness polish — reinforce primary vs secondary panel distinction so primary work areas dominate and supporting UI feels calm. 
+
+**Implemented:** 2026-01-30 20:21 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/web/src/app/globals.css`
+- `apps/web/src/components/layout/LayoutShell.tsx`
+- `apps/web/src/components/layout/ProjectSideNav.tsx`
+- `apps/web/src/components/right-context-panel/ContextPanelActionPreview.tsx`
+- `apps/web/src/components/right-context-panel/ContextPanelEntitySummary.tsx`
+- `apps/web/src/components/right-context-panel/RightContextPanel.tsx`
+- `scripts/autonomous-agent/engine.py`
+- `docs/UEP_ACCEPTANCE_GATE.pseudo-logic.txt`
+- `docs/jira/ACTIVATION-METRICS-SUCCESS-SIGNALS-1.md`
+- `docs/jira/ADMIN-SHELL-GOVERNANCE-EXPANSION-1.md`
+- `docs/jira/AI-ASSIST-GUIDED-PLAYBOOKS-1.md`
+- `docs/jira/AI-SUGGESTION-VISUAL-CONSISTENCY-1.md`
+- `docs/jira/AUTOMATION-PLAYBOOK-VISIBILITY-1.md`
+- `docs/jira/AUTOMATION-RUN-INTENT-CONFIRMATION-1.md`
+- `docs/jira/AUTOMATION-SAFETY-RAILS-1.md`
+- `docs/jira/DASHBOARD-SIGNAL-REWRITE-2.md`
+- `docs/jira/ENTERPRISE-READINESS-SIGNALS-1.md`
+- `docs/jira/IN-PRODUCT-GUIDANCE-EDUCATION-1.md`
+- `docs/jira/ISSUE-EXPLANATION-QUALITY-2.md`
+- `docs/jira/ISSUE-TO-ACTION-GUIDANCE-1.md`
+- `docs/jira/ONBOARDING-FIRST-SUCCESS-1.md`
+- `docs/jira/PLAYBOOKS-SHELL-REMOUNT-1.md`
+- `docs/jira/PRICING-CLARITY-VALUE-ALIGNMENT-1.md`
+- `docs/jira/PRIORITIZATION-SIGNAL-ENRICHMENT-2.md`
+- `docs/jira/RETENTION-CONFIDENCE-REINFORCEMENT-1.md`
+- `docs/jira/SAFETY-SIGNALING-CONFIDENCE-REINFORCEMENT-1.md`
+- `docs/jira/VISUAL-HIERARCHY-CALMNESS-POLISH-1.md`
+
+---
+
 ## [KAN-51] Implement: [EA-30] EA-30 — AI-ASSIST-ENTRY-POINTS-1
 
 **Implemented:** 2026-01-28 14:56 UTC

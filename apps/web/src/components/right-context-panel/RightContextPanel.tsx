@@ -83,6 +83,7 @@ export function RightContextPanel() {
 
       {/* Panel - container-contained in overlay mode, part of flex layout in pinned mode */}
       {/* Z-index 40 to stay below Command Palette (z-50) but above content */}
+      {/* [EA-31] Reduced visual weight: quieter border, secondary surface for calm supporting UI */}
       <aside
         ref={panelRef}
         id="right-context-panel"
@@ -91,7 +92,7 @@ export function RightContextPanel() {
         tabIndex={-1}
         data-testid="right-context-panel"
         className={[
-          'z-40 flex flex-col border-l border-border bg-[hsl(var(--surface-raised))]',
+          'z-40 flex flex-col border-l border-border/60 bg-[hsl(var(--surface-secondary,var(--surface-raised)))]',
           // Narrow: overlay mode (absolute within container, not viewport-fixed)
           'absolute inset-y-0 right-0 lg:relative lg:inset-auto',
           panelWidth,
@@ -101,17 +102,18 @@ export function RightContextPanel() {
       >
         {/* Panel Header */}
         {/* [UI-POLISH-&-CLARITY-1] Increased header vertical padding */}
-        <div className="flex items-center justify-between border-b border-border px-4 py-3.5">
+        {/* [EA-31] Reduced header emphasis for calm secondary panel presence */}
+        <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
           <div className="min-w-0 flex-1">
             <h2
               id={titleId}
               data-testid="right-context-panel-title"
-              className="truncate text-sm font-semibold text-foreground"
+              className="truncate text-sm font-medium text-foreground/90"
             >
               {descriptor.title}
             </h2>
             {descriptor.subtitle && (
-              <p className="truncate text-xs text-muted-foreground">
+              <p className="truncate text-xs text-muted-foreground/80">
                 {descriptor.subtitle}
               </p>
             )}
