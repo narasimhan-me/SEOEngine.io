@@ -21,6 +21,20 @@ This document tracks all implementation phases and their completion status.
 
 
 
+
+## [KAN-67] Implement: [EA-40] Introduce a Playbooks shell that organizes fix strategies without executing anything.
+
+**Implemented:** 2026-01-30 21:48 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/web/src/components/layout/ProjectSideNav.tsx`
+- `apps/web/src/app/(dashboard)/`
+- `apps/web/src/components/playbooks/`
+- `apps/web/src/lib/playbooks/`
+
+---
+
 ## [KAN-65] Implement: [EA-39] Surface signals of maturity and readiness without adding enterprise complexity.
 
 **Implemented:** 2026-01-30 21:39 UTC

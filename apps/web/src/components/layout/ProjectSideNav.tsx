@@ -60,7 +60,7 @@ const navSections: NavSection[] = [
   },
   {
     heading: 'AUTOMATION',
-    items: [{ label: 'Playbooks', path: 'automation', icon: 'nav.playbooks' }],
+    items: [{ label: 'Playbooks', path: 'playbooks', icon: 'nav.playbooks' }],
   },
   {
     heading: 'INSIGHTS',
