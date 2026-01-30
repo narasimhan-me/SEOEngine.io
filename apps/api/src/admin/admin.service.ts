@@ -102,6 +102,7 @@ export class AdminService {
 
   /**
    * [ADMIN-OPS-1] Get executive snapshot overview.
+   * [EA-37] Extended with activation metrics for internal insight.
    * All metrics are derived from existing DB state - no AI calls or job enqueueing.
    */
   async getOverview() {
@@ -124,6 +125,11 @@ export class AdminService {
       failedRunsThisMonth,
       shopifyFailures,
       quotaPressureUsers,
+      // [EA-37] Activation metrics
+      activatedUsers,
+      usersWithProjects,
+      usersWithConnectedStores,
+      usersWithAppliedDrafts,
     ] = await Promise.all([
       // Total users
       this.prisma.user.count(),
@@ -216,6 +222,53 @@ export class AdminService {
           (s.plan = 'starter' AND COUNT(r.id) >= 90) OR
           (s.plan = 'pro' AND COUNT(r.id) >= 450)
       `,
+
+      // [EA-37] Activation: Users who applied at least one draft successfully
+      this.prisma.user.count({
+        where: {
+          automationPlaybookRuns: {
+            some: {
+              status: 'SUCCEEDED',
+              runType: 'APPLY',
+            },
+          },
+        },
+      }),
+
+      // [EA-37] Activation: Users with at least one project
+      this.prisma.user.count({
+        where: {
+          projects: { some: {} },
+        },
+      }),
+
+      // [EA-37] Activation: Users with connected stores
+      this.prisma.user.count({
+        where: {
+          projects: {
+            some: {
+              integrations: {
+                some: {
+                  accessToken: { not: null },
+                },
+              },
+            },
+          },
+        },
+      }),
+
+      // [EA-37] Activation: Users who applied drafts in last 30 days
+      this.prisma.user.count({
+        where: {
+          automationPlaybookRuns: {
+            some: {
+              status: 'SUCCEEDED',
+              runType: 'APPLY',
+              createdAt: { gte: sevenDaysAgo },
+            },
+          },
+        },
+      }),
     ]);
 
     // Calculate reuse rate
@@ -227,6 +280,11 @@ export class AdminService {
     });
     const reuseRate =
       runsThisMonth > 0 ? (reusedRunsThisMonth / runsThisMonth) * 100 : 0;
+
+    // [EA-37] Compute activation rate
+    const activationRate = totalUsers > 0
+      ? Math.round((activatedUsers / totalUsers) * 100)
+      : 0;
 
     return {
       totalUsers,
@@ -253,6 +311,21 @@ export class AdminService {
       errorRates: {
         failedRunsThisMonth,
         shopifyFailuresLast7Days: shopifyFailures,
+      },
+      // [EA-37] Activation signals - internal metrics for product insight
+      activation: {
+        activatedUsers,
+        activationRate,
+        usersWithProjects,
+        usersWithConnectedStores,
+        usersActivelyOptimizing: usersWithAppliedDrafts,
+        // Funnel stages for identifying where users stall
+        funnel: {
+          signedUp: totalUsers,
+          createdProject: usersWithProjects,
+          connectedStore: usersWithConnectedStores,
+          appliedOptimization: activatedUsers,
+        },
       },
     };
   }

@@ -18,6 +18,21 @@ This document tracks all implementation phases and their completion status.
 
 
 
+
+## [KAN-61] Implement: [EA-37] Define and surface activation and success signals that reflect real user progress.
+
+**Implemented:** 2026-01-30 21:17 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/api/src/admin/admin.module.ts`
+- `apps/api/src/admin/admin.service.ts`
+- `apps/api/src/activation/`
+- `apps/web/src/lib/activation-signals.ts`
+- `docs/activation-signals-spec.md`
+
+---
+
 ## [KAN-59] Implement: [EA-36] Provide lightweight, contextual education inside the product — exactly where questions arise.
 
 **Implemented:** 2026-01-30 20:56 UTC
