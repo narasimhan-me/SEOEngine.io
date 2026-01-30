@@ -95,6 +95,49 @@ export default function InsightsPage() {
       <InsightsSubnav projectId={projectId} activeTab="overview" />
       <InsightsPillarsSubnav />
 
+      {/* [EA-38] Progress Reinforcement Summary - calm, factual progress messaging */}
+      {(overview.improved.deoScore.delta > 0 || overview.resolved.actionsCount > 0) && (
+        <section className="mt-6">
+          <div
+            className="rounded-lg border border-green-100 bg-green-50 p-4"
+            data-testid="insights-progress-reinforcement"
+          >
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0">
+                <svg
+                  className="h-5 w-5 text-green-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-green-900">
+                  What you&apos;ve improved
+                </h3>
+                <p className="mt-1 text-xs text-green-800">
+                  {overview.improved.deoScore.delta > 0 && (
+                    <>Your Discovery Score has grown by {overview.improved.deoScore.delta} points. </>
+                  )}
+                  {overview.resolved.actionsCount > 0 && (
+                    <>You&apos;ve applied {overview.resolved.actionsCount} {overview.resolved.actionsCount === 1 ? 'fix' : 'fixes'} to improve your site. </>
+                  )}
+                  These changes help search engines and AI assistants better understand your products.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Overview Cards */}
       <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {/* Improved Card */}
