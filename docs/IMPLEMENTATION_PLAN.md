@@ -15,6 +15,23 @@ This document tracks all implementation phases and their completion status.
 
 
 
+
+## [KAN-55] Implement: [EA-34] Guide first-time users to a small, safe, confidence-building success within their first session.
+
+**Implemented:** 2026-01-30 20:34 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/web/src/app/dashboard/page.tsx`
+- `apps/web/src/components/projects/FirstDeoWinChecklist.tsx`
+- `apps/web/src/lib/trust-loop/trustLoopState.ts`
+- `scripts/autonomous-agent/engine.py`
+- `apps/web/src/components/onboarding/`
+- `apps/web/src/lib/onboarding/`
+- `apps/web/tests/first-time-user-guidance.spec.ts`
+
+---
+
 ## [KAN-53] Implement: [EA-31] EA-31 - Visual hierarchy & calmness polish — reinforce primary vs secondary panel distinction so primary work areas dominate and supporting UI feels calm. 
 
 **Implemented:** 2026-01-30 20:21 UTC

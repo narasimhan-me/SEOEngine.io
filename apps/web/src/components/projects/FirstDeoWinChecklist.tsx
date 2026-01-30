@@ -112,8 +112,8 @@ export function FirstDeoWinChecklist({
       </div>
 
       <p className="text-xs text-gray-600 mb-3">
-        Follow these steps to get your first obvious DEO win in about 10–20
-        minutes.
+        Follow these steps to get your first DEO win. You can do this in about
+        10 minutes.
       </p>
 
       <p className="text-xs font-medium text-gray-700 mb-4">

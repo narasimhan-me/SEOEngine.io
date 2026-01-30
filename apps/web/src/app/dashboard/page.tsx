@@ -10,6 +10,7 @@ import {
   type DataTableColumn,
   type DataTableRow,
 } from '@/components/tables/DataTable';
+import { FirstTimeUserGuidance } from '@/components/onboarding/FirstTimeUserGuidance';
 
 interface Project {
   id: string;
@@ -250,6 +251,14 @@ export default function DashboardPage() {
           Here&apos;s an overview of your SEO projects.
         </p>
       </div>
+
+      {/* [KAN-54: EA-34] First-time user onboarding guidance */}
+      <FirstTimeUserGuidance
+        userName={user?.name}
+        hasProjects={projects.length > 0}
+        firstProjectHref={projects.length > 0 ? `/projects/${projects[0].id}/overview` : undefined}
+        createProjectHref="/projects"
+      />
 
       {error && (
         <div className="mb-4 bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded">

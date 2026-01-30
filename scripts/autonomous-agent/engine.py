@@ -6943,7 +6943,7 @@ Files modified:
             self.jira.add_comment(work_item_key, f"""
 Implementation started by Claude Code Developer
 Branch: {self.config.feature_branch}
-Base SHA: {base_sha[:8]}
+Base SHA: {head_sha_before[:8] if head_sha_before else 'unknown'}
 
 **Guardrails v1 Active:**
 - Diff budget: {max_files} files
