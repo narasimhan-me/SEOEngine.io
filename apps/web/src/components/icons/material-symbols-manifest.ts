@@ -87,6 +87,20 @@ export const ICON_MANIFEST = {
     orders: 'orders',
     /** Analytics */
     analytics: 'analytics',
+    /** Products / Inventory */
+    products: 'inventory_2',
+    /** Pages / Articles */
+    pages: 'article',
+    /** Collections / Hubs */
+    collections: 'hub',
+    /** Blog posts */
+    blogPosts: 'article',
+    /** Work Queue / Tasks */
+    workQueue: 'analytics',
+    /** Playbooks / Automations */
+    playbooks: 'settings_suggest',
+    /** Project Settings */
+    projectSettings: 'settings',
     /** Brand / App Logo */
     brand: 'deployed_code',
   },
