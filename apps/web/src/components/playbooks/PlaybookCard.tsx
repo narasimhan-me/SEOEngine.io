@@ -1,11 +1,12 @@
 'use client';
 
-import { BookOpen, ChevronRight } from 'lucide-react';
+import { BookOpen, Bot, ChevronRight } from 'lucide-react';
 import type { PlaybookDefinition } from '@/lib/playbooks/playbookDefinitions';
 import { PLAYBOOK_COMPLEXITY_INFO } from '@/lib/playbooks/playbookDefinitions';
 
 /**
  * [EA-40: PLAYBOOKS-SHELL-1] Playbook Card
+ * [EA-42] Extended to indicate automation availability
  *
  * Read-only card displaying a playbook summary.
  * Clicking expands to show full details - no execution occurs.
@@ -14,6 +15,7 @@ import { PLAYBOOK_COMPLEXITY_INFO } from '@/lib/playbooks/playbookDefinitions';
  * - Purely informational display
  * - No actions triggered on click (only view expansion)
  * - Educational presentation
+ * - Automation indicator is informational only
  */
 
 interface PlaybookCardProps {
@@ -74,6 +76,16 @@ export function PlaybookCard({
               <span className="text-xs text-muted-foreground">
                 {playbook.steps.length} steps
               </span>
+              {/* [EA-42] Automation available indicator - informational only */}
+              {playbook.automationMeta && (
+                <span
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary"
+                  title="Automation available for this playbook"
+                >
+                  <Bot className="h-3 w-3" />
+                  Automation
+                </span>
+              )}
             </div>
           </div>
         </div>

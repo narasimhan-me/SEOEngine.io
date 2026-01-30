@@ -5,6 +5,7 @@ import { PlaybooksList } from './PlaybooksList';
 
 /**
  * [EA-40: PLAYBOOKS-SHELL-1] Playbooks Shell
+ * [EA-42] Extended to surface automation concepts without execution
  *
  * Main navigation shell for the Playbooks section.
  * Provides read-only visibility into available playbooks with
@@ -15,6 +16,7 @@ import { PlaybooksList } from './PlaybooksList';
  * - Playbooks feel educational, not powerful
  * - Users can browse safely without risk
  * - Viewing triggers no backend mutations
+ * - Automation info is conceptual, not actionable
  */
 
 export function PlaybooksShell() {
@@ -43,7 +45,9 @@ export function PlaybooksShell() {
           <p className="text-sm text-muted-foreground">
             Browsing playbooks is completely safe and will not make any changes
             to your store. Use these as educational guides to understand common
-            improvement strategies.
+            improvement strategies. Some playbooks show automation capabilities
+            — this is informational only. Automation is always optional and
+            user-controlled.
           </p>
         </div>
       </div>

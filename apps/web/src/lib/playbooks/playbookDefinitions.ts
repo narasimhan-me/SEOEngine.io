@@ -28,6 +28,34 @@ export interface PlaybookStep {
   description: string;
 }
 
+/**
+ * [EA-42] Automation capability metadata for playbooks that have automation implementations.
+ * Read-only information explaining what automation would do - no execution capabilities.
+ *
+ * Trust Contract:
+ * - All fields are informational only
+ * - No execution, scheduling, or trigger affordances
+ * - Enables users to understand automation scope before any opt-in
+ */
+export interface AutomationCapabilityMeta {
+  /** Whether this playbook has an automation implementation available */
+  hasAutomation: true;
+  /** Human-readable description of what the automation does when run */
+  whatItDoes: string;
+  /** Fields or data that would be modified by this automation */
+  fieldsAffected: string[];
+  /** What this automation explicitly does NOT touch */
+  doesNotTouch: string[];
+  /** Whether changes can be undone */
+  reversible: boolean;
+  /** Explanation of reversibility */
+  reversibilityNote: string;
+  /** Trigger type description (always user-initiated for EA-42) */
+  triggerDescription: string;
+  /** Human-readable scope description */
+  scopeDescription: string;
+}
+
 export interface PlaybookDefinition {
   /** Unique identifier for the playbook */
   id: string;
@@ -47,6 +75,12 @@ export interface PlaybookDefinition {
   complexity: PlaybookComplexity;
   /** Educational note about when to consider this approach */
   whenToConsider: string;
+  /**
+   * [EA-42] Optional automation capability metadata.
+   * When present, indicates this playbook has automation capabilities.
+   * Information is read-only - no execution affordances.
+   */
+  automationMeta?: AutomationCapabilityMeta;
 }
 
 /**
@@ -137,6 +171,27 @@ export const PLAYBOOK_DEFINITIONS: PlaybookDefinition[] = [
     complexity: 'simple',
     whenToConsider:
       'Consider this when you have many pages with missing or weak metadata, especially after adding new products or collections.',
+    automationMeta: {
+      hasAutomation: true,
+      whatItDoes:
+        'Generates AI-suggested SEO titles and descriptions for products that are missing this metadata. Suggestions are created as drafts for your review.',
+      fieldsAffected: ['SEO Title', 'Meta Description'],
+      doesNotTouch: [
+        'Product prices',
+        'Inventory levels',
+        'Product images',
+        'Variant data',
+        'Collections',
+        'Store settings',
+      ],
+      reversible: true,
+      reversibilityNote:
+        'All changes are applied as drafts first. You can review, edit, or discard suggestions before they take effect.',
+      triggerDescription:
+        'User-initiated only. You choose when to generate suggestions and when to apply them.',
+      scopeDescription:
+        'Targets only products with missing or empty SEO titles/descriptions in your store.',
+    },
   },
   {
     id: 'entity-coverage-expansion',

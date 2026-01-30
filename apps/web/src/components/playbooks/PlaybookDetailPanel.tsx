@@ -6,9 +6,11 @@ import {
   PLAYBOOK_COMPLEXITY_INFO,
   PLAYBOOK_CATEGORY_INFO,
 } from '@/lib/playbooks/playbookDefinitions';
+import { AutomationCapabilityPanel } from './AutomationCapabilityPanel';
 
 /**
  * [EA-40: PLAYBOOKS-SHELL-1] Playbook Detail Panel
+ * [EA-42] Extended to display automation capability concepts
  *
  * Read-only panel displaying full playbook details.
  * Educational content only - no execution capabilities.
@@ -17,6 +19,7 @@ import {
  * - No execute/apply/schedule buttons
  * - Steps are conceptual, not actionable
  * - Purely informational display
+ * - Automation info is read-only concepts, not triggers
  */
 
 interface PlaybookDetailPanelProps {
@@ -140,6 +143,11 @@ export function PlaybookDetailPanel({
             </p>
           </div>
         </div>
+
+        {/* [EA-42] Automation capability panel - read-only, no execution affordances */}
+        {playbook.automationMeta && (
+          <AutomationCapabilityPanel automationMeta={playbook.automationMeta} />
+        )}
 
         {/* Educational note */}
         <div className="flex items-start gap-3 p-3 rounded-md border border-blue-500/20 bg-blue-500/5">

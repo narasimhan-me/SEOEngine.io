@@ -23,6 +23,23 @@ This document tracks all implementation phases and their completion status.
 
 
 
+
+## [KAN-71] Implement: [EA-42] Expose automation playbooks as concepts only, not actions.
+
+**Implemented:** 2026-01-30 22:18 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/web/src/components/playbooks/PlaybookCard.tsx`
+- `apps/web/src/components/playbooks/PlaybookDetailPanel.tsx`
+- `apps/web/src/components/playbooks/PlaybooksShell.tsx`
+- `apps/web/src/components/playbooks/index.ts`
+- `apps/web/src/lib/playbooks/playbookDefinitions.ts`
+- `apps/web/src/components/playbooks/AutomationCapabilityPanel.tsx`
+- `apps/web/tests/automation-playbook-concepts.spec.ts`
+
+---
+
 ## [KAN-69] Implement: [EA-41] Guide users from issue → recommended action, with explanation.
 
 **Implemented:** 2026-01-30 22:03 UTC
