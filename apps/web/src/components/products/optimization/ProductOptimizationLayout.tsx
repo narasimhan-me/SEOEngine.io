@@ -21,8 +21,10 @@ export function ProductOptimizationLayout({
           {overview}
         </div>
 
-        {/* Center panel - Main content (scrolls) */}
-        <div className="min-w-0 overflow-hidden">{center}</div>
+        {/* Center panel - Main content (stack of cards) */}
+        <div className="min-w-0 overflow-visible">
+          <div className="space-y-4 lg:space-y-6">{center}</div>
+        </div>
 
         {/* Right panel - Insights */}
         <div className="min-w-0 overflow-hidden lg:sticky lg:top-4 lg:self-start">

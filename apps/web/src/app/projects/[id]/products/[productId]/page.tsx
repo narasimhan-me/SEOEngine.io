@@ -1487,84 +1487,237 @@ export default function ProductOptimizationPage() {
               <div className="space-y-6">
                 {/* Metadata Tab */}
                 {activeTab === 'metadata' && (
-                  <section aria-label="Metadata">
-                    {/* [UI-POLISH-&-CLARITY-1 FIXUP-2] Token-only heading styling */}
-                    <h2 className="mb-4 text-base font-semibold text-foreground">
-                      Metadata
-                    </h2>
-                    {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Draft state banner */}
-                    {/* [UI-POLISH-&-CLARITY-1 FIXUP-2] Token-only semantic backgrounds/foregrounds */}
-                    <div
-                      data-testid="draft-state-banner"
-                      className={`mb-4 rounded-md border px-4 py-3 text-sm ${
-                        draftState === 'unsaved'
-                          ? 'border-border bg-[hsl(var(--warning-background))] text-[hsl(var(--warning-foreground))]'
-                          : draftState === 'saved'
-                            ? 'border-border bg-[hsl(var(--info-background))] text-[hsl(var(--info-foreground))]'
-                            : 'border-border bg-[hsl(var(--success-background))] text-[hsl(var(--success-foreground))]'
-                      }`}
+                  <>
+                    {/* Card 1: What’s wrong */}
+                    <section
+                      aria-label="Metadata issues"
+                      className="rounded-lg border border-border bg-[hsl(var(--surface-card))] p-4"
                     >
-                      {draftState === 'unsaved' && (
-                        <span className="font-medium">Draft — not applied</span>
+                      <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Issues for this product
+                      </h2>
+                      {productIssues.length === 0 ? (
+                        <p className="mt-2 text-sm text-muted-foreground">
+                          No open issues for this product. You can still improve
+                          the title and description with AI.
+                        </p>
+                      ) : (
+                        <ul className="mt-3 space-y-1.5">
+                          {productIssues.slice(0, 4).map((issue) => (
+                            <li
+                              key={issue.id}
+                              className="flex items-start gap-2 text-sm"
+                            >
+                              <span className="mt-0.5 inline-flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-[hsl(var(--danger-background))] text-[10px] font-semibold text-[hsl(var(--danger-foreground))]">
+                                !
+                              </span>
+                              <div className="min-w-0">
+                                <p className="text-foreground">
+                                  {getSafeIssueTitle(issue)}
+                                </p>
+                                {issue.pillarId === 'metadata_snippet_quality' && (
+                                  <p className="text-xs text-muted-foreground">
+                                    Affects how this product appears in search &amp;
+                                    AI answers.
+                                  </p>
+                                )}
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
                       )}
-                      {draftState === 'saved' && (
-                        <span className="font-medium">
-                          Draft saved — not applied
-                        </span>
+                      {productIssues.length > 4 && (
+                        <p className="mt-3 text-xs text-muted-foreground">
+                          +{productIssues.length - 4} more issue
+                          {productIssues.length - 4 === 1 ? '' : 's'} — see the
+                          Issues tab for the full list.
+                        </p>
                       )}
-                      {draftState === 'applied' && (
-                        <span className="font-medium">
-                          Applied to Shopify on{' '}
-                          {appliedAt
-                            ? new Date(appliedAt).toLocaleString()
-                            : product?.lastOptimizedAt
-                              ? new Date(
-                                  product.lastOptimizedAt
-                                ).toLocaleString()
-                              : product?.lastSyncedAt
-                                ? `${new Date(product.lastSyncedAt).toLocaleString()} (as of last sync)`
-                                : 'unknown date'}
-                        </span>
-                      )}
-                    </div>
-                    {/* [UI-POLISH-&-CLARITY-1 FIXUP-2] Token-only INFO guidance callout */}
-                    <div className="mb-3 rounded-md border border-border bg-[hsl(var(--info-background))] px-3 py-2 text-xs text-[hsl(var(--info-foreground))]">
-                      Generate drafts, review, then apply to Shopify.
-                    </div>
-                    <div className="space-y-6">
-                      <ProductAiSuggestionsPanel
-                        suggestion={suggestion}
-                        automationSuggestion={automationSuggestion}
-                        loading={loadingSuggestion}
-                        onGenerate={fetchSuggestion}
-                        onApply={handleApplySuggestion}
-                      />
-                      <div
-                        ref={seoEditorRef}
-                        data-testid="seo-editor-anchor"
-                        className={`rounded-md transition-all duration-300 ${
-                          seoEditorHighlighted
-                            ? 'ring-2 ring-primary ring-offset-2 ring-offset-background'
-                            : ''
-                        }`}
-                      >
-                        <ProductSeoEditor
-                          title={editorTitle}
-                          description={editorDescription}
-                          handle={product.handle ?? product.externalId}
-                          onTitleChange={setEditorTitle}
-                          onDescriptionChange={setEditorDescription}
-                          onReset={handleReset}
-                          onApplyToShopify={handleApplyToShopify}
-                          applying={applyingToShopify}
-                          draftState={draftState}
-                          canApply={canApplyToShopify}
-                          onSaveDraft={handleSaveDraft}
-                          applyGovernance={applyGovernance}
-                        />
+                    </section>
+
+                    {/* Card 2: AI suggestion vs current values */}
+                    <section
+                      aria-label="AI metadata suggestion"
+                      className="rounded-lg border border-border bg-[hsl(var(--surface-card))] p-4"
+                    >
+                      <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        AI suggestion
+                      </h2>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Review AI suggestions next to what is currently live on
+                        your Shopify store. Edit the suggestion, then save it as
+                        a draft.
+                      </p>
+
+                      <div className="mt-4 grid gap-4 md:grid-cols-2">
+                        {/* Current live values */}
+                        <div className="rounded-md border border-border bg-background p-3">
+                          <div className="mb-2 text-xs font-medium uppercase text-muted-foreground">
+                            Live on Shopify
+                          </div>
+                          <div className="space-y-3 text-sm">
+                            <div>
+                              <div className="text-xs font-medium text-muted-foreground">
+                                SEO Title
+                              </div>
+                              <p className="mt-0.5 break-words text-foreground">
+                                {product.seoTitle || product.title || (
+                                  <span className="text-muted-foreground/70">
+                                    Empty
+                                  </span>
+                                )}
+                              </p>
+                            </div>
+                            <div>
+                              <div className="text-xs font-medium text-muted-foreground">
+                                SEO Description
+                              </div>
+                              <p className="mt-0.5 break-words text-foreground">
+                                {product.seoDescription ||
+                                  product.description || (
+                                    <span className="text-muted-foreground/70">
+                                      Empty
+                                    </span>
+                                  )}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* AI suggestions + editor hook */}
+                        <div className="space-y-3">
+                          <ProductAiSuggestionsPanel
+                            suggestion={suggestion}
+                            automationSuggestion={automationSuggestion}
+                            loading={loadingSuggestion}
+                            onGenerate={fetchSuggestion}
+                            onApply={handleApplySuggestion}
+                          />
+
+                          <div
+                            ref={seoEditorRef}
+                            data-testid="seo-editor-anchor"
+                            className={`rounded-md border bg-background p-3 transition-all duration-300 ${
+                              seoEditorHighlighted
+                                ? 'ring-2 ring-primary ring-offset-2 ring-offset-background'
+                                : 'border-border'
+                            }`}
+                          >
+                            <div className="mb-2 text-xs font-medium uppercase text-muted-foreground">
+                              Draft (editable)
+                            </div>
+                            <ProductSeoEditor
+                              title={editorTitle}
+                              description={editorDescription}
+                              handle={product.handle ?? product.externalId}
+                              onTitleChange={setEditorTitle}
+                              onDescriptionChange={setEditorDescription}
+                              onReset={handleReset}
+                              onApplyToShopify={handleApplyToShopify}
+                              applying={applyingToShopify}
+                              draftState={draftState}
+                              canApply={canApplyToShopify}
+                              onSaveDraft={handleSaveDraft}
+                              applyGovernance={applyGovernance}
+                            />
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </section>
+
+                      {/* Save draft CTA */}
+                      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <p className="text-muted-foreground">
+                          Saving a draft does not change your live Shopify
+                          product. You can apply it in the next step.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={handleSaveDraft}
+                          disabled={draftState !== 'unsaved'}
+                          className="inline-flex items-center rounded-md border border-border bg-[hsl(var(--surface-card))] px-3 py-1.5 text-xs font-medium text-foreground shadow-sm hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          Save draft
+                        </button>
+                      </div>
+                    </section>
+
+                    {/* Card 3: Apply to Shopify (safe) */}
+                    <section
+                      aria-label="Apply metadata to Shopify"
+                      className="rounded-lg border border-border bg-[hsl(var(--surface-card))] p-4"
+                    >
+                      <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Apply to Shopify (safe)
+                      </h2>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        When you&apos;re ready, apply your saved draft to
+                        Shopify. We&apos;ll back up the original so you can
+                        restore it later.
+                      </p>
+
+                      <div className="mt-3 grid gap-3 text-sm md:grid-cols-2">
+                        <div className="rounded-md border border-border bg-background p-3">
+                          <div className="mb-1 text-xs font-medium text-muted-foreground">
+                            Before
+                          </div>
+                          <p className="line-clamp-3 text-foreground">
+                            {initialTitle || product.title || 'No title'} —{' '}
+                            {initialDescription ||
+                              product.seoDescription ||
+                              product.description ||
+                              'No description'}
+                          </p>
+                        </div>
+                        <div className="rounded-md border border-border bg-background p-3">
+                          <div className="mb-1 text-xs font-medium text-muted-foreground">
+                            After (saved draft)
+                          </div>
+                          <p className="line-clamp-3 text-foreground">
+                            {savedDraft?.title ||
+                              editorTitle ||
+                              'No draft title yet'}{' '}
+                            —{' '}
+                            {savedDraft?.description ||
+                              editorDescription ||
+                              'No draft description yet'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={handleApplyToShopify}
+                          disabled={applyGovernance.state !== 'CAN_APPLY'}
+                          className={`inline-flex items-center rounded-md border border-transparent px-4 py-2 text-sm font-medium shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                            applyGovernance.state === 'CAN_APPLY'
+                              ? 'bg-[hsl(var(--success))] text-[hsl(var(--primary-foreground))] hover:opacity-90 focus-visible:ring-[hsl(var(--success))]'
+                              : 'bg-muted text-muted-foreground cursor-not-allowed'
+                          }`}
+                        >
+                          {applyGovernance.state === 'IN_PROGRESS'
+                            ? 'Applying…'
+                            : 'Apply to Shopify now'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleReset}
+                          className="inline-flex items-center rounded-md border border-border bg-[hsl(var(--surface-card))] px-3 py-1.5 text-xs font-medium text-foreground shadow-sm hover:bg-muted"
+                        >
+                          Restore original values
+                        </button>
+                        {appliedAt && (
+                          <span className="ml-auto text-xs text-muted-foreground">
+                            Applied on{' '}
+                            {new Date(appliedAt).toLocaleString(undefined, {
+                              dateStyle: 'medium',
+                              timeStyle: 'short',
+                            })}
+                          </span>
+                        )}
+                      </div>
+                    </section>
+                  </>
                 )}
 
                 {/* Answers Tab */}
