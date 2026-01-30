@@ -164,7 +164,7 @@ export default function ProjectSideNav({ onNavigate }: ProjectSideNavProps) {
                         {item.icon && (
                           <Icon
                             name={item.icon}
-                            size={14}
+                            size={16}
                             className={active ? 'text-primary/80' : 'text-muted-foreground/60'}
                             ariaLabel={undefined}
                           />
