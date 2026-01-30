@@ -2,6 +2,7 @@
 
 import { GuardedLink } from '@/components/navigation/GuardedLink';
 import { useParams, usePathname } from 'next/navigation';
+import { Icon } from '@/components/icons';
 
 /**
  * [NAV-IA-CONSISTENCY-1] Project navigation with grouped sections.
@@ -32,6 +33,7 @@ import { useParams, usePathname } from 'next/navigation';
 interface NavItem {
   label: string;
   path: string;
+  icon: import('@/components/icons/material-symbols-manifest').IconManifestKey;
 }
 
 interface NavSection {
@@ -43,30 +45,36 @@ const navSections: NavSection[] = [
   {
     heading: 'OPERATE',
     items: [
-      { label: 'Store Health', path: 'store-health' },
-      { label: 'Work Queue', path: 'work-queue' },
+      { label: 'Store Health', path: 'store-health', icon: 'nav.storeHealth' },
+      { label: 'Work Queue', path: 'work-queue', icon: 'nav.workQueue' },
     ],
   },
   {
     heading: 'ASSETS',
     items: [
-      { label: 'Products', path: 'products' },
-      { label: 'Pages', path: 'assets/pages' },
-      { label: 'Collections', path: 'assets/collections' },
-      { label: 'Blog posts', path: 'assets/blogs' },
+      { label: 'Products', path: 'products', icon: 'nav.products' },
+      { label: 'Pages', path: 'assets/pages', icon: 'nav.pages' },
+      { label: 'Collections', path: 'assets/collections', icon: 'nav.collections' },
+      { label: 'Blog posts', path: 'assets/blogs', icon: 'nav.blogPosts' },
     ],
   },
   {
     heading: 'AUTOMATION',
-    items: [{ label: 'Playbooks', path: 'automation' }],
+    items: [{ label: 'Playbooks', path: 'automation', icon: 'nav.playbooks' }],
   },
   {
     heading: 'INSIGHTS',
-    items: [{ label: 'Insights', path: 'insights' }],
+    items: [{ label: 'Insights', path: 'insights', icon: 'nav.insights' }],
   },
   {
     heading: 'PROJECT',
-    items: [{ label: 'Project Settings', path: 'settings' }],
+    items: [
+      {
+        label: 'Project Settings',
+        path: 'settings',
+        icon: 'nav.projectSettings',
+      },
+    ],
   },
 ];
 
@@ -144,13 +152,21 @@ export default function ProjectSideNav({ onNavigate }: ProjectSideNavProps) {
                       <GuardedLink
                         href={`/projects/${projectId}/${item.path}`}
                         onClick={onNavigate}
-                        className={`relative block rounded px-2 py-1.5 text-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background ${
+                        className={`relative flex items-center gap-2 rounded px-2 py-1.5 text-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background ${
                           active
                             ? 'text-foreground font-semibold before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-3/5 before:w-0.5 before:rounded-full before:bg-primary/70'
                             : 'text-muted-foreground hover:text-foreground/80'
                         }`}
                       >
-                        {item.label}
+                        {item.icon && (
+                          <Icon
+                            name={item.icon}
+                            size={16}
+                            className={active ? 'text-primary' : 'text-muted-foreground/80'}
+                            ariaLabel={undefined}
+                          />
+                        )}
+                        <span className="truncate">{item.label}</span>
                       </GuardedLink>
                     </li>
                   );
