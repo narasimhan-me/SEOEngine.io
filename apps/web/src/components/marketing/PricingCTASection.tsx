@@ -6,24 +6,25 @@ export function PricingCTASection() {
       <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="max-w-2xl space-y-4">
           <h2 className="text-2xl font-semibold tracking-tight text-primary-foreground sm:text-3xl">
-            Ready to improve your visibility across search &amp; AI?
+            Try it free. Upgrade only if it works for you.
           </h2>
           <p className="text-sm text-primary-foreground/80">
-            Start Free Today and see where your discovery footprint stands
-            across content, entities, technical health, and visibility.
+            Start with the Free plan—no credit card, no time limit. Run your
+            first audit and see what DEO can do. Upgrade when you&apos;re ready
+            for more.
           </p>
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <Link
               href="/signup"
               className="rounded-md bg-background px-6 py-2.5 text-sm font-semibold text-foreground shadow-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-background focus-visible:ring-offset-2 ring-offset-primary"
             >
-              Start Free Today
+              Start Free
             </Link>
             <Link
               href="/contact"
               className="text-sm font-medium text-primary-foreground/80 hover:text-primary-foreground"
             >
-              Talk to Sales &rarr;
+              Questions? Contact us &rarr;
             </Link>
           </div>
         </div>

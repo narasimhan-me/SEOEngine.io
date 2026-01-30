@@ -16,6 +16,21 @@ This document tracks all implementation phases and their completion status.
 
 
 
+
+## [KAN-57] Implement: [EA-35] Make pricing simple, honest, and aligned to real user value, not feature lists.
+
+**Implemented:** 2026-01-30 20:45 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/web/src/app/settings/billing/page.tsx`
+- `apps/web/src/components/marketing/PricingCTASection.tsx`
+- `apps/web/src/components/marketing/PricingFAQ.tsx`
+- `apps/web/src/components/marketing/PricingHero.tsx`
+- `apps/web/src/components/marketing/PricingTable.tsx`
+
+---
+
 ## [KAN-55] Implement: [EA-34] Guide first-time users to a small, safe, confidence-building success within their first session.
 
 **Implemented:** 2026-01-30 20:34 UTC
