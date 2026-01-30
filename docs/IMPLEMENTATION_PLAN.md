@@ -20,6 +20,25 @@ This document tracks all implementation phases and their completion status.
 
 
 
+
+## [KAN-65] Implement: [EA-39] Surface signals of maturity and readiness without adding enterprise complexity.
+
+**Implemented:** 2026-01-30 21:39 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/web/src/app/projects/[id]/settings/governance/page.tsx`
+- `apps/web/src/components/governance/index.ts`
+- `packages/shared/src/governance.ts`
+- `packages/shared/src/index.ts`
+- `apps/web/src/components/governance/GovernanceReadinessCard.tsx`
+- `apps/web/src/components/governance/MaturitySignalsPanel.tsx`
+- `apps/web/src/components/governance/StabilityIndicator.tsx`
+- `apps/web/tests/maturity-signals.spec.ts`
+- `packages/shared/src/governance/`
+
+---
+
 ## [KAN-63] Implement: [EA-38] Reinforce user confidence over time by reminding them what they've improved, what's safer now, and what value they've gained.
 
 **Implemented:** 2026-01-30 21:27 UTC
