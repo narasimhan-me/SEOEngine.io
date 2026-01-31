@@ -1,6 +1,5 @@
 'use client';
 
-import { BookOpen, Info, Lightbulb } from 'lucide-react';
 import type { PlaybookDefinition } from '@/lib/playbooks/playbookDefinitions';
 import {
   PLAYBOOK_COMPLEXITY_INFO,
@@ -40,7 +39,7 @@ export function PlaybookDetailPanel({
       <div className="p-4 border-b border-border bg-muted/30">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
-            <BookOpen className="h-6 w-6 text-primary flex-shrink-0 mt-0.5" />
+            <span className="text-xl flex-shrink-0 mt-0.5">📖</span>
             <div>
               <h2 className="text-lg font-semibold text-foreground">
                 {playbook.title}
@@ -133,7 +132,7 @@ export function PlaybookDetailPanel({
 
         {/* When to consider */}
         <div className="flex items-start gap-3 p-3 rounded-md border border-border bg-muted/20">
-          <Lightbulb className="h-4 w-4 text-yellow-500 flex-shrink-0 mt-0.5" />
+          <span className="text-yellow-500 flex-shrink-0 mt-0.5">💡</span>
           <div>
             <p className="text-xs font-medium text-foreground mb-1">
               When to Consider
@@ -151,7 +150,7 @@ export function PlaybookDetailPanel({
 
         {/* Educational note */}
         <div className="flex items-start gap-3 p-3 rounded-md border border-blue-500/20 bg-blue-500/5">
-          <Info className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />
+          <span className="text-blue-500 flex-shrink-0 mt-0.5">ℹ️</span>
           <p className="text-xs text-muted-foreground leading-relaxed">
             This playbook is for educational reference only. The steps describe
             a general approach you can adapt to your specific situation.

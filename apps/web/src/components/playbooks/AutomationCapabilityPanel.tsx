@@ -1,6 +1,5 @@
 'use client';
 
-import { Bot, Shield, Undo2, Target, Ban } from 'lucide-react';
 import type { AutomationCapabilityMeta } from '@/lib/playbooks/playbookDefinitions';
 
 /**
@@ -31,7 +30,7 @@ export function AutomationCapabilityPanel({
       {/* Header */}
       <div className="px-4 py-3 border-b border-border bg-muted/30">
         <div className="flex items-center gap-2">
-          <Bot className="h-4 w-4 text-muted-foreground" />
+          <span className="text-muted-foreground">🤖</span>
           <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
             Automation Available
           </h3>
@@ -52,7 +51,7 @@ export function AutomationCapabilityPanel({
         {/* [EA-47] What it does - using conditional tense */}
         <div>
           <h4 className="text-xs font-medium text-foreground mb-1.5 flex items-center gap-1.5">
-            <Target className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-muted-foreground">🎯</span>
             What this automation would do
           </h4>
           <p className="text-sm text-muted-foreground leading-relaxed">
@@ -83,7 +82,7 @@ export function AutomationCapabilityPanel({
           {/* [EA-47] What it wouldn't touch */}
           <div className="p-3 rounded-md bg-muted/30 border border-border/50">
             <h4 className="text-xs font-medium text-foreground mb-2 flex items-center gap-1.5">
-              <Ban className="h-3 w-3 text-muted-foreground" />
+              <span className="text-muted-foreground">🚫</span>
               Would not touch
             </h4>
             <ul className="space-y-1">
@@ -102,7 +101,7 @@ export function AutomationCapabilityPanel({
 
         {/* [EA-47] Reversibility - conditional tense */}
         <div className="flex items-start gap-3 p-3 rounded-md border border-border/50 bg-muted/20">
-          <Undo2 className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+          <span className="text-muted-foreground flex-shrink-0 mt-0.5">↩️</span>
           <div>
             <p className="text-xs font-medium text-foreground mb-0.5">
               {automationMeta.reversible ? 'Would be reversible' : 'Would not be reversible'}
@@ -115,7 +114,7 @@ export function AutomationCapabilityPanel({
 
         {/* [EA-47] Trigger description - conditional tense */}
         <div className="flex items-start gap-3 p-3 rounded-md border border-border/50 bg-muted/20">
-          <Shield className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+          <span className="text-muted-foreground flex-shrink-0 mt-0.5">🛡️</span>
           <div>
             <p className="text-xs font-medium text-foreground mb-0.5">
               How it would run

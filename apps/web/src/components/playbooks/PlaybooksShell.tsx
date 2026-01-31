@@ -1,6 +1,5 @@
 'use client';
 
-import { BookOpen, Info } from 'lucide-react';
 import { PlaybooksList } from './PlaybooksList';
 
 /**
@@ -25,7 +24,7 @@ export function PlaybooksShell() {
       {/* Header */}
       <div className="space-y-2">
         <div className="flex items-center gap-3">
-          <BookOpen className="h-6 w-6 text-primary" />
+          <span className="text-2xl">📖</span>
           <h1 className="text-2xl font-semibold text-foreground">Playbooks</h1>
         </div>
         <p className="text-muted-foreground max-w-2xl">
@@ -37,7 +36,7 @@ export function PlaybooksShell() {
 
       {/* Educational notice */}
       <div className="flex items-start gap-3 p-4 rounded-lg border border-blue-500/20 bg-blue-500/5">
-        <Info className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
+        <span className="text-blue-500 flex-shrink-0 mt-0.5">ℹ️</span>
         <div className="space-y-1">
           <p className="text-sm font-medium text-foreground">
             Playbooks are for reference only

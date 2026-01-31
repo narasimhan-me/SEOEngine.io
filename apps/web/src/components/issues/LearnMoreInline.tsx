@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { ChevronDown, ChevronRight, Lightbulb } from 'lucide-react';
 import { getEducationalContent, type EducationalContent } from '@/lib/education/contextualEducation';
 
 /**
@@ -45,7 +44,7 @@ export function LearnMoreInline({
     return null;
   }
 
-  const ChevronIcon = isExpanded ? ChevronDown : ChevronRight;
+  const chevron = isExpanded ? '▼' : '▶';
 
   if (compact) {
     // Compact inline toggle
@@ -57,7 +56,7 @@ export function LearnMoreInline({
           className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
           aria-expanded={isExpanded}
         >
-          <ChevronIcon className="h-3 w-3" />
+          <span className="text-[9px]">{chevron}</span>
           <span>{isExpanded ? 'Hide details' : 'Why this matters'}</span>
         </button>
         {isExpanded && (
@@ -78,8 +77,8 @@ export function LearnMoreInline({
         className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors group"
         aria-expanded={isExpanded}
       >
-        <Lightbulb className="h-3.5 w-3.5 text-muted-foreground/70 group-hover:text-foreground/70" />
-        <ChevronIcon className="h-3 w-3" />
+        <span className="text-muted-foreground/70 group-hover:text-foreground/70">💡</span>
+        <span className="text-[9px]">{chevron}</span>
         <span>{isExpanded ? 'Hide explanation' : 'Learn more about this issue'}</span>
       </button>
 

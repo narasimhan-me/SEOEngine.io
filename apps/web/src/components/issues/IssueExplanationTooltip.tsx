@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
-import { HelpCircle } from 'lucide-react';
 import { getEducationalContent } from '@/lib/education/contextualEducation';
 
 /**
@@ -73,7 +72,7 @@ export function IssueExplanationTooltip({
         className="inline-flex items-center text-muted-foreground/60 hover:text-muted-foreground transition-colors"
         aria-label="Learn more about this issue"
       >
-        <HelpCircle className={iconSize} />
+        <span className={`${iconSize} inline-flex items-center justify-center`}>?</span>
       </button>
 
       {isVisible && (

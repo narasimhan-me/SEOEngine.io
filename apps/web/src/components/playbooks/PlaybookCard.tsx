@@ -1,6 +1,5 @@
 'use client';
 
-import { BookOpen, Bot, ChevronRight } from 'lucide-react';
 import type { PlaybookDefinition } from '@/lib/playbooks/playbookDefinitions';
 import { PLAYBOOK_COMPLEXITY_INFO } from '@/lib/playbooks/playbookDefinitions';
 
@@ -49,7 +48,7 @@ export function PlaybookCard({
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3 min-w-0">
           <div className="flex-shrink-0 mt-0.5">
-            <BookOpen className="h-5 w-5 text-muted-foreground" />
+            <span className="text-muted-foreground">📖</span>
           </div>
           <div className="min-w-0">
             <h3 className="font-medium text-foreground truncate">
@@ -82,19 +81,21 @@ export function PlaybookCard({
                   className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary"
                   title="Automation available for this playbook"
                 >
-                  <Bot className="h-3 w-3" />
+                  <span>🤖</span>
                   Automation
                 </span>
               )}
             </div>
           </div>
         </div>
-        <ChevronRight
+        <span
           className={`
-            h-5 w-5 text-muted-foreground flex-shrink-0 transition-transform
+            text-muted-foreground flex-shrink-0 transition-transform
             ${isSelected ? 'rotate-90' : ''}
           `}
-        />
+        >
+          ▶
+        </span>
       </div>
     </button>
   );

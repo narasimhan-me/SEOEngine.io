@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { X, Lightbulb, ChevronDown, ChevronUp, Eye, Zap } from 'lucide-react';
 import type { RecommendedPlaybook } from '@/lib/issue-to-action-guidance';
 
 /**
@@ -77,7 +76,7 @@ export function IssueToActionGuidancePanel({
           aria-expanded={isExpanded}
           aria-controls="guidance-content"
         >
-          <Lightbulb className="h-4 w-4 text-primary flex-shrink-0" aria-hidden="true" />
+          <span className="text-primary flex-shrink-0" aria-hidden="true">💡</span>
           <span className="text-xs font-medium text-foreground truncate">
             Guidance Available
           </span>
@@ -85,11 +84,9 @@ export function IssueToActionGuidancePanel({
           <span className="text-[9px] px-1.5 py-0.5 rounded bg-teal-50 text-teal-700 flex-shrink-0">
             Advisory
           </span>
-          {isExpanded ? (
-            <ChevronUp className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" aria-hidden="true" />
-          ) : (
-            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" aria-hidden="true" />
-          )}
+          <span className="text-muted-foreground flex-shrink-0 text-[10px]" aria-hidden="true">
+            {isExpanded ? '▲' : '▼'}
+          </span>
         </button>
         <button
           type="button"
@@ -98,7 +95,7 @@ export function IssueToActionGuidancePanel({
           aria-label="Dismiss guidance"
           data-testid="dismiss-guidance-button"
         >
-          <X className="h-3.5 w-3.5" aria-hidden="true" />
+          <span aria-hidden="true">✕</span>
         </button>
       </div>
 
@@ -133,7 +130,7 @@ function ExplanationTypeBadge({ type }: { type: ExplanationType }) {
   const config = {
     observation: {
       label: 'Observation',
-      icon: Eye,
+      icon: '👁',
       bgClass: 'bg-slate-100',
       textClass: 'text-slate-600',
       borderClass: 'border-slate-200',
@@ -141,7 +138,7 @@ function ExplanationTypeBadge({ type }: { type: ExplanationType }) {
     },
     recommendation: {
       label: 'Recommendation',
-      icon: Zap,
+      icon: '⚡',
       bgClass: 'bg-purple-50',
       textClass: 'text-purple-700',
       borderClass: 'border-purple-200',
@@ -149,7 +146,7 @@ function ExplanationTypeBadge({ type }: { type: ExplanationType }) {
     },
   };
 
-  const { label, icon: Icon, bgClass, textClass, borderClass, description } = config[type];
+  const { label, icon, bgClass, textClass, borderClass, description } = config[type];
 
   return (
     <span
@@ -157,7 +154,7 @@ function ExplanationTypeBadge({ type }: { type: ExplanationType }) {
       title={description}
       data-testid={`explanation-type-badge-${type}`}
     >
-      <Icon className="h-3 w-3" aria-hidden="true" />
+      <span aria-hidden="true">{icon}</span>
       {label}
     </span>
   );
