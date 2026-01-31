@@ -443,7 +443,7 @@ export default function AutomationOversightPage() {
             <p className="text-muted-foreground">Loading automation scopes...</p>
           ) : (
             <>
-              <DataTable columns={scopesColumns} rows={scopes} hideContextAction={true} />
+              <DataTable columns={scopesColumns} rows={scopes.map(s => ({ ...s, id: s.scopeId }))} hideContextAction={true} />
               {scopesPagination && scopesPagination.pages > 1 && (
                 <div className="mt-4 flex justify-between items-center">
                   <p className="text-sm text-muted-foreground">
