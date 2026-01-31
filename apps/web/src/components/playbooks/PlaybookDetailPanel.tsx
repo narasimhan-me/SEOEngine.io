@@ -152,7 +152,7 @@ export function PlaybookDetailPanel({
         )}
 
         {/* Educational note */}
-        {/* [KAN-88: EA-50] Governance narrative reinforcement */}
+        {/* [KAN-88: EA-50] [KAN-90: EA-52] Governance narrative with safety boundaries */}
         <div className="flex items-start gap-3 p-3 rounded-md border border-blue-500/20 bg-blue-500/5">
           <span className="text-blue-500 flex-shrink-0 mt-0.5">ℹ️</span>
           <div className="text-xs text-muted-foreground leading-relaxed">
@@ -162,6 +162,9 @@ export function PlaybookDetailPanel({
             </p>
             <p className="mt-2 font-medium">
               {GOVERNANCE_MICROCOPY.PLAYBOOK.BROWSE_NOTE}. {GOVERNANCE_MICROCOPY.PLAYBOOK.EXECUTION_NOTE}.
+            </p>
+            <p className="mt-1 text-muted-foreground/70">
+              {GOVERNANCE_PHRASES.NOTHING_APPLIES_WITHOUT_APPROVAL} · No background changes · No AI-initiated execution.
             </p>
           </div>
         </div>

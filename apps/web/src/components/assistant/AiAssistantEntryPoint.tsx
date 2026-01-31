@@ -6,8 +6,8 @@ import {
   dismissAiAssistantForSession,
   isAiAssistantDismissedForContext,
 } from '@/lib/trust-loop/aiAssistantPreferences';
-// [KAN-88: EA-50] Centralized governance narrative
-import { GOVERNANCE_MICROCOPY } from '@/lib/governance-narrative';
+// [KAN-88: EA-50] [KAN-90: EA-52] Centralized governance narrative
+import { GOVERNANCE_MICROCOPY, SAFETY_BOUNDARIES } from '@/lib/governance-narrative';
 
 /**
  * [EA-30: AI-ASSIST-ENTRY-POINTS-1] AI Assistant Entry Point Component
@@ -170,10 +170,13 @@ export function AiAssistantEntryPoint({
         ))}
 
         {/* Advisory note */}
-        {/* [KAN-88: EA-50] Uses centralized governance micro-copy */}
-        <p className="text-[10px] text-muted-foreground/50 pt-1 border-t border-border/30">
-          {GOVERNANCE_MICROCOPY.AI_ASSISTANT.DISCLAIMER}
-        </p>
+        {/* [KAN-88: EA-50] [KAN-90: EA-52] Uses centralized governance micro-copy with safety boundaries */}
+        <div className="text-[10px] text-muted-foreground/50 pt-1 border-t border-border/30 space-y-0.5">
+          <p>{GOVERNANCE_MICROCOPY.AI_ASSISTANT.DISCLAIMER}</p>
+          <p className="text-muted-foreground/40">
+            {SAFETY_BOUNDARIES.AI_BOUNDARIES.AI_CAN}. {SAFETY_BOUNDARIES.AI_BOUNDARIES.AI_CANNOT}.
+          </p>
+        </div>
       </div>
     </details>
   );

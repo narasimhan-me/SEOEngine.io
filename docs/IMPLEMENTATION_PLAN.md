@@ -33,6 +33,25 @@ This document tracks all implementation phases and their completion status.
 
 
 
+
+## [KAN-91] Implement: [EA-52] Make EngineO.ai's safety boundaries explicit, discoverable, and boringly clear.
+
+**Implemented:** 2026-01-31 12:10 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/web/src/app/settings/help/page.tsx`
+- `apps/web/src/components/assistant/AiAssistantEntryPoint.tsx`
+- `apps/web/src/components/common/ApplyButton.tsx`
+- `apps/web/src/components/playbooks/PlaybookDetailPanel.tsx`
+- `apps/web/src/components/right-context-panel/ContextPanelActionPreview.tsx`
+- `apps/web/src/lib/governance-narrative.ts`
+- `apps/web/src/components/common/SafetyBoundariesPanel.tsx`
+- `apps/web/tests/safety-boundaries-1.spec.ts`
+- `scripts/zip-codebase.sh`
+
+---
+
 ## [KAN-89] Implement: [EA-50] Enforce one consistent governance narrative across all surfaces where action is suggested, without introducing new rules or behavior.
 
 **Implemented:** 2026-01-31 11:41 UTC

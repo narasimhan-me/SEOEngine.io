@@ -40,6 +40,64 @@ export const GOVERNANCE_PHRASES = {
 } as const;
 
 /**
+ * [KAN-90: EA-52] Safety Boundaries
+ *
+ * Centralized, explicit explanation of system safety boundaries.
+ * These statements define what EngineO.ai will never do automatically.
+ * Tone: Calm, confident, factual (not legal, not defensive).
+ *
+ * LOCKED COPY: Do not modify these strings without Epic-level approval.
+ */
+export const SAFETY_BOUNDARIES = {
+  /** Section title */
+  TITLE: 'How EngineO.ai works',
+  /** Section subtitle */
+  SUBTITLE: 'Clear boundaries on what the system can and cannot do',
+
+  /** Core safety guarantees - what the system will never do */
+  GUARANTEES: {
+    NO_AUTO_APPLY: {
+      label: 'No auto-apply',
+      description: 'Changes are never applied to your store automatically. Every change requires you to click Apply.',
+    },
+    NO_BACKGROUND_CHANGES: {
+      label: 'No background changes',
+      description: 'Nothing happens to your store while you are away. The system waits for your explicit action.',
+    },
+    NO_AI_EXECUTION: {
+      label: 'No AI-initiated execution',
+      description: 'AI generates suggestions and drafts, but cannot apply changes. Only you can apply.',
+    },
+  },
+
+  /** What always requires user approval */
+  ALWAYS_REQUIRES_APPROVAL: [
+    'Applying any change to your Shopify store',
+    'Publishing or updating product SEO metadata',
+    'Executing any playbook action',
+  ],
+
+  /** What the system can do without approval (read-only) */
+  DOES_NOT_REQUIRE_APPROVAL: [
+    'Reading your product data from Shopify',
+    'Analyzing issues and generating draft suggestions',
+    'Browsing playbooks and viewing recommendations',
+  ],
+
+  /** What AI controls vs what user controls */
+  AI_BOUNDARIES: {
+    AI_CAN: 'Generate draft suggestions for your review',
+    AI_CANNOT: 'Apply changes, access your store directly, or take action without your click',
+  },
+
+  /** Summary statement for compact display */
+  SUMMARY: 'You are always in control. Nothing changes without your approval.',
+
+  /** Link text for full explanation */
+  LEARN_MORE: 'Learn more about how EngineO.ai works',
+} as const;
+
+/**
  * Governance micro-copy for different surface contexts.
  * Each surface type has specific messaging that reinforces the trust contract.
  */
@@ -164,4 +222,23 @@ export function getGovernanceNote(
     default:
       return GOVERNANCE_PHRASES.NOTHING_APPLIES_WITHOUT_APPROVAL;
   }
+}
+
+/**
+ * [KAN-90: EA-52] Gets the three core safety guarantees as an array.
+ * Useful for rendering in lists or compact displays.
+ */
+export function getSafetyGuarantees(): Array<{ label: string; description: string }> {
+  return [
+    SAFETY_BOUNDARIES.GUARANTEES.NO_AUTO_APPLY,
+    SAFETY_BOUNDARIES.GUARANTEES.NO_BACKGROUND_CHANGES,
+    SAFETY_BOUNDARIES.GUARANTEES.NO_AI_EXECUTION,
+  ];
+}
+
+/**
+ * [KAN-90: EA-52] Gets a compact safety summary for inline display.
+ */
+export function getSafetyBoundariesSummary(): string {
+  return SAFETY_BOUNDARIES.SUMMARY;
 }
