@@ -40,7 +40,7 @@ export function FirstTimeUserGuidance({
   hasProjects,
 }: FirstTimeUserGuidanceProps) {
   const [visible, setVisible] = useState(false);
-  const [_state, setState] = useState<FirstTimeOnboardingState | null>(null);
+  const [, setState] = useState<FirstTimeOnboardingState | null>(null);
 
   useEffect(() => {
     // Check if guidance should be shown (client-side only)
