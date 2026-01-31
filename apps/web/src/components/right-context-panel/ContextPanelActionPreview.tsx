@@ -1,9 +1,12 @@
 'use client';
 
 import type { ContextDescriptor } from './RightContextPanelProvider';
+// [KAN-88: EA-50] Centralized governance narrative
+import { GOVERNANCE_MICROCOPY } from '@/lib/governance-narrative';
 
 /**
  * [RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1] Read-only "Action Preview" component.
+ * [KAN-88: EA-50] Includes governance micro-copy reinforcement.
  * Token-only, calm styling. No links, no buttons.
  *
  * Display only when relevant metadata exists:
@@ -109,6 +112,11 @@ export function ContextPanelActionPreview({
             </span>
           </div>
         )}
+
+        {/* [KAN-88: EA-50] Governance micro-copy reinforcement */}
+        <p className="mt-2 pt-2 border-t border-border/30 text-[10px] text-muted-foreground/60">
+          {GOVERNANCE_MICROCOPY.RCP.ACTION_PREVIEW_NOTE}
+        </p>
       </div>
     </div>
   );

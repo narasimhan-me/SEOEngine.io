@@ -6,6 +6,8 @@ import {
   dismissAiAssistantForSession,
   isAiAssistantDismissedForContext,
 } from '@/lib/trust-loop/aiAssistantPreferences';
+// [KAN-88: EA-50] Centralized governance narrative
+import { GOVERNANCE_MICROCOPY } from '@/lib/governance-narrative';
 
 /**
  * [EA-30: AI-ASSIST-ENTRY-POINTS-1] AI Assistant Entry Point Component
@@ -168,8 +170,9 @@ export function AiAssistantEntryPoint({
         ))}
 
         {/* Advisory note */}
+        {/* [KAN-88: EA-50] Uses centralized governance micro-copy */}
         <p className="text-[10px] text-muted-foreground/50 pt-1 border-t border-border/30">
-          These are optional suggestions. You know your business best.
+          {GOVERNANCE_MICROCOPY.AI_ASSISTANT.DISCLAIMER}
         </p>
       </div>
     </details>

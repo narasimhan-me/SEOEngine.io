@@ -32,6 +32,24 @@ This document tracks all implementation phases and their completion status.
 
 
 
+
+## [KAN-89] Implement: [EA-50] Enforce one consistent governance narrative across all surfaces where action is suggested, without introducing new rules or behavior.
+
+**Implemented:** 2026-01-31 11:41 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/web/src/components/assistant/AiAssistantEntryPoint.tsx`
+- `apps/web/src/components/common/DraftAiBoundaryNote.tsx`
+- `apps/web/src/components/playbooks/PlaybookDetailPanel.tsx`
+- `apps/web/src/components/right-context-panel/ContextPanelActionPreview.tsx`
+- `apps/web/src/components/right-context-panel/ContextPanelContentRenderer.tsx`
+- `apps/web/src/components/work-queue/ActionBundleCard.tsx`
+- `apps/web/src/lib/issue-to-action-guidance.ts`
+- `apps/web/src/lib/governance-narrative.ts`
+
+---
+
 ## [KAN-87] Implement: [EA-51] Define and surface what success looks like in EngineO.ai, especially for first-time users and early repeat sessions.
 
 **Implemented:** 2026-01-31 10:32 UTC
