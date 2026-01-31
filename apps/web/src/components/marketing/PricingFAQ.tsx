@@ -32,28 +32,28 @@ export function PricingFAQ() {
 
         <div className="mt-8 grid gap-8 md:grid-cols-2">
           <FaqItem
-            q="How does the free plan work?"
-            a="You can connect one project, crawl up to 50 pages, and use a limited number of AI runs for previews and suggestions. Upgrade to Pro or Business when you need more projects, pages, or AI capacity."
+            q="Which plan is right for me?"
+            a="Free is for trying DEO on one site. Pro is for merchants who need daily monitoring, full content editing, and Shopify sync across up to 5 sites. Business is for agencies or teams with many sites and no usage limits."
           />
           <FaqItem
-            q="Will this affect my Shopify theme or site code?"
-            a="EngineO.ai focuses on metadata, structured data, entities, and other search- and AI-facing fields. It does not rewrite your theme or site code without your approval."
+            q="When should I upgrade?"
+            a="Upgrade when you hit a limit that slows you down—more sites, more pages, or more AI suggestions. We show your usage clearly in Settings so there are no surprises."
           />
           <FaqItem
-            q="Do I need a developer to use this?"
-            a="No. EngineO.ai is built for marketers, founders, and growth teams. Developers can help with advanced workflows and integrations, but they are not required to get value."
+            q="What counts against my AI quota?"
+            a="Only generating new AI suggestions or previews uses quota. Applying fixes is always free. Reusing cached suggestions doesn't count. You can see exactly what's used in your AI Usage dashboard."
           />
           <FaqItem
-            q="What is an AI run?"
-            a="An AI run is a preview or draft generation request. Reuse saves AI runs — when similar content is detected, cached results are used instead of making new AI calls. Apply operations never use AI."
+            q="Are there any hidden limits or fees?"
+            a="No. All limits are shown on this page and in your Settings. You can check usage anytime. Overage charges do not exist—you simply hit the limit until next month or upgrade."
           />
           <FaqItem
-            q="Does Apply use my AI quota?"
-            a="No. Apply never uses AI — applying fixes is always quota-free. Only preview and draft generation consume AI runs. This is a core trust invariant."
+            q="Will this change my site without my approval?"
+            a="No. EngineO.ai only edits metadata, structured data, and SEO fields—and only when you click Apply. We never touch your theme code or publish changes automatically."
           />
           <FaqItem
-            q="Can I cancel or change plans anytime?"
-            a="Yes. You can downgrade or cancel your subscription at any time from within the app via Stripe. Your account will remain active until the end of your current billing period."
+            q="Can I cancel or downgrade anytime?"
+            a="Yes. Change or cancel your plan anytime in Settings. You keep access until your current billing period ends. No cancellation fees."
           />
         </div>
       </div>

@@ -3,9 +3,11 @@
 import type { PrioritizationFactor, DeoIssueImpactLevel } from '@/lib/issues/prioritizationSignals';
 import { deriveConfidenceConsideration } from '@/lib/issues/prioritizationSignals';
 import { ImpactIndicator } from './ImpactIndicator';
+import { LearnMoreInline } from './LearnMoreInline';
 
 /**
  * [EA-27: PRIORITIZATION-SIGNAL-ENRICHMENT-1] Priority Rationale Section
+ * [EA-36: CONTEXTUAL-EDUCATION-1] Enhanced with inline contextual education
  *
  * Displays transparent prioritization reasoning for an issue.
  * Shows:
@@ -13,6 +15,7 @@ import { ImpactIndicator } from './ImpactIndicator';
  * - Priority rationale in plain language
  * - Contributing factors (expandable)
  * - Confidence consideration
+ * - Contextual education (optional, non-blocking)
  *
  * All signals are advisory, never prescriptive.
  */
@@ -30,6 +33,10 @@ interface PriorityRationaleSectionProps {
   confidenceConsideration?: string;
   /** Whether this is a compact inline view */
   compact?: boolean;
+  /** [EA-36] Issue key for contextual education lookup */
+  issueKey?: string;
+  /** [EA-36] Whether to show contextual education */
+  showEducation?: boolean;
 }
 
 export function PriorityRationaleSection({
@@ -39,6 +46,8 @@ export function PriorityRationaleSection({
   confidence,
   confidenceConsideration,
   compact = false,
+  issueKey,
+  showEducation = true,
 }: PriorityRationaleSectionProps) {
   // Derive confidence consideration if not provided
   const displayConfidence = confidenceConsideration || deriveConfidenceConsideration(confidence);
@@ -103,6 +112,11 @@ export function PriorityRationaleSection({
             ))}
           </ul>
         </div>
+      )}
+
+      {/* [EA-36: CONTEXTUAL-EDUCATION-1] Inline contextual education */}
+      {showEducation && issueKey && (
+        <LearnMoreInline issueKey={issueKey} />
       )}
 
       {/* [EA-30: AI-ASSIST-ENTRY-POINTS-1] Advisory note with supportive language */}

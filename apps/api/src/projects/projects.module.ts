@@ -15,6 +15,7 @@ import { AnswerBlockAutomationProcessor } from './answer-block-automation.proces
 import { ProductAutomationController } from './product-automation.controller';
 import { ShopifyModule } from '../shopify/shopify.module';
 import { AutomationPlaybooksService } from './automation-playbooks.service';
+import { AutomationSafetyRailsService } from './automation-safety-rails.service';
 import { AutomationPlaybookRunProcessor } from './automation-playbook-run.processor';
 import { AutomationPlaybookRunsService } from './automation-playbook-runs.service';
 import { SearchIntentService } from './search-intent.service';
@@ -75,6 +76,7 @@ import { WorkQueueService } from './work-queue.service';
     SeoScanService,
     AnswerBlockAutomationProcessor,
     AutomationPlaybooksService,
+    AutomationSafetyRailsService,
     AutomationPlaybookRunProcessor,
     AutomationPlaybookRunsService,
     SearchIntentService,

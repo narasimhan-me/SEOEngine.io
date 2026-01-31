@@ -36,6 +36,9 @@ import { ProjectHealthCards } from '@/components/projects/ProjectHealthCards';
 import { IssuesList } from '@/components/issues/IssuesList';
 import { FirstDeoWinChecklist } from '@/components/projects/FirstDeoWinChecklist';
 import { NextDeoWinCard } from '@/components/projects/NextDeoWinCard';
+import { ProgressReinforcementCard } from '@/components/projects/ProgressReinforcementCard';
+import type { ProgressReinforcementData } from '@/components/projects/ProgressReinforcementCard';
+import { FirstLoopSuccessBanner } from '@/components/projects/FirstLoopSuccessBanner';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
 
 type CrawlFrequency = 'DAILY' | 'WEEKLY' | 'MONTHLY';
@@ -171,6 +174,7 @@ export default function ProjectOverviewPage() {
   const [planId, setPlanId] = useState<string | null>(null);
   const [dailyCrawlUiState, setDailyCrawlUiState] =
     useState<DailyCrawlUiState>('IDLE');
+  const [progressData, setProgressData] = useState<ProgressReinforcementData | null>(null);
 
   const feedback = useFeedback();
 
@@ -297,6 +301,26 @@ export default function ProjectOverviewPage() {
     }
   }, []);
 
+  // [EA-38] Fetch progress data for reinforcement card
+  const fetchProgressData = useCallback(async () => {
+    try {
+      const insights = await projectsApi.insights(projectId);
+      if (insights) {
+        setProgressData({
+          deoScore: insights.overview?.improved?.deoScore ?? null,
+          productsOptimized: insights.overview?.resolved?.actionsCount ?? 0,
+          issuesResolved: insights.overview?.resolved?.actionsCount ?? 0,
+          productsWithAnswerBlocks: insights.geoInsights?.overview?.productsAnswerReadyCount ?? 0,
+          totalProducts: insights.geoInsights?.overview?.productsTotal ?? 0,
+          windowDays: insights.window?.days ?? 30,
+        });
+      }
+    } catch (err: unknown) {
+      // Non-critical, progress card simply won't show
+      console.error('Error fetching progress data:', err);
+    }
+  }, [projectId]);
+
   const handleRecomputeDeoScore = async () => {
     try {
       setDeoScoreRecomputing(true);
@@ -338,6 +362,7 @@ export default function ProjectOverviewPage() {
     fetchDeoIssues();
     fetchProducts();
     fetchPlanId();
+    fetchProgressData();
 
     if (searchParams.get('shopify') === 'connected') {
       setSuccessMessage('Successfully connected to Shopify!');
@@ -355,6 +380,7 @@ export default function ProjectOverviewPage() {
     fetchDeoIssues,
     fetchProducts,
     fetchPlanId,
+    fetchProgressData,
   ]);
 
   const startShopifyOAuth = async () => {
@@ -925,12 +951,29 @@ export default function ProjectOverviewPage() {
           );
         })()}
 
+      {/* [KAN-86] First Loop Success Banner - shown when first apply is complete */}
+      <FirstLoopSuccessBanner
+        isFirstLoopComplete={hasOptimizedThreeProducts}
+        testId="first-loop-success-banner"
+      />
+
       {/* Next DEO Win Card - shown when First DEO Win checklist is fully complete */}
       {hasConnectedSource &&
         hasRunCrawl &&
         hasDeoScore &&
         hasOptimizedThreeProducts && (
           <NextDeoWinCard projectId={projectId} planId={planId} />
+        )}
+
+      {/* [EA-38] Progress Reinforcement Card - shown when user has made progress */}
+      {hasConnectedSource &&
+        hasRunCrawl &&
+        hasDeoScore &&
+        progressData && (
+          <ProgressReinforcementCard
+            data={progressData}
+            projectId={projectId}
+          />
         )}
 
       {/* Primary Focus Section: What Matters Right Now */}

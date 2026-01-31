@@ -97,9 +97,45 @@ export function FirstDeoWinChecklist({
 
   const firstIncompleteIndex = steps.findIndex((step) => !step.done);
 
-  // Hide checklist when all steps are complete
+  // Show completion message briefly before hiding
   if (completedCount === steps.length) {
-    return null;
+    return (
+      <div
+        className="rounded-lg border border-green-100 bg-green-50 p-4 shadow-sm mb-6"
+        data-testid="first-deo-win-complete"
+        role="status"
+        aria-live="polite"
+      >
+        <div className="flex items-center gap-3">
+          <div className="flex-shrink-0">
+            <svg
+              className="h-5 w-5 text-green-600"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+              aria-hidden="true"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-green-900">
+              First DEO win complete
+            </p>
+            <p className="mt-0.5 text-xs text-green-700">
+              You&apos;ve taken the foundational steps to improve your site&apos;s discoverability.
+            </p>
+            {/* [KAN-86] Calm, factual success reinforcement */}
+            <p className="mt-1 text-xs text-green-600">
+              Your store is in a good state. Keep going at your own pace.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -112,8 +148,8 @@ export function FirstDeoWinChecklist({
       </div>
 
       <p className="text-xs text-gray-600 mb-3">
-        Follow these steps to get your first obvious DEO win in about 10–20
-        minutes.
+        Follow these steps to get your first DEO win. You can do this in about
+        10 minutes.
       </p>
 
       <p className="text-xs font-medium text-gray-700 mb-4">

@@ -10,11 +10,14 @@ export function PricingHero() {
     <section className="border-b border-border bg-muted/60">
       <div className="mx-auto max-w-6xl px-4 py-12 text-center sm:px-6 lg:px-8">
         <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-          DEO plans that grow with your business
+          Simple pricing. Pay only for what you use.
         </h1>
         <p className="mt-3 text-sm text-muted-foreground">
-          Optimize your site for search and AI discovery. Reuse saves AI runs.
-          Apply is always free.
+          Pick the plan that fits your site count and usage. Upgrade when you
+          need more—downgrade anytime. No hidden fees.
+        </p>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Applying fixes is always free. Reusing cached suggestions doesn&apos;t count against your quota.
         </p>
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
           <Link
@@ -27,7 +30,7 @@ export function PricingHero() {
             href="#features"
             className="text-sm font-medium text-muted-foreground hover:text-foreground"
           >
-            See how it works &rarr;
+            Compare plans below &rarr;
           </Link>
         </div>
       </div>

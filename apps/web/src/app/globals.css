@@ -47,6 +47,10 @@ html.dark {
   --surface-card: 0 0% 100%;         /* default cards/rows */
   --surface-raised: 0 0% 96%;        /* hover/active/raised surfaces */
 
+  /* [EA-31] Visual hierarchy tokens for primary vs secondary panels */
+  --surface-secondary: 0 0% 98%;     /* secondary/supporting panels - calmer than primary */
+  --text-secondary-muted: 215.4 16.3% 52%;  /* quieter secondary text for supporting UI */
+
   /* === Text tokens === */
   --foreground: 222.2 84% 4.9%;      /* near-black - primary text */
   --muted-foreground: 215.4 16.3% 46.9%; /* gray-500 - secondary text */
@@ -107,6 +111,10 @@ html.dark {
   --surface-base: 222.2 47% 8%;      /* page background alias */
   --surface-card: 222.2 47% 11%;     /* default cards/rows */
   --surface-raised: 222.2 47% 16%;   /* hover/active/raised - visible step up */
+
+  /* [EA-31] Visual hierarchy tokens for primary vs secondary panels */
+  --surface-secondary: 222.2 47% 10%;  /* secondary/supporting panels - subtler than card */
+  --text-secondary-muted: 215 20% 62%; /* quieter secondary text for supporting UI */
 
   /* === Text tokens (dark) === */
   --foreground: 210 40% 98%;         /* near-white - primary text */

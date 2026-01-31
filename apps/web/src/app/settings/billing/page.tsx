@@ -293,8 +293,8 @@ function BillingSettingsContent() {
 
       <h1 className="text-3xl font-bold text-gray-900 mb-2">Plan & Billing</h1>
       <p className="text-gray-600 mb-6">
-        View your subscription plan and usage. Billing is handled securely via
-        Stripe portal &mdash; we never store your card details.
+        See your current plan, usage, and limits. Change plans anytime—upgrades
+        take effect immediately, downgrades at the end of your billing period.
       </p>
 
       {/* [SELF-SERVICE-1] Role-based access notice */}
@@ -469,7 +469,7 @@ function BillingSettingsContent() {
 
       {/* Plans Grid */}
       <h2 className="text-xl font-semibold text-gray-900 mb-4">
-        Available Plans
+        Choose the plan that fits your needs
       </h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {plans.map((plan) => {

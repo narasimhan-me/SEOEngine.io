@@ -1,6 +1,7 @@
 import type { DeoIssueSeverity } from '@/lib/deo-issues';
 import type { DraftLifecycleState } from '@/lib/issues/draftLifecycleState';
 import { getDraftLifecycleCopy } from '@/lib/issues/draftLifecycleState';
+import { IssueExplanationTooltip } from './IssueExplanationTooltip';
 
 interface IssueBadgeProps {
   count: number;
@@ -9,9 +10,13 @@ interface IssueBadgeProps {
   onClick?: () => void;
   /** [DRAFT-LIFECYCLE-VISIBILITY-1] Optional draft state for visibility */
   draftState?: DraftLifecycleState | null;
+  /** [EA-36: CONTEXTUAL-EDUCATION-1] Issue key for inline help tooltip */
+  issueKey?: string;
+  /** [EA-36] Whether to show the help tooltip */
+  showHelp?: boolean;
 }
 
-export function IssueBadge({ count, severity, onClick, draftState }: IssueBadgeProps) {
+export function IssueBadge({ count, severity, onClick, draftState, issueKey, showHelp = false }: IssueBadgeProps) {
   if (!count || count <= 0) {
     return null;
   }
@@ -45,6 +50,10 @@ export function IssueBadge({ count, severity, onClick, draftState }: IssueBadgeP
             {count} DEO {count === 1 ? 'issue' : 'issues'}
           </span>
         </button>
+        {/* [EA-36: CONTEXTUAL-EDUCATION-1] Optional help tooltip */}
+        {showHelp && issueKey && (
+          <IssueExplanationTooltip issueKey={issueKey} size="sm" />
+        )}
         {/* [DRAFT-LIFECYCLE-VISIBILITY-1] Draft state indicator */}
         {showDraftIndicator && draftCopy && (
           <span
@@ -67,6 +76,10 @@ export function IssueBadge({ count, severity, onClick, draftState }: IssueBadgeP
           {count} DEO {count === 1 ? 'issue' : 'issues'}
         </span>
       </span>
+      {/* [EA-36: CONTEXTUAL-EDUCATION-1] Optional help tooltip */}
+      {showHelp && issueKey && (
+        <IssueExplanationTooltip issueKey={issueKey} size="sm" />
+      )}
       {/* [DRAFT-LIFECYCLE-VISIBILITY-1] Draft state indicator */}
       {showDraftIndicator && draftCopy && (
         <span

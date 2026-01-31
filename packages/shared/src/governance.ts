@@ -283,3 +283,19 @@ export const GOVERNANCE_DEFAULT_PAGE_SIZE = 20;
  * Maximum page size for governance lists.
  */
 export const GOVERNANCE_MAX_PAGE_SIZE = 100;
+
+// =============================================================================
+// [EA-39] Platform Maturity Signals
+// =============================================================================
+
+/**
+ * Re-export maturity signals types for unified governance module access.
+ */
+export {
+  type MaturitySignalStatus,
+  type MaturitySignalCategory,
+  type MaturitySignalDefinition,
+  type PlatformStabilityStatus,
+  type StabilityStatusResponse,
+  PLATFORM_MATURITY_SIGNALS,
+} from './governance/maturity-signals';

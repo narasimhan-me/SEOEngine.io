@@ -17,6 +17,10 @@ import {
   type DataTableRow,
 } from '@/components/tables/DataTable';
 import { EmptyState } from '@/components/common/EmptyState';
+import {
+  GovernanceReadinessCard,
+  DEFAULT_MATURITY_SIGNALS,
+} from '@/components/governance';
 
 /**
  * [GOV-AUDIT-VIEWER-1] Governance Viewer Tab
@@ -165,6 +169,9 @@ export default function GovernanceViewerPage() {
           View approval requests, audit events, and share link activity.
         </p>
       </div>
+
+      {/* [EA-39] Governance Readiness Card */}
+      <GovernanceReadinessCard signals={DEFAULT_MATURITY_SIGNALS} expanded />
 
       {/* Tabs */}
       <div className="border-b border-border">

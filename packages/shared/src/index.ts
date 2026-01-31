@@ -219,6 +219,13 @@ export {
   // Constants
   GOVERNANCE_DEFAULT_PAGE_SIZE,
   GOVERNANCE_MAX_PAGE_SIZE,
+  // [EA-39] Maturity signals and platform readiness types
+  type MaturitySignalStatus,
+  type MaturitySignalCategory,
+  type MaturitySignalDefinition,
+  type PlatformStabilityStatus,
+  type StabilityStatusResponse,
+  PLATFORM_MATURITY_SIGNALS,
 } from './governance';
 
 // WORK-QUEUE-1: Unified Action Bundle Work Queue types

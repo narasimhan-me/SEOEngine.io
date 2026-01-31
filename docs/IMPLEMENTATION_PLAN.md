@@ -14,6 +14,316 @@ This document tracks all implementation phases and their completion status.
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## [KAN-87] Implement: [EA-51] Define and surface what success looks like in EngineO.ai, especially for first-time users and early repeat sessions.
+
+**Implemented:** 2026-01-31 10:32 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/web/src/app/projects/[id]/overview/page.tsx`
+- `apps/web/src/components/common/RowStatusChip.tsx`
+- `apps/web/src/components/feedback/FeedbackProvider.tsx`
+- `apps/web/src/components/onboarding/FirstTimeUserGuidance.tsx`
+- `apps/web/src/components/projects/FirstDeoWinChecklist.tsx`
+- `apps/web/src/lib/issues/draftLifecycleState.ts`
+- `apps/web/src/components/projects/FirstLoopSuccessBanner.tsx`
+- `apps/web/src/components/projects/SuccessStateIndicator.tsx`
+- `apps/web/src/lib/success-state.ts`
+
+---
+
+## [KAN-85] Implement: [EA-49] Use AI to explain and guide, never to decide or execute.
+
+**Implemented:** 2026-01-31 00:01 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/web/src/lib/issue-to-action-guidance.ts`
+- `apps/web/src/components/ai-guidance/`
+- `apps/web/src/components/rcp/`
+- `apps/web/src/lib/ai-advisory-contract.ts`
+- `apps/web/tests/ai-advisory-only.spec.ts`
+
+---
+
+## [KAN-83] Implement: [EA-48] Expand admin shell for read-only oversight of automation and playbooks.
+
+**Implemented:** 2026-01-30 23:48 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/api/src/admin/admin.controller.ts`
+- `apps/api/src/admin/admin.service.ts`
+- `apps/web/src/components/layout/AdminSideNav.tsx`
+- `apps/web/src/lib/api.ts`
+- `apps/web/src/app/admin/automation-oversight/`
+
+---
+
+## [KAN-81] Implement: [EA-47] Ensure explanations remain clear as automation enters the picture.
+
+**Implemented:** 2026-01-30 23:34 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/web/src/components/common/MetricExplanation.tsx`
+- `apps/web/src/components/issues/IssueToActionGuidancePanel.tsx`
+- `apps/web/src/components/playbooks/AutomationCapabilityPanel.tsx`
+- `apps/web/src/lib/issue-to-action-guidance.ts`
+- `apps/web/tests/explanation-clarity-automation-1.spec.ts`
+
+---
+
+## [KAN-79] Implement: [EA-46] Refine prioritization signals with clearer impact framing.
+
+**Implemented:** 2026-01-30 23:20 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/web/src/components/issues/index.ts`
+- `apps/web/src/lib/education/contextualEducation.ts`
+- `apps/web/src/components/dashboard/`
+- `apps/web/src/components/issues/IssueCard.tsx`
+- `apps/web/src/components/issues/PrioritizedIssueList.tsx`
+- `apps/web/src/components/priority/`
+- `apps/web/src/lib/issue-priority-mapping.ts`
+- `apps/web/src/lib/priority-signals.ts`
+- `docs/priority-signals.md`
+
+---
+
+## [KAN-77] Implement: [EA-45] Evolve dashboard signals to reflect playbooks and guidance, not just issues.
+
+**Implemented:** 2026-01-30 23:03 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/web/src/app/projects/[id]/insights/opportunity-signals/page.tsx`
+- `apps/web/src/app/projects/[id]/insights/page.tsx`
+- `apps/web/src/components/common/MetricExplanation.tsx`
+- `apps/web/src/components/issues/IssueToActionGuidancePanel.tsx`
+- `apps/web/src/components/projects/DeoSignalsSummary.tsx`
+- `apps/web/src/lib/dashboard-metrics.ts`
+
+---
+
+## [KAN-75] Implement: [EA-44] Add system-level safety rails around automation.
+
+**Implemented:** 2026-01-30 22:49 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/api/src/projects/automation-playbooks.service.ts`
+- `apps/api/src/projects/projects.module.ts`
+- `packages/shared/src/automation-engine.ts`
+- `apps/api/src/projects/automation-safety-rails.service.ts`
+- `apps/web/src/components/common/SafetyRailBlockedPanel.tsx`
+- `apps/web/src/lib/automation-safety-rails.ts`
+- `apps/web/tests/automation-safety-rails-1.spec.ts`
+
+---
+
+## [KAN-73] Implement: [EA-43] Introduce explicit, deliberate intent confirmation before any automation can run.
+
+**Implemented:** 2026-01-30 22:32 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/web/src/app/projects/[id]/automation/playbooks/page.tsx`
+- `apps/web/src/components/common/AutomationIntentConfirmationModal.tsx`
+- `apps/web/tests/automation-intent-confirmation-1.spec.ts`
+
+---
+
+## [KAN-71] Implement: [EA-42] Expose automation playbooks as concepts only, not actions.
+
+**Implemented:** 2026-01-30 22:18 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/web/src/components/playbooks/PlaybookCard.tsx`
+- `apps/web/src/components/playbooks/PlaybookDetailPanel.tsx`
+- `apps/web/src/components/playbooks/PlaybooksShell.tsx`
+- `apps/web/src/components/playbooks/index.ts`
+- `apps/web/src/lib/playbooks/playbookDefinitions.ts`
+- `apps/web/src/components/playbooks/AutomationCapabilityPanel.tsx`
+- `apps/web/tests/automation-playbook-concepts.spec.ts`
+
+---
+
+## [KAN-69] Implement: [EA-41] Guide users from issue → recommended action, with explanation.
+
+**Implemented:** 2026-01-30 22:03 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/web/src/components/issues/IssuesList.tsx`
+- `apps/web/src/components/right-context-panel/ContextPanelIssueDetails.tsx`
+- `apps/web/src/lib/issue-to-action-guidance.ts`
+- `apps/web/src/components/issues/IssueToActionGuidancePanel.tsx`
+- `apps/web/tests/issue-to-action-guidance-1.spec.ts`
+
+---
+
+## [KAN-67] Implement: [EA-40] Introduce a Playbooks shell that organizes fix strategies without executing anything.
+
+**Implemented:** 2026-01-30 21:48 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/web/src/components/layout/ProjectSideNav.tsx`
+- `apps/web/src/app/(dashboard)/`
+- `apps/web/src/components/playbooks/`
+- `apps/web/src/lib/playbooks/`
+
+---
+
+## [KAN-65] Implement: [EA-39] Surface signals of maturity and readiness without adding enterprise complexity.
+
+**Implemented:** 2026-01-30 21:39 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/web/src/app/projects/[id]/settings/governance/page.tsx`
+- `apps/web/src/components/governance/index.ts`
+- `packages/shared/src/governance.ts`
+- `packages/shared/src/index.ts`
+- `apps/web/src/components/governance/GovernanceReadinessCard.tsx`
+- `apps/web/src/components/governance/MaturitySignalsPanel.tsx`
+- `apps/web/src/components/governance/StabilityIndicator.tsx`
+- `apps/web/tests/maturity-signals.spec.ts`
+- `packages/shared/src/governance/`
+
+---
+
+## [KAN-63] Implement: [EA-38] Reinforce user confidence over time by reminding them what they've improved, what's safer now, and what value they've gained.
+
+**Implemented:** 2026-01-30 21:27 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/web/src/app/projects/[id]/insights/page.tsx`
+- `apps/web/src/app/projects/[id]/overview/page.tsx`
+- `apps/web/src/components/projects/FirstDeoWinChecklist.tsx`
+- `apps/web/src/components/projects/ProgressReinforcementCard.tsx`
+- `apps/web/tests/progress-reinforcement.spec.ts`
+
+---
+
+## [KAN-61] Implement: [EA-37] Define and surface activation and success signals that reflect real user progress.
+
+**Implemented:** 2026-01-30 21:17 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/api/src/admin/admin.module.ts`
+- `apps/api/src/admin/admin.service.ts`
+- `apps/api/src/activation/`
+- `apps/web/src/lib/activation-signals.ts`
+- `docs/activation-signals-spec.md`
+
+---
+
+## [KAN-59] Implement: [EA-36] Provide lightweight, contextual education inside the product — exactly where questions arise.
+
+**Implemented:** 2026-01-30 20:56 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/web/src/components/issues/IssueBadge.tsx`
+- `apps/web/src/components/issues/PriorityRationaleSection.tsx`
+- `apps/web/src/lib/deo-issues.ts`
+- `apps/web/src/components/issues/IssueExplanationTooltip.tsx`
+- `apps/web/src/components/issues/LearnMoreInline.tsx`
+- `apps/web/src/components/issues/index.ts`
+- `apps/web/src/lib/education/`
+
+---
+
+## [KAN-57] Implement: [EA-35] Make pricing simple, honest, and aligned to real user value, not feature lists.
+
+**Implemented:** 2026-01-30 20:45 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/web/src/app/settings/billing/page.tsx`
+- `apps/web/src/components/marketing/PricingCTASection.tsx`
+- `apps/web/src/components/marketing/PricingFAQ.tsx`
+- `apps/web/src/components/marketing/PricingHero.tsx`
+- `apps/web/src/components/marketing/PricingTable.tsx`
+
+---
+
+## [KAN-55] Implement: [EA-34] Guide first-time users to a small, safe, confidence-building success within their first session.
+
+**Implemented:** 2026-01-30 20:34 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/web/src/app/dashboard/page.tsx`
+- `apps/web/src/components/projects/FirstDeoWinChecklist.tsx`
+- `apps/web/src/lib/trust-loop/trustLoopState.ts`
+- `scripts/autonomous-agent/engine.py`
+- `apps/web/src/components/onboarding/`
+- `apps/web/src/lib/onboarding/`
+- `apps/web/tests/first-time-user-guidance.spec.ts`
+
+---
+
+## [KAN-53] Implement: [EA-31] EA-31 - Visual hierarchy & calmness polish — reinforce primary vs secondary panel distinction so primary work areas dominate and supporting UI feels calm. 
+
+**Implemented:** 2026-01-30 20:21 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/web/src/app/globals.css`
+- `apps/web/src/components/layout/LayoutShell.tsx`
+- `apps/web/src/components/layout/ProjectSideNav.tsx`
+- `apps/web/src/components/right-context-panel/ContextPanelActionPreview.tsx`
+- `apps/web/src/components/right-context-panel/ContextPanelEntitySummary.tsx`
+- `apps/web/src/components/right-context-panel/RightContextPanel.tsx`
+- `scripts/autonomous-agent/engine.py`
+- `docs/UEP_ACCEPTANCE_GATE.pseudo-logic.txt`
+- `docs/jira/ACTIVATION-METRICS-SUCCESS-SIGNALS-1.md`
+- `docs/jira/ADMIN-SHELL-GOVERNANCE-EXPANSION-1.md`
+- `docs/jira/AI-ASSIST-GUIDED-PLAYBOOKS-1.md`
+- `docs/jira/AI-SUGGESTION-VISUAL-CONSISTENCY-1.md`
+- `docs/jira/AUTOMATION-PLAYBOOK-VISIBILITY-1.md`
+- `docs/jira/AUTOMATION-RUN-INTENT-CONFIRMATION-1.md`
+- `docs/jira/AUTOMATION-SAFETY-RAILS-1.md`
+- `docs/jira/DASHBOARD-SIGNAL-REWRITE-2.md`
+- `docs/jira/ENTERPRISE-READINESS-SIGNALS-1.md`
+- `docs/jira/IN-PRODUCT-GUIDANCE-EDUCATION-1.md`
+- `docs/jira/ISSUE-EXPLANATION-QUALITY-2.md`
+- `docs/jira/ISSUE-TO-ACTION-GUIDANCE-1.md`
+- `docs/jira/ONBOARDING-FIRST-SUCCESS-1.md`
+- `docs/jira/PLAYBOOKS-SHELL-REMOUNT-1.md`
+- `docs/jira/PRICING-CLARITY-VALUE-ALIGNMENT-1.md`
+- `docs/jira/PRIORITIZATION-SIGNAL-ENRICHMENT-2.md`
+- `docs/jira/RETENTION-CONFIDENCE-REINFORCEMENT-1.md`
+- `docs/jira/SAFETY-SIGNALING-CONFIDENCE-REINFORCEMENT-1.md`
+- `docs/jira/VISUAL-HIERARCHY-CALMNESS-POLISH-1.md`
+
+---
+
 ## [KAN-51] Implement: [EA-30] EA-30 — AI-ASSIST-ENTRY-POINTS-1
 
 **Implemented:** 2026-01-28 14:56 UTC

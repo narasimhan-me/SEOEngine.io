@@ -83,6 +83,18 @@ export default function OpportunitySignalsPage() {
         <p className="text-gray-600 mt-1">
           Discover opportunities to improve your DEO score.
         </p>
+        {/* [EA-45] Trust contract: signals are advisory, not prescriptive */}
+        <p className="text-xs text-gray-400 mt-2">
+          These are suggestions based on your data. You decide which opportunities to pursue and when.
+          <span className="inline-flex items-center gap-1 ml-2">
+            <span className="inline-block w-2 h-2 rounded-full bg-teal-200" title="Guidance"></span>
+            <span className="text-[10px]">Guidance</span>
+            <span className="inline-block w-2 h-2 rounded-full bg-indigo-200 ml-2" title="Action"></span>
+            <span className="text-[10px]">Action</span>
+            <span className="inline-block w-2 h-2 rounded-full bg-amber-200 ml-2" title="Automation"></span>
+            <span className="text-[10px]">Automation</span>
+          </span>
+        </p>
       </div>
 
       <InsightsSubnav projectId={projectId} activeTab="opportunity-signals" />
@@ -227,27 +239,69 @@ interface OpportunityCardProps {
   opportunity: ProjectInsightsResponse['opportunities'][0];
 }
 
+/**
+ * [EA-45] Get fix type display configuration for signal vs action vs automation distinction
+ */
+function getFixTypeConfig(fixType: string): { label: string; bgClass: string; textClass: string; description: string } {
+  switch (fixType) {
+    case 'automation':
+      return {
+        label: 'Automation Concept',
+        bgClass: 'bg-amber-50',
+        textClass: 'text-amber-700',
+        description: 'System capability available - you control when it runs',
+      };
+    case 'manual':
+      return {
+        label: 'User Action',
+        bgClass: 'bg-indigo-50',
+        textClass: 'text-indigo-700',
+        description: 'Action you can take when ready',
+      };
+    case 'guidance':
+      return {
+        label: 'Guidance',
+        bgClass: 'bg-teal-50',
+        textClass: 'text-teal-700',
+        description: 'Educational playbook available',
+      };
+    default:
+      return {
+        label: fixType,
+        bgClass: 'bg-gray-100',
+        textClass: 'text-gray-600',
+        description: 'Recommendation type',
+      };
+  }
+}
+
 function OpportunityCard({ opportunity }: OpportunityCardProps) {
+  const fixTypeConfig = getFixTypeConfig(opportunity.fixType);
+
   return (
     <Link
       href={opportunity.href}
       className="block rounded-lg border border-gray-200 bg-white p-4 hover:border-blue-300 hover:shadow-sm transition-all"
     >
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between gap-2">
         <h4 className="text-sm font-medium text-gray-900">
           {opportunity.title}
         </h4>
+        {/* [EA-45] Clear visual distinction between signal, action, and automation */}
         <span
-          className={`text-[10px] px-1.5 py-0.5 rounded uppercase font-medium ${
-            opportunity.fixType === 'automation'
-              ? 'bg-purple-100 text-purple-700'
-              : 'bg-gray-100 text-gray-600'
-          }`}
+          className={`text-[10px] px-1.5 py-0.5 rounded font-medium whitespace-nowrap ${fixTypeConfig.bgClass} ${fixTypeConfig.textClass}`}
+          title={fixTypeConfig.description}
         >
-          {opportunity.fixType}
+          {fixTypeConfig.label}
         </span>
       </div>
       <p className="mt-1 text-xs text-gray-500">{opportunity.why}</p>
+      {/* [EA-45] Advisory note for automation concepts */}
+      {opportunity.fixType === 'automation' && (
+        <p className="mt-1 text-[10px] text-amber-600 italic">
+          You decide when to use this capability
+        </p>
+      )}
       <div className="mt-3 flex items-center justify-between">
         <span className="text-[10px] text-gray-400 uppercase">
           {opportunity.pillarId}

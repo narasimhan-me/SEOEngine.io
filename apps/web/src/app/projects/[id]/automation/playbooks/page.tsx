@@ -48,6 +48,11 @@ import type { Product } from '@/lib/products';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
 // [DRAFT-AI-ENTRYPOINT-CLARITY-1] AI boundary note for human-only review and AI generation surfaces
 import { DraftAiBoundaryNote } from '@/components/common/DraftAiBoundaryNote';
+// [EA-43: AUTOMATION-INTENT-CONFIRMATION-1] Explicit intent confirmation before automation execution
+import {
+  AutomationIntentConfirmationModal,
+  useAutomationIntentConfirmation,
+} from '@/components/common/AutomationIntentConfirmationModal';
 // [PLAYBOOKS-SHELL-REMOUNT-1] RCP integration for playbook details panel
 import {
   useRightContextPanel,
@@ -377,6 +382,9 @@ export default function AutomationPlaybooksPage() {
   const [applyResult, setApplyResult] =
     useState<AutomationPlaybookApplyResult | null>(null);
   const [confirmApply, setConfirmApply] = useState(false);
+
+  // [EA-43: AUTOMATION-INTENT-CONFIRMATION-1] Explicit intent confirmation modal state
+  const intentConfirmation = useAutomationIntentConfirmation();
 
   const [rules, setRules] = useState<PlaybookRulesV1>(() => ({
     ...DEFAULT_RULES,
@@ -1350,7 +1358,8 @@ export default function AutomationPlaybooksPage() {
     }
   };
 
-  const handleApplyPlaybook = useCallback(async () => {
+  // [EA-43: AUTOMATION-INTENT-CONFIRMATION-1] Internal apply logic (called after intent confirmation)
+  const executeApplyPlaybook = useCallback(async () => {
     if (!selectedPlaybookId) return;
     if (!estimate || !estimate.canProceed) return;
     if (!estimate.scopeId || !estimate.rulesHash) {
@@ -1605,6 +1614,27 @@ export default function AutomationPlaybooksPage() {
     isMultiUserProject,
     currentAssetType,
     currentScopeAssetRefs,
+  ]);
+
+  // [EA-43: AUTOMATION-INTENT-CONFIRMATION-1] Wrapper that triggers intent confirmation modal before apply
+  const handleApplyPlaybook = useCallback(() => {
+    if (!selectedPlaybookId) return;
+    if (!estimate || !estimate.canProceed) return;
+    if (flowState !== 'APPLY_READY') return;
+    if (!confirmApply) return;
+
+    // Trigger the intent confirmation modal
+    intentConfirmation.requestConfirmation(async () => {
+      await executeApplyPlaybook();
+    });
+  }, [
+    selectedPlaybookId,
+    estimate,
+    flowState,
+    confirmApply,
+    intentConfirmation,
+    executeApplyPlaybook,
+    currentAssetType,
   ]);
 
   // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Renamed from handleSyncProducts for clarity
@@ -4776,6 +4806,27 @@ export default function AutomationPlaybooksPage() {
             </section>
           </div>
         ))}
+
+      {/* [EA-43: AUTOMATION-INTENT-CONFIRMATION-1] Explicit intent confirmation modal */}
+      <AutomationIntentConfirmationModal
+        isOpen={intentConfirmation.isOpen}
+        onCancel={intentConfirmation.handleCancel}
+        onConfirm={intentConfirmation.handleConfirm}
+        isConfirming={intentConfirmation.isConfirming}
+        impactStatement={`This automation will write AI-generated SEO ${
+          selectedDefinition?.field === 'seoTitle' ? 'titles' : 'descriptions'
+        } directly to your ${
+          currentAssetType === 'PRODUCTS' ? 'products' : currentAssetType.toLowerCase()
+        } in Shopify.`}
+        affectedCount={estimate?.totalAffectedProducts ?? 0}
+        assetType={currentAssetType === 'PRODUCTS' ? 'products' : currentAssetType.toLowerCase()}
+        actionDescription={`Apply AI-generated SEO ${
+          selectedDefinition?.field === 'seoTitle' ? 'titles' : 'descriptions'
+        } to ${estimate?.totalAffectedProducts ?? 0} ${
+          currentAssetType === 'PRODUCTS' ? 'product(s)' : currentAssetType.toLowerCase()
+        }`}
+        targetSystem="Shopify"
+      />
     </div>
   );
 }

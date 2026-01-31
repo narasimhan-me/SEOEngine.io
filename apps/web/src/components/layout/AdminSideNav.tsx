@@ -19,6 +19,7 @@ const navItems = [
   { label: 'System Health', path: '/admin/system-health' },
   { label: 'Audit Log', path: '/admin/audit-log' },
   { label: 'Governance Audit', path: '/admin/governance-audit' },
+  { label: 'Automation Oversight', path: '/admin/automation-oversight' },
 ];
 
 interface AdminSideNavProps {

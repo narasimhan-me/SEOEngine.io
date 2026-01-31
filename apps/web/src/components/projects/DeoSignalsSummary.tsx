@@ -96,14 +96,18 @@ export function DeoSignalsSummary({
     <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium text-gray-700">Signal Details</h3>
-        {/* [DASHBOARD-SIGNAL-REWRITE-1] Type indicator */}
+        {/* [EA-45] Signal type indicator with advisory clarity */}
         <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700">
-          Observations
+          Advisory Signals
         </span>
       </div>
       <p className="mt-1 text-xs text-gray-500">
         Individual measurements that feed into your Discovery Score.
         Hover over any signal name to learn what it measures and why it matters.
+      </p>
+      {/* [EA-45] Trust contract: signals are informational */}
+      <p className="mt-1 text-[10px] text-gray-400 italic">
+        These are observations, not requirements. Some signals have related playbooks you can explore when ready.
       </p>
       {loading ? (
         <div className="mt-4 text-xs text-gray-500">Loading signals...</div>

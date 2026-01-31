@@ -44,13 +44,14 @@ export function ContextPanelActionPreview({
 
   return (
     <div
-      className="rounded-md border border-border bg-[hsl(var(--surface-card))] p-3"
+      className="rounded-md border border-border/50 bg-[hsl(var(--surface-card))] p-3"
       data-testid="context-panel-action-preview"
     >
-      <h4 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">
+      {/* [EA-31] Quieter heading and tighter spacing for calm supporting panel */}
+      <h4 className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70 mb-1.5">
         Action Preview
       </h4>
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         {/* Primary action label (read-only text, not a button) */}
         {hasPrimaryAction && (
           <div className="flex items-center justify-between gap-2">

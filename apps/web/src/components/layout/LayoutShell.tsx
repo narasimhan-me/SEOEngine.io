@@ -383,21 +383,23 @@ function LayoutShellInner({ children }: { children: ReactNode }) {
         {/* Command Palette overlay */}
         <CommandPalette />
         {/* [WORK-CANVAS-ARCHITECTURE-LOCK-1 FIXUP-1] Left Rail: icon-only always (no expand/collapse toggle) */}
-        <aside className="z-40 w-[72px] shrink-0 border-r border-border bg-[hsl(var(--surface-card))]">
+        {/* [EA-31] Reduced visual weight: surface-secondary, quieter border for calm supporting UI */}
+        <aside className="z-40 w-[72px] shrink-0 border-r border-border/60 bg-[hsl(var(--surface-secondary,var(--surface-card)))]">
           <div className="flex h-full flex-col">
             {/* [WORK-CANVAS-ARCHITECTURE-LOCK-1 FIXUP-1] Removed "Navigation" heading and collapse toggle */}
-            <div className="h-3" aria-hidden="true" />
+            <div className="h-4" aria-hidden="true" />
             <nav className="flex-1 px-2 pb-3">
-              <ul className="space-y-1">
+              <ul className="space-y-0.5">
                 {navItems.map((item) => {
                   const active = isActivePath(pathname, item.href);
                   // [NAV-HIERARCHY-POLISH-1] Global Nav: increased visual weight
                   // [WORK-CANVAS-ARCHITECTURE-LOCK-1 FIXUP-1] Always icon-only, centered
+                  // [EA-31] Calmer inactive state, subtle active state for secondary panel distinction
                   const itemClassName = [
-                    'group flex items-center justify-center rounded-md px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                    'group flex items-center justify-center rounded-md px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                     active
-                      ? 'bg-primary/10 text-primary font-semibold'
-                      : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                      ? 'bg-primary/8 text-primary'
+                      : 'text-muted-foreground/70 hover:bg-muted/50 hover:text-muted-foreground',
                   ].join(' ');
                   return (
                     <li key={item.href}>
@@ -423,16 +425,17 @@ function LayoutShellInner({ children }: { children: ReactNode }) {
         <div className="flex min-w-0 flex-1 flex-col bg-background">
           {/* [CENTER-PANE-NAV-REMODEL-1] Standardized center-pane header: Breadcrumbs (small, secondary) → Title (primary) → Description (muted) → Actions (right-aligned) */}
           {/* [WORK-CANVAS-ARCHITECTURE-LOCK-1] No ambiguous global "Action" button - actions are context-specific only */}
+          {/* [EA-31] Primary work area header: increased emphasis for visual dominance */}
           {!headerState.hideHeader && (
-            <div className="shrink-0 border-b border-border bg-[hsl(var(--surface-card))] px-4 py-3">
+            <div className="shrink-0 border-b border-border bg-[hsl(var(--surface-card))] px-5 py-4">
               <div className="flex items-center justify-between gap-4">
                 <div className="min-w-0 flex-1">
                   {/* Breadcrumbs: small, secondary */}
-                  <div className="truncate text-xs font-medium text-muted-foreground">
+                  <div className="truncate text-xs font-medium text-muted-foreground/80">
                     {headerState.breadcrumbs || breadcrumbText || 'EngineO.ai'}
                   </div>
-                  {/* Title: primary */}
-                  <div className="truncate text-sm font-semibold text-foreground">
+                  {/* Title: primary - stronger emphasis */}
+                  <div className="truncate text-base font-semibold text-foreground mt-0.5">
                     {headerState.title || titleText}
                   </div>
                   {/* Description: optional one-line, muted */}
@@ -451,8 +454,9 @@ function LayoutShellInner({ children }: { children: ReactNode }) {
               </div>
             </div>
           )}
+          {/* [EA-31] Primary work area: increased padding for visual dominance */}
           <main className="min-h-0 flex-1 overflow-y-auto bg-background">
-            <div className="min-h-full p-4">{children}</div>
+            <div className="min-h-full p-5">{children}</div>
           </main>
         </div>
         {/* [WORK-CANVAS-ARCHITECTURE-LOCK-1] RCP: Raised surface with border divider, no navigation/mode controls */}

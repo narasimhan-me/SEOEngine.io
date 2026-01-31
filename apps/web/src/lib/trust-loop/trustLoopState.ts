@@ -99,6 +99,9 @@ export function saveTrustLoopSignals(
 /**
  * Record a trust loop signal for a project.
  * Returns the updated state.
+ *
+ * [KAN-54: EA-34] Also marks first-time onboarding as complete when user
+ * generates their first draft (achieving first meaningful action).
  */
 export function recordTrustLoopSignal(
   projectId: string,
@@ -116,6 +119,19 @@ export function recordTrustLoopSignal(
   }
 
   saveTrustLoopSignals(projectId, newSignals);
+
+  // [KAN-54: EA-34] Mark first-time user onboarding as complete when user
+  // generates their first draft (this is the "first meaningful action")
+  if (signal === 'hasGeneratedDraft' || signal === 'hasSavedDraft') {
+    try {
+      // Dynamic import to avoid circular dependencies
+      import('@/lib/onboarding/firstTimeUserState').then(({ completeFirstAction }) => {
+        completeFirstAction();
+      });
+    } catch {
+      // Ignore errors - onboarding completion is non-critical
+    }
+  }
 
   return { isComplete: isNowComplete, signals: newSignals };
 }
