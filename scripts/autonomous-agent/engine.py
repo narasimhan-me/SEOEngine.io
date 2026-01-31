@@ -6337,8 +6337,6 @@ Initiative processed by UEP (Unified Executive Persona)
 """)
             return True
 
-        self.log("UEP", f"Processing Idea: [{key}] {summary}")
-
         # PATCH C: Check Work Ledger for existing epic children first
         ledger_entry = self.work_ledger.get(key)
         if ledger_entry and ledger_entry.children:
