@@ -4103,7 +4103,7 @@ IMPORTANT: Output ONLY the markdown in the required format."""
             # GOVERNANCE: UEP must NOT produce patches or code
             if _looks_like_patch_or_diff(epic_description):
                 self.log("UEP", "GOVERNANCE VIOLATION: UEP output contains patch/diff markers - role contract breach")
-                self._escalate("UEP", "Role Contract Violation", f"UEP produced patch/diff content for {idea_key}. UEP must produce intent only, never code.")
+                self.escalate("UEP", "Role Contract Violation", f"UEP produced patch/diff content for {idea_key}. UEP must produce intent only, never code.")
                 return self._basic_analyze_idea(idea_key, summary, description)
 
             # Add UEP signature
@@ -4475,7 +4475,7 @@ Generate the PATCH BATCH instructions now:"""
             # GOVERNANCE: Reject placeholder/ambiguous patches
             if _patch_batch_is_placeholder(patch_content):
                 self.log("SUPERVISOR", "GOVERNANCE: Patch batch appears to be placeholder/ambiguous - rejecting")
-                self._escalate("SUPERVISOR", "Placeholder Patch Detected", f"Supervisor generated placeholder patches for {epic_key}. Human intervention required.")
+                self.escalate("SUPERVISOR", "Placeholder Patch Detected", f"Supervisor generated placeholder patches for {epic_key}. Human intervention required.")
                 return self._generate_template_patches(files)
 
             return patch_content
@@ -6597,6 +6597,9 @@ Business Intent Defined - Ready for Supervisor decomposition.
         description = self.jira.parse_adf_to_text(issue['fields'].get('description', {}))
         status = issue['fields']['status']['name']
 
+        # Extract EA key from Epic summary for ledger tracking (e.g., "[EA-52] Title" -> "EA-52")
+        ea_key = _infer_idea_key_from_epic_issue(issue)
+
         self.log("SUPERVISOR", f"Decomposing Epic: [{key}] {summary}")
 
         # GOVERNANCE: Supervisor must STOP if UEP intent contract is missing
@@ -6617,7 +6620,7 @@ No guessing or speculation will be performed.
 
 *Governance v3.3 - Role contract enforcement*
 """)
-            self._escalate("SUPERVISOR", "Missing UEP Intent Contract", f"Epic {key} lacks required intent contract markers. UEP must update before decomposition.")
+            self.escalate("SUPERVISOR", "Missing UEP Intent Contract", f"Epic {key} lacks required intent contract markers. UEP must update before decomposition.")
             return False
 
         # PATCH 3: Initialize manifest store
@@ -6948,7 +6951,7 @@ Common placeholder indicators detected:
                     last_step_result=StepResult.FAILED.value,
                     error_text="Patch batch is placeholder/ambiguous",
                 )
-                self._escalate("IMPLEMENTER", "Placeholder Patch Batch", f"Story {key} has placeholder patch batch content. Supervisor must regenerate.")
+                self.escalate("IMPLEMENTER", "Placeholder Patch Batch", f"Story {key} has placeholder patch batch content. Supervisor must regenerate.")
                 return True  # Handled, but blocked
 
             # Append patch batch to description for Claude
