@@ -4626,18 +4626,36 @@ Generate the PATCH BATCH instructions now:"""
         """
         self.log("DEVELOPER", "STEP 3: Checking for executable work items with 'To Do' status...")
 
-        if not stories:
-            self.log("IMPLEMENTER", "No Stories in 'To Do' status")
+        # Bug Execution Enablement: Get all executable work items (Stories and Bugs)
+        all_items = self.jira.get_executable_work_items()
+        todo_items = [i for i in all_items if i['fields']['status']['name'].lower() == 'to do']
+
+        if not todo_items:
+            self.log("DEVELOPER", "No Stories or Bugs in 'To Do' status")
             return False
 
-        self.log("IMPLEMENTER", f"Found {len(stories)} Stories in 'To Do' status")
+        # Story priority: select oldest Story first; only select Bug if no Stories exist
+        todo_stories = [i for i in todo_items if i['fields']['issuetype']['name'].lower() == 'story']
+        todo_bugs = [i for i in todo_items if i['fields']['issuetype']['name'].lower() == 'bug']
 
-        work_item_key = work_item['key']
+        if todo_stories:
+            work_item = todo_stories[0]
+            self.log("DEVELOPER", f"Found {len(todo_stories)} Stories in 'To Do' status")
+        elif todo_bugs:
+            work_item = todo_bugs[0]
+            self.log("DEVELOPER", f"Found {len(todo_bugs)} Bugs in 'To Do' status (no Stories pending)")
+            self.log("DEVELOPER", "Executing Bug as first-class work item")
+        else:
+            self.log("DEVELOPER", "No Stories or Bugs in 'To Do' status")
+            return False
+
+        key = work_item['key']
         work_item_type = work_item['fields']['issuetype']['name']
         summary = work_item['fields']['summary']
         description = self.jira.parse_adf_to_text(work_item['fields'].get('description', {}))
+        status = work_item['fields']['status']['name'].lower()
 
-        self.log("IMPLEMENTER", f"Implementing: [{key}] {summary}")
+        self.log("IMPLEMENTER", f"Implementing: [{key}] {summary} ({work_item_type})")
 
         # Check if docs modifications are allowed by ALLOWED FILES constraints
         allow_docs = _docs_allowed_by_constraints(description)
@@ -7254,16 +7272,7 @@ Verification report: {resolved_report_path}
 Files modified:
 {chr(10).join(['- ' + f for f in reported_files]) if reported_files else '(see git log for details)'}
 """)
-
-        # Transition to In Progress if not already
-        if 'to do' in status:
-            self.jira.transition_issue(work_item_key, 'In Progress')
-            self.jira.add_comment(work_item_key, f"""
-Implementation started by Claude Code Developer
-Branch: {self.config.feature_branch}
-Base SHA: {head_sha_before[:8] if head_sha_before else 'unknown'}
-""")
-            self.log("IMPLEMENTER", f"Story {key} implementation complete")
+            self.log("IMPLEMENTER", f"{work_item_type} {key} implementation complete")
 
             # PATCH 2-C: Upsert ledger entry on success
             self._upsert_kan_story_run(key, {
@@ -7278,28 +7287,22 @@ Base SHA: {head_sha_before[:8] if head_sha_before else 'unknown'}
             # PATCH 5: Record success to work ledger
             self._upsert_work_ledger_entry(
                 issue_key=key,
-                issue_type="Story",
+                issue_type=work_item_type,
                 status="In Progress",
                 last_step=LastStep.IMPLEMENTER.value,
-                last_step_result=StepResult.SUCCESS.value,  # FIXUP-1 PATCH 5
+                last_step_result=StepResult.SUCCESS.value,
                 last_commit_sha=head_sha_after or head_sha_before,
                 verification_report_path=resolved_report_path,
             )
         else:
-            # FIXUP-1 PATCH 1: Short-circuit if AGENT_TEMPLATE_ERROR already handled in _invoke_claude_code
-            if _is_agent_template_error(claude_output):
+            # FIXUP-1 PATCH 1: Short-circuit if AGENT_TEMPLATE_ERROR already handled
+            if _is_agent_template_error(output):
                 self.log("IMPLEMENTER", f"[{key}] AGENT_TEMPLATE_ERROR already handled; skipping generic failure handling")
                 return True  # Terminal handled
 
             self.log("IMPLEMENTER", f"Claude Code encountered issues")
 
-        # Invoke Claude
-        self.log("DEVELOPER", "Invoking Claude Code CLI for implementation...")
-        success, output, _ = self._invoke_claude_code(work_item_key, summary, description)
-
-        if not success:
-            self.log("DEVELOPER", f"Claude Code encountered issues")
-            self.jira.add_comment(work_item_key, f"""
+            self.jira.add_comment(key, f"""
 Claude Code implementation encountered issues.
 
 Claude Code failed; output saved to {artifact_path}
@@ -7309,10 +7312,11 @@ Run ID: {self.run_id}
 
 Human intervention may be required.
 """)
+
             self.escalate(
                 "IMPLEMENTER",
-                f"Story {key} Claude Code implementation issue",
-                f"Claude Code failed; output saved to {artifact_path}\nRun ID: {self.run_id}\n\nStory: {summary}"
+                f"{work_item_type} {key} Claude Code implementation issue",
+                f"Claude Code failed; output saved to {artifact_path}\nRun ID: {self.run_id}\n\n{work_item_type}: {summary}"
             )
 
             # PATCH 2-C: Upsert ledger entry on failure
@@ -7326,7 +7330,7 @@ Human intervention may be required.
             })
 
             # FIXUP-2 PATCH 1: Classify terminal result for proper Work Ledger recording
-            terminal_result = _classify_implementer_terminal_result(claude_output)
+            terminal_result = _classify_implementer_terminal_result(output)
             error_constants = {
                 StepResult.TIMED_OUT.value: "Implementation timed out",
                 StepResult.CANCELLED.value: "Implementation cancelled (lock/session conflict)",
@@ -7334,17 +7338,16 @@ Human intervention may be required.
             }
             error_text = error_constants.get(terminal_result, "Implementation failed")
 
-            # PATCH 5: Record to work ledger with classified terminal outcome
+            # PATCH 5: Record failure to work ledger
             self._upsert_work_ledger_entry(
                 issue_key=key,
-                issue_type="Story",
+                issue_type=work_item_type,
                 status="failed",
                 last_step=LastStep.IMPLEMENTER.value,
-                last_step_result=terminal_result,  # FIXUP-2 PATCH 1: Classified result
+                last_step_result=terminal_result,
                 last_commit_sha=head_sha_after or head_sha_before,
                 error_text=error_text,
             )
-            return True
 
         self.log("IMPLEMENTER", "Notifying Supervisor for verification...")
         return True
