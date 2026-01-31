@@ -2052,7 +2052,8 @@ Canonical path: {verification_path or default_verify_path}
             return labeled_epics
 
         # Fallback: summary prefix match for legacy Epics
-        jql_fallback = f'project = {self.config.software_project} AND issuetype = Epic AND summary ~ "[{idea_key}]" ORDER BY created ASC'
+        # Escape brackets in JQL - they are special characters
+        jql_fallback = f'project = {self.config.software_project} AND issuetype = Epic AND summary ~ "\\\\[{idea_key}\\\\]" ORDER BY created ASC'
         return self.search_issues(jql_fallback, ['summary', 'status', 'statusCategory', 'issuetype', 'description', 'labels'])
 
     def transition_issue(self, issue_key: str, status_name: str) -> bool:
@@ -3440,7 +3441,8 @@ class ExecutionEngine:
             return epics[0]['key']
 
         # Fallback: Summary scheme
-        jql_summary = f'project = {self.config.software_project} AND issuetype = Epic AND summary ~ "\"[{ea_key}]\"" ORDER BY created ASC'
+        # Escape brackets in JQL - they are special characters
+        jql_summary = f'project = {self.config.software_project} AND issuetype = Epic AND summary ~ "\\\\[{ea_key}\\\\]" ORDER BY created ASC'
         epics = self.jira.search_issues(jql_summary, ['key', 'summary'], max_results=1)
         if epics:
             return epics[0]['key']
