@@ -1,5 +1,6 @@
 /**
  * [ISSUE-TO-ACTION-GUIDANCE-1] Issue → Playbook Guidance Mapping
+ * [EA-49: AI-ADVISORY-ONLY-1] AI strictly advisory - never decides or executes
  *
  * Deterministic, static mapping from issue types to recommended playbook metadata.
  * Used by RCP Issue Details and Issues Engine list to surface playbook guidance
@@ -8,9 +9,85 @@
  * Design System: v1.5
  * EIC Version: 1.5
  * Trust Contract: Guidance-only, token-only, no auto-execution
+ *
+ * [EA-49] AI Advisory Contract:
+ * - AI provides explanations and guidance ONLY
+ * - AI NEVER initiates execution or makes autonomous decisions
+ * - All AI outputs must be clearly framed as advisory
+ * - User retains full control over all execution decisions
  */
 
 import type { PlaybookId } from './playbooks-routing';
+
+/**
+ * [EA-49] AI Advisory framing constants for consistent language across all AI outputs.
+ * These ensure AI guidance is clearly labeled as advisory, not directive.
+ */
+export const AI_ADVISORY_FRAMING = {
+  /** Prefix for AI explanations to clarify advisory nature */
+  EXPLANATION_PREFIX: 'Based on the current data, here\'s what this playbook does:',
+  /** Prefix for AI recommendations to maintain suggestive framing */
+  RECOMMENDATION_PREFIX: 'You might consider:',
+  /** Suffix reminder that user controls execution */
+  USER_CONTROL_REMINDER: 'You decide whether to proceed—this is guidance only.',
+  /** Disclaimer for all AI-generated guidance */
+  ADVISORY_DISCLAIMER: 'This is AI-generated guidance to help you understand your options. No action will be taken without your explicit approval.',
+  /** Label for AI-generated content */
+  AI_GENERATED_LABEL: 'AI Guidance',
+  /** Framing for "Is this right for me?" responses */
+  SUITABILITY_PREFIX: 'Here are some factors to consider when deciding if this is right for your situation:',
+} as const;
+
+/**
+ * [EA-49] Type for AI advisory response structure.
+ * Ensures all AI guidance follows the advisory-only contract.
+ */
+export interface AIAdvisoryResponse {
+  /** The advisory content (explanation or guidance) */
+  content: string;
+  /** Whether this is an explanation, recommendation, or suitability assessment */
+  responseType: 'explanation' | 'recommendation' | 'suitability';
+  /** Timestamp of when guidance was generated */
+  generatedAt: string;
+  /** Always true - AI never initiates execution */
+  isAdvisoryOnly: true;
+  /** Always false - user must take explicit action */
+  triggersExecution: false;
+}
+
+/**
+ * [EA-49] Creates a properly framed AI advisory response.
+ * Ensures all AI outputs follow the advisory-only contract.
+ */
+export function createAIAdvisoryResponse(
+  content: string,
+  responseType: AIAdvisoryResponse['responseType']
+): AIAdvisoryResponse {
+  return {
+    content,
+    responseType,
+    generatedAt: new Date().toISOString(),
+    isAdvisoryOnly: true,
+    triggersExecution: false,
+  };
+}
+
+/**
+ * [EA-49] Wraps AI-generated content with appropriate advisory framing.
+ * Ensures users understand the content is guidance, not a directive.
+ */
+export function frameAsAdvisory(
+  content: string,
+  responseType: AIAdvisoryResponse['responseType']
+): string {
+  const prefix = responseType === 'explanation'
+    ? AI_ADVISORY_FRAMING.EXPLANATION_PREFIX
+    : responseType === 'suitability'
+    ? AI_ADVISORY_FRAMING.SUITABILITY_PREFIX
+    : AI_ADVISORY_FRAMING.RECOMMENDATION_PREFIX;
+
+  return `${prefix}\n\n${content}\n\n${AI_ADVISORY_FRAMING.USER_CONTROL_REMINDER}`;
+}
 
 /**
  * Fix type classification for user-facing clarity.

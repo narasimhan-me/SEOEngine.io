@@ -30,6 +30,21 @@ This document tracks all implementation phases and their completion status.
 
 
 
+
+## [KAN-85] Implement: [EA-49] Use AI to explain and guide, never to decide or execute.
+
+**Implemented:** 2026-01-31 00:01 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/web/src/lib/issue-to-action-guidance.ts`
+- `apps/web/src/components/ai-guidance/`
+- `apps/web/src/components/rcp/`
+- `apps/web/src/lib/ai-advisory-contract.ts`
+- `apps/web/tests/ai-advisory-only.spec.ts`
+
+---
+
 ## [KAN-83] Implement: [EA-48] Expand admin shell for read-only oversight of automation and playbooks.
 
 **Implemented:** 2026-01-30 23:48 UTC
