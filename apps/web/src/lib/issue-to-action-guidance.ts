@@ -18,20 +18,23 @@
  */
 
 import type { PlaybookId } from './playbooks-routing';
+// [KAN-88: EA-50] Import centralized governance narrative
+import { GOVERNANCE_MICROCOPY } from '@/lib/governance-narrative';
 
 /**
  * [EA-49] AI Advisory framing constants for consistent language across all AI outputs.
+ * [KAN-88: EA-50] Re-exports from centralized governance narrative for backward compatibility.
  * These ensure AI guidance is clearly labeled as advisory, not directive.
  */
 export const AI_ADVISORY_FRAMING = {
   /** Prefix for AI explanations to clarify advisory nature */
   EXPLANATION_PREFIX: 'Based on the current data, here\'s what this playbook does:',
   /** Prefix for AI recommendations to maintain suggestive framing */
-  RECOMMENDATION_PREFIX: 'You might consider:',
+  RECOMMENDATION_PREFIX: GOVERNANCE_MICROCOPY.AI_ASSISTANT.ADVISORY_PREFIX,
   /** Suffix reminder that user controls execution */
-  USER_CONTROL_REMINDER: 'You decide whether to proceed—this is guidance only.',
+  USER_CONTROL_REMINDER: GOVERNANCE_MICROCOPY.AI_ASSISTANT.USER_CONTROL,
   /** Disclaimer for all AI-generated guidance */
-  ADVISORY_DISCLAIMER: 'This is AI-generated guidance to help you understand your options. No action will be taken without your explicit approval.',
+  ADVISORY_DISCLAIMER: GOVERNANCE_MICROCOPY.AI_ASSISTANT.DISCLAIMER,
   /** Label for AI-generated content */
   AI_GENERATED_LABEL: 'AI Guidance',
   /** Framing for "Is this right for me?" responses */

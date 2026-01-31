@@ -8,6 +8,8 @@ import { ContextPanelActionPreview } from './ContextPanelActionPreview';
 import { ContextPanelAiAssistHints } from './ContextPanelAiAssistHints';
 // [ISSUES-ENGINE-REMOUNT-1] Import issue details component
 import { ContextPanelIssueDetails } from './ContextPanelIssueDetails';
+// [KAN-88: EA-50] Centralized governance narrative
+import { GOVERNANCE_BADGES } from '@/lib/governance-narrative';
 
 interface ContextPanelContentRendererProps {
   activeView: PanelView;
@@ -455,13 +457,14 @@ function WorkItemDetailsContent({
       )}
 
       {/* AI Usage */}
+      {/* [KAN-88: EA-50] Uses centralized governance badges */}
       {metadata.aiUsage && (
         <div className="rounded-md border border-border bg-[hsl(var(--surface-card))] p-3">
           <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
             AI Usage
           </p>
           <span className="mt-1 inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium text-foreground">
-            {metadata.aiUsage === 'NONE' ? 'Does not use AI' : 'AI used for drafts'}
+            {metadata.aiUsage === 'NONE' ? GOVERNANCE_BADGES.AI_USAGE.NONE : GOVERNANCE_BADGES.AI_USAGE.DRAFTS_ONLY}
           </span>
         </div>
       )}

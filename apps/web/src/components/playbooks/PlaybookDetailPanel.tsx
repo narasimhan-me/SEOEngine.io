@@ -6,10 +6,13 @@ import {
   PLAYBOOK_CATEGORY_INFO,
 } from '@/lib/playbooks/playbookDefinitions';
 import { AutomationCapabilityPanel } from './AutomationCapabilityPanel';
+// [KAN-88: EA-50] Centralized governance narrative
+import { GOVERNANCE_MICROCOPY, GOVERNANCE_PHRASES } from '@/lib/governance-narrative';
 
 /**
  * [EA-40: PLAYBOOKS-SHELL-1] Playbook Detail Panel
  * [EA-42] Extended to display automation capability concepts
+ * [KAN-88: EA-50] Governance narrative reinforcement
  *
  * Read-only panel displaying full playbook details.
  * Educational content only - no execution capabilities.
@@ -149,13 +152,21 @@ export function PlaybookDetailPanel({
         )}
 
         {/* Educational note */}
+        {/* [KAN-88: EA-50] [KAN-90: EA-52] Governance narrative with safety boundaries */}
         <div className="flex items-start gap-3 p-3 rounded-md border border-blue-500/20 bg-blue-500/5">
           <span className="text-blue-500 flex-shrink-0 mt-0.5">ℹ️</span>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            This playbook is for educational reference only. The steps describe
-            a general approach you can adapt to your specific situation.
-            Browsing this playbook does not trigger any changes to your store.
-          </p>
+          <div className="text-xs text-muted-foreground leading-relaxed">
+            <p>
+              This playbook is for educational reference only. The steps describe
+              a general approach you can adapt to your specific situation.
+            </p>
+            <p className="mt-2 font-medium">
+              {GOVERNANCE_MICROCOPY.PLAYBOOK.BROWSE_NOTE}. {GOVERNANCE_MICROCOPY.PLAYBOOK.EXECUTION_NOTE}.
+            </p>
+            <p className="mt-1 text-muted-foreground/70">
+              {GOVERNANCE_PHRASES.NOTHING_APPLIES_WITHOUT_APPROVAL} · No background changes · No AI-initiated execution.
+            </p>
+          </div>
         </div>
       </div>
     </div>

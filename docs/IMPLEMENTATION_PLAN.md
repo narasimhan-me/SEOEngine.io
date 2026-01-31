@@ -32,6 +32,60 @@ This document tracks all implementation phases and their completion status.
 
 
 
+
+
+
+## [KAN-95] Implement: [EA-54] Redesign Top Nav to feel calm, premium, and intentional — without changing product capabilities.
+
+**Implemented:** 2026-01-31 16:15 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/web/src/app/globals.css`
+- `apps/web/src/components/layout/LayoutShell.tsx`
+- `apps/web/src/components/layout/TopNav.tsx`
+- `docs/jira/GLOBAL-NAV-DESTINATION-READINESS-1.md`
+- `docs/jira/GLOBAL-NAV-RESPONSIVE-ACCESSIBILITY-INTEGRITY-1.md`
+- `docs/jira/GLOBAL-TOP-NAV-COMPLETION-1.md`
+- `docs/jira/GLOBAL-TOP-NAV-VISUAL-DESIGN-POLISH-1.md`
+
+---
+
+## [KAN-91] Implement: [EA-52] Make EngineO.ai's safety boundaries explicit, discoverable, and boringly clear.
+
+**Implemented:** 2026-01-31 12:10 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/web/src/app/settings/help/page.tsx`
+- `apps/web/src/components/assistant/AiAssistantEntryPoint.tsx`
+- `apps/web/src/components/common/ApplyButton.tsx`
+- `apps/web/src/components/playbooks/PlaybookDetailPanel.tsx`
+- `apps/web/src/components/right-context-panel/ContextPanelActionPreview.tsx`
+- `apps/web/src/lib/governance-narrative.ts`
+- `apps/web/src/components/common/SafetyBoundariesPanel.tsx`
+- `apps/web/tests/safety-boundaries-1.spec.ts`
+- `scripts/zip-codebase.sh`
+
+---
+
+## [KAN-89] Implement: [EA-50] Enforce one consistent governance narrative across all surfaces where action is suggested, without introducing new rules or behavior.
+
+**Implemented:** 2026-01-31 11:41 UTC
+**Branch:** feature/agent
+
+### Files Modified:
+- `apps/web/src/components/assistant/AiAssistantEntryPoint.tsx`
+- `apps/web/src/components/common/DraftAiBoundaryNote.tsx`
+- `apps/web/src/components/playbooks/PlaybookDetailPanel.tsx`
+- `apps/web/src/components/right-context-panel/ContextPanelActionPreview.tsx`
+- `apps/web/src/components/right-context-panel/ContextPanelContentRenderer.tsx`
+- `apps/web/src/components/work-queue/ActionBundleCard.tsx`
+- `apps/web/src/lib/issue-to-action-guidance.ts`
+- `apps/web/src/lib/governance-narrative.ts`
+
+---
+
 ## [KAN-87] Implement: [EA-51] Define and surface what success looks like in EngineO.ai, especially for first-time users and early repeat sessions.
 
 **Implemented:** 2026-01-31 10:32 UTC

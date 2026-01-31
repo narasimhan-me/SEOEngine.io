@@ -107,15 +107,125 @@ from verification.auto_verify import (
 
 # Claude Code CLI is used for all personas (no API key required)
 # Model configuration per persona:
-# - UEP: opus (high-quality business analysis)
-# - Supervisor: opus (code understanding and PATCH BATCH generation)
-# - Developer: sonnet (faster implementation)
+# - UEP: opus
+# - Supervisor: opus
+# - Supervisor-Light: sonnet
+# - Implementer: sonnet
 CLAUDE_CODE_AVAILABLE = True  # Will be verified at runtime
 
-# Model aliases for Claude Code CLI
-MODEL_UEP = "opus"        # Best for business analysis
-MODEL_SUPERVISOR = "opus"  # Best for code analysis
-MODEL_IMPLEMENTER = "sonnet" # Faster for implementation
+# -----------------------------------------------------------------------------
+# LOCKED MODEL ASSIGNMENTS (GOVERNANCE - NON-NEGOTIABLE)
+# -----------------------------------------------------------------------------
+MODEL_UEP = "opus"
+MODEL_SUPERVISOR = "opus"
+MODEL_SUPERVISOR_LIGHT = "sonnet"
+MODEL_IMPLEMENTER = "sonnet"
+
+_LOCKED_ROLE_MODEL_ASSIGNMENTS: Dict[str, str] = {
+    "UEP": "opus",
+    "SUPERVISOR": "opus",
+    "SUPERVISOR_LIGHT": "sonnet",
+    "IMPLEMENTER": "sonnet",
+}
+
+
+def _model_for_role(role: str) -> str:
+    """Centralized, auditable model selection (no silent substitution)."""
+    if role not in _LOCKED_ROLE_MODEL_ASSIGNMENTS:
+        raise ValueError(f"Unknown role: {role}")
+    return _LOCKED_ROLE_MODEL_ASSIGNMENTS[role]
+
+
+def _assert_locked_model_assignments() -> None:
+    """Fail-closed if any role->model mapping drifts from the locked contract."""
+    runtime = {
+        "UEP": MODEL_UEP,
+        "SUPERVISOR": MODEL_SUPERVISOR,
+        "SUPERVISOR_LIGHT": MODEL_SUPERVISOR_LIGHT,
+        "IMPLEMENTER": MODEL_IMPLEMENTER,
+    }
+    for role, expected in _LOCKED_ROLE_MODEL_ASSIGNMENTS.items():
+        actual = runtime.get(role)
+        if actual != expected:
+            raise RuntimeError(f"Locked model mismatch for {role}: expected={expected} actual={actual}")
+
+
+def _looks_like_patch_or_diff(text: str) -> bool:
+    """Detect patch/diff-like output (role contract enforcement)."""
+    t = text or ""
+    if "*** Begin Patch" in t or "diff --git" in t:
+        return True
+    # PATCH BATCH markers
+    if "FILE:" in t and "---OLD---" in t and "---NEW---" in t:
+        return True
+    return False
+
+
+def _epic_has_required_uep_intent_contract(epic_description: str) -> bool:
+    """Supervisor must STOP if UEP intent contract is missing (no guessing)."""
+    d = (epic_description or "").lower()
+    required_markers = [
+        "scope class:",
+        "allowed roots:",
+        "diff budget:",
+        "verification required:",
+    ]
+    if not all(m in d for m in required_markers):
+        return False
+    # Require at least one checklist item in acceptance criteria
+    if "- [ ]" not in d and "- [x]" not in d:
+        return False
+    return True
+
+
+def _patch_batch_is_placeholder(content: str) -> bool:
+    """Detect non-actionable PATCH BATCH content (placeholder/TODO/template/boilerplate).
+
+    GOVERNANCE INVARIANT:
+    - Placeholder PATCH BATCH == NON-EXISTENT (must not be written to disk or forwarded).
+    """
+    raw = content or ""
+    c = raw.strip()
+    cl = c.lower()
+
+    if not c:
+        return True
+
+    # Must look like an actionable PATCH BATCH (basic structural markers).
+    required = ["file:", "---old---", "---new---", "---end---"]
+    if not all(marker in cl for marker in required):
+        return True
+
+    placeholder_markers = [
+        "todo",
+        "tbd",
+        "placeholder",
+        "human assistance required",
+        "no patches generated",
+        "identify exact code block",
+        "specify replacement code",
+        "file: <",
+        "operation: <",
+        "description: <",
+        "<existing code",
+        "<new code",
+        "status: placeholder",
+        "please update this file",
+    ]
+    if any(m in cl for m in placeholder_markers):
+        return True
+
+    if "{{" in raw and "}}" in raw:
+        return True
+
+    if len(c) < 80:
+        return True
+
+    return False
+
+
+class NonActionablePatchBatchError(RuntimeError):
+    """Raised when Supervisor output cannot be executed (placeholder/missing/invalid)."""
 
 # -----------------------------------------------------------------------------
 # CLAUDE EXECUTION HARDENING
@@ -397,6 +507,15 @@ def _canonical_verification_report_relpath(issue_key: str) -> str:
     return f"{artifacts_dir}/{issue_key}-verification.md"
 
 
+def _canonical_patch_batch_relpath(issue_key: str) -> str:
+    """Get canonical patch batch repo-relative path.
+
+    Returns: {ARTIFACTS_DIR}/{ISSUE_KEY}-patch-batch.md (repo root level)
+    """
+    artifacts_dir = _artifact_dirname()
+    return f"{artifacts_dir}/{issue_key}-patch-batch.md"
+
+
 def _legacy_verification_report_relpath(issue_key: str) -> str:
     """Get legacy verification report repo-relative path (for backward compat search).
 
@@ -675,6 +794,11 @@ def _write_patch_batch_artifact(repo_path: str, epic_key: str, run_id: str, cont
         Tuple of (epic_artifact_path, story_artifact_path_pattern).
         The story_artifact_path_pattern is the pattern used for the final stable path.
     """
+    # GOVERNANCE INVARIANT: Placeholder PATCH BATCH is treated as NON-EXISTENT.
+    # Never write placeholder/non-actionable patch batches to disk.
+    if _patch_batch_is_placeholder(content):
+        raise ValueError("Supervisor output is non-actionable (placeholder/TODO/template detected).")
+
     artifacts_dir = _artifact_dirname()
     reports_dir = Path(repo_path) / artifacts_dir
     reports_dir.mkdir(parents=True, exist_ok=True)
@@ -704,6 +828,8 @@ def _copy_patch_batch_for_story(repo_path: str, epic_artifact_path: str, story_k
 
     PATCH A: Creates {STORY_KEY}-patch-batch.md for stable reference.
 
+    GOVERNANCE: Do not propagate placeholder/non-actionable patch batches.
+
     Args:
         repo_path: Path to repository root.
         epic_artifact_path: Path to epic's patch batch file.
@@ -720,6 +846,8 @@ def _copy_patch_batch_for_story(repo_path: str, epic_artifact_path: str, story_k
     if full_epic_path.exists():
         try:
             content = full_epic_path.read_text(encoding='utf-8')
+            if _patch_batch_is_placeholder(content):
+                return story_path
             temp_path = full_story_path.with_suffix('.md.tmp')
             temp_path.write_text(content, encoding='utf-8')
             os.replace(str(temp_path), str(full_story_path))
@@ -733,6 +861,8 @@ def _load_patch_batch_from_file(repo_path: str, story_key: str, description: str
     """Load patch batch content from file.
 
     PATCH A: IMPLEMENTER loads patch batch from file instead of description.
+
+    GOVERNANCE: Placeholder PATCH BATCH == NON-EXISTENT.
 
     Priority:
     1. {STORY_KEY}-patch-batch.md (stable per-story path)
@@ -753,6 +883,8 @@ def _load_patch_batch_from_file(repo_path: str, story_key: str, description: str
     if story_path.exists():
         try:
             content = story_path.read_text(encoding='utf-8')
+            if _patch_batch_is_placeholder(content):
+                return None, f"{artifacts_dir}/{story_key}-patch-batch.md"
             return content, f"{artifacts_dir}/{story_key}-patch-batch.md"
         except OSError:
             pass
@@ -767,6 +899,8 @@ def _load_patch_batch_from_file(repo_path: str, story_key: str, description: str
                     if file_path.exists():
                         try:
                             content = file_path.read_text(encoding='utf-8')
+                            if _patch_batch_is_placeholder(content):
+                                return None, path_part
                             return content, path_part
                         except OSError:
                             pass
@@ -1526,12 +1660,13 @@ def load_dotenv(dotenv_path: Path) -> int:
 
 
 # =============================================================================
-# ROLE DEFINITIONS (v3.2)
+# ROLE DEFINITIONS (v3.3 - GOVERNANCE ENFORCED)
 # =============================================================================
 
 ROLE_UEP = {
     'name': 'UEP',
-    'version': '3.2',
+    'version': '3.3',
+    'model': 'opus',  # LOCKED
     'combines': [
         'Lead Product Manager',
         'Lead Technical Architect',
@@ -1552,12 +1687,19 @@ ROLE_UEP = {
         'NEVER write code',
         'NEVER describe code or file paths',
         'NEVER make implementation decisions'
-    ]
+    ],
+    # GOVERNANCE HARD CONSTRAINTS (enforced at runtime)
+    'hard_constraints': {
+        'output_must_not_contain': ['diff --git', '*** Begin Patch', 'FILE:', '---OLD---', '---NEW---'],
+        'escalate_if_violated': True,
+        'description': 'UEP output containing patch/diff markers is a role contract violation'
+    }
 }
 
 ROLE_SUPERVISOR = {
     'name': 'SUPERVISOR',
-    'version': '3.2',
+    'version': '3.3',
+    'model': 'opus',  # LOCKED
     'responsibilities': [
         'Validate UEP intent and resolve ambiguities',
         'Produce PATCH BATCH instructions (surgical, minimal diffs)',
@@ -1571,12 +1713,41 @@ ROLE_SUPERVISOR = {
         'Refuse requests requiring speculation or missing context',
         'No full file rewrites',
         'No adding new technologies unless explicitly authorized'
-    ]
+    ],
+    # GOVERNANCE HARD CONSTRAINTS (enforced at runtime)
+    'hard_constraints': {
+        'must_use_model_for_role': True,
+        'require_uep_intent_contract': True,
+        'reject_placeholder_patches': True,
+        'description': 'Supervisor must validate UEP intent contract, use locked model, reject placeholders'
+    }
+}
+
+# SUPERVISOR-LIGHT: Lightweight verification role (sonnet for cost efficiency)
+ROLE_SUPERVISOR_LIGHT = {
+    'name': 'SUPERVISOR_LIGHT',
+    'version': '3.3',
+    'model': 'sonnet',  # LOCKED
+    'responsibilities': [
+        'Lightweight verification of completed work',
+        'Checklist validation',
+        'Quick status checks'
+    ],
+    'restrictions': [
+        'No decomposition',
+        'No patch generation',
+        'No architectural decisions'
+    ],
+    'hard_constraints': {
+        'must_use_model_for_role': True,
+        'description': 'Supervisor-Light uses sonnet for cost-efficient verification'
+    }
 }
 
 ROLE_IMPLEMENTER = {
     'name': 'IMPLEMENTER',
-    'version': '3.2',
+    'version': '3.3',
+    'model': 'sonnet',  # LOCKED
     'responsibilities': [
         'Apply PATCH BATCH diffs EXACTLY as provided',
         'Write all code',
@@ -1591,7 +1762,13 @@ ROLE_IMPLEMENTER = {
         'Do NOT rewrite entire files',
         'Do NOT guess missing architecture',
         'No autonomous enhancements'
-    ]
+    ],
+    # GOVERNANCE HARD CONSTRAINTS (enforced at runtime)
+    'hard_constraints': {
+        'must_use_model_for_role': True,
+        'require_explicit_patch_batch': True,
+        'description': 'Implementer must receive explicit PATCH BATCH, never guess'
+    }
 }
 
 
@@ -2741,12 +2918,19 @@ class ExecutionEngine:
         else:
             self.log("SUPERVISOR", "Claude Code CLI not found - install with: npm install -g @anthropic-ai/claude-code")
 
+        # GOVERNANCE: Assert locked model assignments (fail-closed if drifted)
+        _assert_locked_model_assignments()
+        self.log("SUPERVISOR", f"Governance: model assignments verified (UEP={MODEL_UEP}, SUPERVISOR={MODEL_SUPERVISOR}, SUPERVISOR_LIGHT={MODEL_SUPERVISOR_LIGHT}, IMPLEMENTER={MODEL_IMPLEMENTER})")
+
         # PATCH 1: Initialize work ledger for state persistence across runs
         self.work_ledger = WorkLedger(config.repo_path)
         if self.work_ledger.load():
             self.log("SUPERVISOR", f"Work ledger loaded: {len(self.work_ledger.all_entries())} entries")
             # Print resumable entries summary on startup
-            resumable = self.work_ledger.get_resumable_entries(self._canonical_report_exists)
+            resumable = self.work_ledger.get_resumable_entries(
+                self._canonical_report_exists,
+                self._canonical_patch_batch_exists,
+            )
             if resumable:
                 self.log("SUPERVISOR", f"Resumable entries: {len(resumable)}")
                 for entry in resumable[:3]:  # Show first 3
@@ -2803,6 +2987,15 @@ class ExecutionEngine:
         Canonical path is {ARTIFACTS_DIR}/{ISSUE_KEY}-verification.md (artifact dir configurable).
         """
         rel = _canonical_verification_report_relpath(issue_key)
+        canonical_path = Path(self.config.repo_path) / rel
+        return canonical_path.exists()
+
+    def _canonical_patch_batch_exists(self, issue_key: str) -> bool:
+        """Check if canonical patch batch exists for a Story/Bug.
+
+        Canonical path is {ARTIFACTS_DIR}/{ISSUE_KEY}-patch-batch.md (artifact dir configurable).
+        """
+        rel = _canonical_patch_batch_relpath(issue_key)
         canonical_path = Path(self.config.repo_path) / rel
         return canonical_path.exists()
 
@@ -3191,7 +3384,10 @@ class ExecutionEngine:
 
         # Priority 1: RECOVER
         # Check work ledger for resumable entries (errors or missing artifacts)
-        resumable = self.work_ledger.get_resumable_entries(self._canonical_report_exists)
+        resumable = self.work_ledger.get_resumable_entries(
+                self._canonical_report_exists,
+                self._canonical_patch_batch_exists,
+            )
         for entry in resumable:
             self.log("SUPERVISOR", f"[RECOVER] Processing resumable entry: {entry.issueKey}")
 
@@ -3979,12 +4175,19 @@ IMPORTANT: Output ONLY the markdown in the required format."""
             epic_description = result.stdout.strip()
             self.log("UEP", f"Claude Code CLI generated {len(epic_description)} chars of business intent")
 
+            # GOVERNANCE: UEP must NOT produce patches or code
+            if _looks_like_patch_or_diff(epic_description):
+                self.log("UEP", "GOVERNANCE VIOLATION: UEP output contains patch/diff markers - role contract breach")
+                self.escalate("UEP", "Role Contract Violation", f"UEP produced patch/diff content for {idea_key}. UEP must produce intent only, never code.")
+                return self._basic_analyze_idea(idea_key, summary, description)
+
             # Add UEP signature
             epic_description += """
 
 ---
-*This Epic was created by UEP v3.2*
+*This Epic was created by UEP v3.3*
 *Powered by Claude Code CLI with Opus model (no API key required)*
+*Governance: model={MODEL_UEP}, role contract enforced*
 *Ready for Supervisor decomposition into implementation Stories*
 """
 
@@ -4094,11 +4297,13 @@ IMPORTANT: Output ONLY the markdown in the required format."""
         relevant_files = self._find_relevant_files(keywords)
         self.log("SUPERVISOR", f"Found {len(relevant_files)} potentially relevant files")
 
+        # GOVERNANCE: Never create placeholder stories/patches.
         if not relevant_files:
-            self.log("SUPERVISOR", "No relevant files found - creating placeholder Story")
-            return [self._create_placeholder_story(epic_key, summary, description)]
+            raise NonActionablePatchBatchError(
+                "Supervisor output is non-actionable (no relevant files found for exact diffs)."
+            )
 
-        # Analyze files and generate PATCH BATCH instructions
+        # Analyze files and generate PATCH BATCH instructions (fail-closed; no templates).
         patch_instructions = self._generate_patch_batch(epic_key, summary, description, relevant_files)
 
         return [patch_instructions]
@@ -4175,6 +4380,9 @@ IMPORTANT: Output ONLY the markdown in the required format."""
         PATCH A: Story description is concise and does NOT embed full patch batch.
         Full patch batch is returned separately for file storage.
 
+        GOVERNANCE: Template/fallback PATCH BATCH generation is forbidden.
+        Placeholder PATCH BATCH is treated as NON-EXISTENT.
+
         Returns:
             Dict with 'summary', 'description', and 'patch_batch_text' keys.
         """
@@ -4189,26 +4397,18 @@ IMPORTANT: Output ONLY the markdown in the required format."""
                     'content': content[:4000]  # Limit content size
                 })
 
-        # Use Claude Code CLI to generate PATCH BATCH (no API key required)
-        if self.claude_code_available and file_contents:
-            self.log("SUPERVISOR", "Using Claude Code CLI to analyze code and generate PATCH BATCH...")
-            patch_batch_text = self._claude_code_generate_patches(epic_key, summary, description, file_contents)
-        else:
-            self.log("SUPERVISOR", "Claude Code CLI not available - generating template PATCH BATCH")
-            # Create template patches
-            patch_sections = []
-            for f in files[:3]:
-                patch_sections.append(f"""
-FILE: {f['path']}
-OPERATION: edit
-DESCRIPTION: Add changes per Epic requirements
----OLD---
-// TODO: Identify exact code block to modify
----NEW---
-// TODO: Specify replacement code
----END---
-""")
-            patch_batch_text = '\n'.join(patch_sections) if patch_sections else "No patches generated"
+        if not (self.claude_code_available and file_contents):
+            raise NonActionablePatchBatchError(
+                "Supervisor output is non-actionable (insufficient code context to produce exact diffs)."
+            )
+
+        self.log("SUPERVISOR", "Using Claude Code CLI to analyze code and generate PATCH BATCH...")
+        patch_batch_text = self._claude_code_generate_patches(epic_key, summary, description, file_contents)
+
+        if _patch_batch_is_placeholder(patch_batch_text):
+            raise NonActionablePatchBatchError(
+                "Supervisor output is non-actionable (placeholder/TODO/template detected)."
+            )
 
         # PATCH A: Build concise story description (no full patch batch embedded)
         # Truncate implementation goal to stay within limits
@@ -4260,14 +4460,17 @@ Canonical verification report: {artifacts_dir}/{{STORY_KEY}}-verification.md
         """Use Claude Code CLI to analyze code and generate actual PATCH BATCH instructions (no API key required)
 
         Guardrails v1: Prompt requires ALLOWED FILES section in output
-        """
-        try:
-            # Build the file context for Claude
-            files_context = ""
-            for f in files:
-                files_context += f"\n\n### FILE: {f['path']}\n```\n{f['content']}\n```"
 
-            prompt = f"""You are the SUPERVISOR in an autonomous development system. Your role is to analyze code and generate PATCH BATCH instructions for implementation.
+        GOVERNANCE:
+        - Placeholder PATCH BATCH == NON-EXISTENT.
+        - Max retries: 2 (bounded).
+        - If exact diffs cannot be produced, Supervisor must STOP (NON_ACTIONABLE_PATCH_BATCH).
+        """
+        files_context = ""
+        for f in files:
+            files_context += f"\n\n### FILE: {f['path']}\n```\n{f['content']}\n```"
+
+        base_prompt = f"""You are the SUPERVISOR in an autonomous development system. Your role is to analyze code and generate PATCH BATCH instructions for implementation.
 
 ## Epic Requirements
 {epic_key}: {summary}
@@ -4320,135 +4523,100 @@ IMPORTANT: Output ONLY the PATCH BATCH instructions followed by the ALLOWED FILE
 
 Generate the PATCH BATCH instructions now:"""
 
-            self.log("SUPERVISOR", f"Calling Claude Code CLI ({MODEL_SUPERVISOR}) for code analysis...")
+        max_retries = 2
+        max_attempts = 1 + max_retries
+        model = _model_for_role("SUPERVISOR")
 
-            # PATCH 4: Use unified timeout source
-            self.log("SUPERVISOR", f"step timeout: DECOMPOSE={self.claude_timeout_seconds}s (derived from claude_timeout_seconds)")
+        for attempt in range(1, max_attempts + 1):
+            extra = ""
+            if attempt > 1:
+                extra = f"""
 
-            # Run Claude Code CLI with the prompt (using opus for deep code analysis)
-            result = subprocess.run(
-                ['claude', '--model', MODEL_SUPERVISOR, '-p', prompt, '--dangerously-skip-permissions'],
-                cwd=self.config.repo_path,
-                capture_output=True,
-                text=True,
-                timeout=self.claude_timeout_seconds  # PATCH 4: unified timeout
-            )
+## RETRY ATTEMPT {attempt}/{max_attempts} — STRICT RULES (NON-NEGOTIABLE)
 
-            if result.returncode != 0:
-                self.log("SUPERVISOR", f"Claude Code CLI error: {result.stderr[:200]}")
-                # Fallback to template
-                return self._generate_template_patches(files)
+1. Do NOT output TODO/TBD/placeholder/template content.
+2. If you cannot produce exact diffs with concrete ---OLD--- and ---NEW--- blocks, output exactly:
+   NON_ACTIONABLE_PATCH_BATCH
+   Reason: <one sentence>
+3. Do NOT guess intent or invent routes/behavior.
+"""
+            prompt = base_prompt + extra
 
-            patch_content = result.stdout.strip()
-            self.log("SUPERVISOR", f"Claude Code CLI generated {len(patch_content)} chars of PATCH BATCH")
+            try:
+                self.log("SUPERVISOR", f"Calling Claude Code CLI ({model}) for code analysis... (attempt {attempt}/{max_attempts})")
+                self.log("SUPERVISOR", f"step timeout: DECOMPOSE={self.claude_timeout_seconds}s (derived from claude_timeout_seconds)")
 
-            return patch_content
+                result = subprocess.run(
+                    ['claude', '--model', model, '-p', prompt, '--dangerously-skip-permissions'],
+                    cwd=self.config.repo_path,
+                    capture_output=True,
+                    text=True,
+                    timeout=self.claude_timeout_seconds
+                )
 
-        except subprocess.TimeoutExpired:
-            self.log("SUPERVISOR", "Claude Code CLI timed out")
-            return self._generate_template_patches(files)
-        except Exception as e:
-            self.log("SUPERVISOR", f"Claude Code CLI error: {e}")
-            return self._generate_template_patches(files)
+                if result.returncode != 0:
+                    self.log("SUPERVISOR", f"Claude Code CLI error: {result.stderr[:200]}")
+                    if attempt < max_attempts:
+                        continue
+                    raise NonActionablePatchBatchError(
+                        "Supervisor output is non-actionable (Claude CLI error; no valid PATCH BATCH)."
+                    )
+
+                patch_content = (result.stdout or "").strip()
+                self.log("SUPERVISOR", f"Claude Code CLI generated {len(patch_content)} chars of PATCH BATCH")
+
+                if (patch_content or "").strip().upper().startswith("NON_ACTIONABLE_PATCH_BATCH"):
+                    if attempt < max_attempts:
+                        continue
+                    raise NonActionablePatchBatchError(
+                        "Supervisor output is non-actionable (explicit NON_ACTIONABLE_PATCH_BATCH)."
+                    )
+
+                if _patch_batch_is_placeholder(patch_content):
+                    if attempt < max_attempts:
+                        continue
+                    raise NonActionablePatchBatchError(
+                        "Supervisor output is non-actionable (placeholder/TODO/template detected)."
+                    )
+
+                return patch_content
+
+            except subprocess.TimeoutExpired:
+                self.log("SUPERVISOR", "Claude Code CLI timed out")
+                if attempt < max_attempts:
+                    continue
+                raise NonActionablePatchBatchError(
+                    "Supervisor output is non-actionable (Claude CLI timeout; no valid PATCH BATCH)."
+                )
+            except NonActionablePatchBatchError:
+                raise
+            except Exception as e:
+                self.log("SUPERVISOR", f"Claude Code CLI error: {e}")
+                if attempt < max_attempts:
+                    continue
+                raise NonActionablePatchBatchError(
+                    "Supervisor output is non-actionable (unexpected error; no valid PATCH BATCH)."
+                )
+
+        raise NonActionablePatchBatchError("Supervisor output is non-actionable (no valid PATCH BATCH after retries).")
 
     def _generate_template_patches(self, files: List[dict]) -> str:
-        """Generate template patches when Claude Code CLI is not available"""
-        patch_sections = []
-        for f in files[:3]:
-            patch_sections.append(f"""
-FILE: {f.get('path', 'unknown')}
-OPERATION: edit
-DESCRIPTION: Add changes per Epic requirements
----OLD---
-// TODO: Identify exact code block to modify
----NEW---
-// TODO: Specify replacement code
----END---
-""")
-        return '\n'.join(patch_sections) if patch_sections else "No patches generated"
+        """Legacy helper (disabled).
+
+        GOVERNANCE: Template/placeholder PATCH BATCH generation is forbidden.
+        """
+        raise NonActionablePatchBatchError(
+            "Supervisor output is non-actionable (template PATCH BATCH generation is forbidden)."
+        )
 
     def _create_placeholder_story(self, epic_key: str, summary: str, description: str) -> dict:
-        """Create placeholder Story when no relevant files found.
+        """Legacy helper (disabled).
 
-        PATCH A: Story description is concise with patch batch file marker.
-        Returns placeholder patch batch text for file storage.
+        GOVERNANCE: Placeholder stories/patches must not be generated.
         """
-        # PATCH A: Truncate implementation goal for Jira limits
-        impl_goal = description[:JIRA_STORY_DESC_TARGET_CHARS // 2] if description else ""
-        if len(impl_goal) < len(description):
-            impl_goal += "\n\n[...truncated for Jira limits...]"
-
-        # PATCH A: Concise story description with file marker
-        artifacts_dir = _artifact_dirname()
-        story_description = f"""## Parent Epic
-{epic_key}: {summary}
-
-## Implementation Goal
-{impl_goal}
-
----
-
-## Codebase Analysis
-
-**Status:** No directly relevant files found in initial scan.
-
-The Supervisor requires human assistance to:
-1. Identify the correct files to modify
-2. Provide context about the codebase structure
-3. Specify the exact locations for changes
-
----
-
-## PATCH BATCH Location
-
-{PATCH_BATCH_FILE_MARKER} {artifacts_dir}/{{STORY_KEY}}-patch-batch.md
-
-Full PATCH BATCH instructions (placeholder template) stored in the artifact file above.
-
----
-
-## Verification Report Path
-
-Canonical verification report: {artifacts_dir}/{{STORY_KEY}}-verification.md
-
----
-*Story created by SUPERVISOR v3.2*
-*Human assistance required for PATCH BATCH specification*
-"""
-
-        # PATCH A: Enforce size limit
-        if len(story_description) > JIRA_STORY_DESC_MAX_CHARS:
-            truncate_at = JIRA_STORY_DESC_MAX_CHARS - 100
-            story_description = story_description[:truncate_at] + "\n\n[TRUNCATED]"
-
-        # PATCH A: Placeholder patch batch text for file storage
-        patch_batch_text = f"""PATCH BATCH: {summary}
-
-## Status: PLACEHOLDER - Human assistance required
-
-No directly relevant files found in initial codebase scan.
-
-## Action Required
-Please update this file with specific PATCH BATCH instructions
-after identifying the relevant codebase locations.
-
-## Template
-
-FILE: <path/to/relevant/file.tsx>
-OPERATION: edit
-DESCRIPTION: <description of change needed>
----OLD---
-<existing code to replace>
----NEW---
-<new code with changes>
----END---
-"""
-
-        return {
-            'summary': f"Implement: {summary}",
-            'description': story_description,
-            'patch_batch_text': patch_batch_text,  # PATCH A: Return separately
-        }
+        raise NonActionablePatchBatchError(
+            "Supervisor output is non-actionable (placeholder story generation is forbidden)."
+        )
 
     def step_3_story_implementation(self) -> bool:
         """Developer: Implement Stories using Claude Code CLI.
@@ -4458,18 +4626,36 @@ DESCRIPTION: <description of change needed>
         """
         self.log("DEVELOPER", "STEP 3: Checking for executable work items with 'To Do' status...")
 
-        if not stories:
-            self.log("IMPLEMENTER", "No Stories in 'To Do' status")
+        # Bug Execution Enablement: Get all executable work items (Stories and Bugs)
+        all_items = self.jira.get_executable_work_items()
+        todo_items = [i for i in all_items if i['fields']['status']['name'].lower() == 'to do']
+
+        if not todo_items:
+            self.log("DEVELOPER", "No Stories or Bugs in 'To Do' status")
             return False
 
-        self.log("IMPLEMENTER", f"Found {len(stories)} Stories in 'To Do' status")
+        # Story priority: select oldest Story first; only select Bug if no Stories exist
+        todo_stories = [i for i in todo_items if i['fields']['issuetype']['name'].lower() == 'story']
+        todo_bugs = [i for i in todo_items if i['fields']['issuetype']['name'].lower() == 'bug']
 
-        work_item_key = work_item['key']
+        if todo_stories:
+            work_item = todo_stories[0]
+            self.log("DEVELOPER", f"Found {len(todo_stories)} Stories in 'To Do' status")
+        elif todo_bugs:
+            work_item = todo_bugs[0]
+            self.log("DEVELOPER", f"Found {len(todo_bugs)} Bugs in 'To Do' status (no Stories pending)")
+            self.log("DEVELOPER", "Executing Bug as first-class work item")
+        else:
+            self.log("DEVELOPER", "No Stories or Bugs in 'To Do' status")
+            return False
+
+        key = work_item['key']
         work_item_type = work_item['fields']['issuetype']['name']
         summary = work_item['fields']['summary']
         description = self.jira.parse_adf_to_text(work_item['fields'].get('description', {}))
+        status = work_item['fields']['status']['name'].lower()
 
-        self.log("IMPLEMENTER", f"Implementing: [{key}] {summary}")
+        self.log("IMPLEMENTER", f"Implementing: [{key}] {summary} ({work_item_type})")
 
         # Check if docs modifications are allowed by ALLOWED FILES constraints
         allow_docs = _docs_allowed_by_constraints(description)
@@ -6337,8 +6523,6 @@ Initiative processed by UEP (Unified Executive Persona)
 """)
             return True
 
-        self.log("UEP", f"Processing Idea: [{key}] {summary}")
-
         # PATCH C: Check Work Ledger for existing epic children first
         ledger_entry = self.work_ledger.get(key)
         if ledger_entry and ledger_entry.children:
@@ -6463,7 +6647,31 @@ Business Intent Defined - Ready for Supervisor decomposition.
         description = self.jira.parse_adf_to_text(issue['fields'].get('description', {}))
         status = issue['fields']['status']['name']
 
+        # Extract EA key from Epic summary for ledger tracking (e.g., "[EA-52] Title" -> "EA-52")
+        ea_key = _infer_idea_key_from_epic_issue(issue)
+
         self.log("SUPERVISOR", f"Decomposing Epic: [{key}] {summary}")
+
+        # GOVERNANCE: Supervisor must STOP if UEP intent contract is missing
+        if not _epic_has_required_uep_intent_contract(description):
+            self.log("SUPERVISOR", f"GOVERNANCE: Epic {key} missing UEP intent contract (SCOPE CLASS, ALLOWED ROOTS, DIFF BUDGET, VERIFICATION REQUIRED)")
+            self.jira.add_comment(key, """
+**GOVERNANCE HOLD: Missing UEP Intent Contract**
+
+This Epic cannot be decomposed because it lacks required intent contract markers:
+- SCOPE CLASS: (required)
+- ALLOWED ROOTS: (required)
+- DIFF BUDGET: (required)
+- VERIFICATION REQUIRED: (required)
+- At least one checklist item `- [ ]` or `- [x]` (required)
+
+The UEP must update this Epic with the complete intent contract before Supervisor can proceed.
+No guessing or speculation will be performed.
+
+*Governance v3.3 - Role contract enforcement*
+""")
+            self.escalate("SUPERVISOR", "Missing UEP Intent Contract", f"Epic {key} lacks required intent contract markers. UEP must update before decomposition.")
+            return False
 
         # PATCH 3: Initialize manifest store
         manifest_store = DecompositionManifestStore(self.config.repo_path, manifest_dir=_artifact_dirname())
@@ -6505,8 +6713,48 @@ No new stories created.
         # PATCH 3: Analyze and generate stories
         self.log("SUPERVISOR", "Analyzing codebase to identify implementation targets...")
 
-        # Use enhanced Supervisor analysis
-        stories_to_create = self._supervisor_analyze_epic(epic_key, summary, description)
+        # Use enhanced Supervisor analysis (fail-closed on non-actionable/placeholder output).
+        try:
+            stories_to_create = self._supervisor_analyze_epic(epic_key, summary, description)
+        except NonActionablePatchBatchError as e:
+            reason = str(e) or "Supervisor output is non-actionable (placeholder/TODO/template detected)."
+            input_fp = compute_decomposition_fingerprint(description)
+            error_text = f"PATCH_BATCH_NON_ACTIONABLE[{input_fp[:12]}]: {reason}"
+            error_fp = compute_error_fingerprint(LastStep.SUPERVISOR.value, error_text)
+
+            existing_entry = self.work_ledger.get(key)
+            should_notify = not (existing_entry and existing_entry.last_error_fingerprint == error_fp)
+
+            if should_notify:
+                self.jira.add_comment(key, f"""## BLOCKED FOR REVIEW — Non-Actionable Supervisor Output
+
+Supervisor output is non-actionable (placeholder/TODO/template detected).
+
+**Reason:** {reason}
+
+**Governance invariant:** Placeholder PATCH BATCH is treated as NON-EXISTENT.
+- No placeholder patch artifacts will be written to disk.
+- Implementer will not be invoked for this ticket.
+
+**Next step:** Human must provide concrete diffs or clarify target files/intent so Supervisor can produce exact ---OLD---/---NEW--- blocks.
+""")
+                self.escalate(
+                    "SUPERVISOR",
+                    "Supervisor output is non-actionable (placeholder/TODO/template detected).",
+                    f"{key}: {reason}",
+                )
+
+            self.jira.transition_issue(key, contract_human_review_status())
+
+            self._upsert_work_ledger_entry(
+                issue_key=key,
+                issue_type="Epic",
+                status=status,
+                last_step=LastStep.SUPERVISOR.value,
+                last_step_result=StepResult.FAILED.value,
+                error_text=error_text,
+            )
+            return True
 
         # PATCH 3: Filter to only create missing stories (delta mode)
         stories_actually_needed = []
@@ -6540,16 +6788,84 @@ No new stories created.
         for story_def in stories_actually_needed:
             # PATCH A: Write patch batch to artifact file BEFORE story creation
             patch_batch_text = story_def.get('patch_batch_text', '')
-            if patch_batch_text:
-                try:
-                    epic_artifact_path, _ = _write_patch_batch_artifact(
-                        self.config.repo_path, key, self.run_id, patch_batch_text
+
+            # GOVERNANCE: Placeholder PATCH BATCH == NON-EXISTENT (hard stop).
+            if not patch_batch_text or _patch_batch_is_placeholder(patch_batch_text):
+                reason = "Supervisor output is non-actionable (placeholder/TODO/template detected)."
+                input_fp = compute_decomposition_fingerprint(description)
+                error_text = f"PATCH_BATCH_NON_ACTIONABLE[{input_fp[:12]}]: {reason}"
+                error_fp = compute_error_fingerprint(LastStep.SUPERVISOR.value, error_text)
+                existing_entry = self.work_ledger.get(key)
+                should_notify = not (existing_entry and existing_entry.last_error_fingerprint == error_fp)
+
+                if should_notify:
+                    self.jira.add_comment(key, f"""## BLOCKED FOR REVIEW — Non-Actionable Supervisor Output
+
+Supervisor output is non-actionable (placeholder/TODO/template detected).
+
+**Reason:** {reason}
+
+**Governance invariant:** Placeholder PATCH BATCH is treated as NON-EXISTENT.
+- No placeholder patch artifacts will be written to disk.
+- Implementer will not be invoked for this ticket.
+""")
+                    self.escalate(
+                        "SUPERVISOR",
+                        "Supervisor output is non-actionable (placeholder/TODO/template detected).",
+                        f"{key}: {reason}",
                     )
-                    self.log("SUPERVISOR", f"Wrote patch batch artifact: {epic_artifact_path}")
-                except Exception as e:
-                    self.log("SUPERVISOR", f"Failed to write patch batch artifact: {e}")
-                    artifacts_dir = _artifact_dirname()
-                    epic_artifact_path = f"{artifacts_dir}/{key}-{self.run_id}-patch-batch.md"
+
+                self.jira.transition_issue(key, contract_human_review_status())
+                self._upsert_work_ledger_entry(
+                    issue_key=key,
+                    issue_type="Epic",
+                    status=status,
+                    last_step=LastStep.SUPERVISOR.value,
+                    last_step_result=StepResult.FAILED.value,
+                    error_text=error_text,
+                )
+                return True
+
+            try:
+                epic_artifact_path, _ = _write_patch_batch_artifact(
+                    self.config.repo_path, key, self.run_id, patch_batch_text
+                )
+                self.log("SUPERVISOR", f"Wrote patch batch artifact: {epic_artifact_path}")
+            except (ValueError, OSError) as e:
+                reason = f"Supervisor output is non-actionable (failed to persist a valid PATCH BATCH artifact: {e})."
+                input_fp = compute_decomposition_fingerprint(description)
+                error_text = f"PATCH_BATCH_NON_ACTIONABLE[{input_fp[:12]}]: {reason}"
+                error_fp = compute_error_fingerprint(LastStep.SUPERVISOR.value, error_text)
+                existing_entry = self.work_ledger.get(key)
+                should_notify = not (existing_entry and existing_entry.last_error_fingerprint == error_fp)
+
+                if should_notify:
+                    self.jira.add_comment(key, f"""## BLOCKED FOR REVIEW — Non-Actionable Supervisor Output
+
+Supervisor output is non-actionable (placeholder/TODO/template detected).
+
+**Reason:** {reason}
+
+**Governance invariant:** Placeholder PATCH BATCH is treated as NON-EXISTENT.
+- No placeholder patch artifacts will be written to disk.
+- Implementer will not be invoked for this ticket.
+""")
+                    self.escalate(
+                        "SUPERVISOR",
+                        "Supervisor output is non-actionable (placeholder/TODO/template detected).",
+                        f"{key}: {reason}",
+                    )
+
+                self.jira.transition_issue(key, contract_human_review_status())
+                self._upsert_work_ledger_entry(
+                    issue_key=key,
+                    issue_type="Epic",
+                    status=status,
+                    last_step=LastStep.SUPERVISOR.value,
+                    last_step_result=StepResult.FAILED.value,
+                    error_text=error_text,
+                )
+                return True
 
             # PATCH A: Use create_story_with_retry for CONTENT_LIMIT_EXCEEDED handling
             artifacts_dir = _artifact_dirname()
@@ -6694,6 +7010,8 @@ Epic decomposed by SUPERVISOR v3.2 {mode_note}{partial_note}
 {story_list}
 """)
 
+        # reused_stories = keys of existing stories that were not newly created
+        reused_stories = [s['key'] for s in existing_stories]
         all_stories = created_stories + reused_stories
 
         if all_stories:
@@ -6736,8 +7054,7 @@ Ready for Developer implementation.
         Guardrails v1: Full enforcement (same as step_3_story_implementation)
         Bug Execution Enablement: Bugs are routed here and subject to same guardrails.
         """
-        work_item_key = issue['key']
-        key = work_item_key  # Alias for compatibility
+        key = issue['key']
         work_item_type = issue['fields']['issuetype']['name']
         summary = issue['fields']['summary']
         description = self.jira.parse_adf_to_text(issue['fields'].get('description', {}))
@@ -6753,6 +7070,57 @@ Ready for Developer implementation.
         # Check if docs modifications are allowed by ALLOWED FILES constraints
         allow_docs = _docs_allowed_by_constraints(description)
 
+        # Preflight gate: new-style Stories MUST have a canonical patch batch artifact.
+        requires_patch_batch = PATCH_BATCH_FILE_MARKER in description
+        canonical_patch_rel = _canonical_patch_batch_relpath(key)
+        canonical_patch_full = Path(self.config.repo_path) / canonical_patch_rel
+
+        if requires_patch_batch and not canonical_patch_full.exists():
+            failure_fp = compute_error_fingerprint(LastStep.IMPLEMENTER.value, "PATCH_BATCH_MISSING")
+            existing_entry = self.work_ledger.get(key)
+
+            # Idempotency: do not spam comments/escalations on repeat loops.
+            if (existing_entry and
+                existing_entry.status_last_observed == "BLOCKED_WAITING_PATCH_BATCH" and
+                existing_entry.last_error_fingerprint == failure_fp):
+                self.log("SUPERVISOR", f"[{key}] Waiting for patch batch artifact: {canonical_patch_rel}")
+                return True
+
+            artifacts_dir = _artifact_dirname()
+
+            self.jira.add_comment(key, f"""## Implementation BLOCKED — PATCH BATCH missing
+
+Canonical patch batch file not found: {canonical_patch_rel}
+
+**Required action (Supervisor):**
+1. Generate a fully concrete PATCH BATCH (no TODO/TBD/templates)
+2. Save it to: {key}-patch-batch.md
+
+Once the file exists at the canonical path, the engine will resume and route back to IMPLEMENTER.
+
+---
+*Status: BLOCKED_WAITING_PATCH_BATCH*
+""")
+
+            # Escalate once (deduped by ledger fingerprint/state)
+            self.escalate(
+                "SUPERVISOR",
+                f"PATCH_BATCH_MISSING: {key}",
+                f"Canonical patch batch missing: {canonical_patch_rel}\nStory: {summary}\n\nSupervisor must generate and write a concrete patch batch to {artifacts_dir}/{key}-patch-batch.md.",
+            )
+
+            # Transition to BLOCKED (Jira) and record non-resumable waiting state (ledger)
+            self.jira.transition_issue(key, 'BLOCKED')
+            self._upsert_work_ledger_entry(
+                issue_key=key,
+                issue_type=work_item_type,
+                status="BLOCKED_WAITING_PATCH_BATCH",
+                last_step=LastStep.IMPLEMENTER.value,
+                last_step_result=StepResult.FAILED.value,
+                error_text="PATCH_BATCH_MISSING",
+            )
+            return True  # STOP: do not invoke Implementer until artifact exists
+
         # PATCH A: Load patch batch from file (IMPLEMENTER access)
         patch_batch_content, patch_batch_source = _load_patch_batch_from_file(
             self.config.repo_path, key, description
@@ -6763,42 +7131,8 @@ Ready for Developer implementation.
             # Append patch batch to description for Claude
             description = description + f"\n\n## PATCH BATCH (from {patch_batch_source})\n\n{patch_batch_content}"
         else:
-            # PATCH A: Check if this is a new-style story that should have a patch batch file
-            if PATCH_BATCH_FILE_MARKER in description:
-                # Story description references a patch batch file but file is missing
-                self.log("IMPLEMENTER", f"[{key}] FAIL-CLOSED: Patch batch file missing")
-                artifacts_dir = _artifact_dirname()
-                self.jira.add_comment(key, f"""## Implementation BLOCKED
-
-Patch batch file not found.
-
-The story description references a patch batch file (via {PATCH_BATCH_FILE_MARKER}) but the file could not be located.
-
-Expected paths searched:
-- {artifacts_dir}/{key}-patch-batch.md (preferred)
-- Path from PATCH_BATCH_FILE: marker in description
-
-**ACTION REQUIRED:** Supervisor must regenerate the patch batch file or update the story description.
-
----
-*Status: BLOCKED - patch batch file missing*
-""")
-                # Transition to BLOCKED if available
-                self.jira.transition_issue(key, 'BLOCKED')
-
-                # Record blocked status to work ledger
-                self._upsert_work_ledger_entry(
-                    issue_key=key,
-                    issue_type="Story",
-                    status="BLOCKED",
-                    last_step=LastStep.IMPLEMENTER.value,
-                    last_step_result=StepResult.FAILED.value,
-                    error_text="Patch batch file missing",
-                )
-                return True  # Handled, but blocked
-            else:
-                # Legacy story without patch batch file marker - proceed with description only
-                self.log("IMPLEMENTER", "No patch batch file found (legacy story format)")
+            # Legacy story without patch batch file marker - proceed with description only
+            self.log("IMPLEMENTER", "No patch batch file found (legacy story format)")
 
         # Transition to In Progress if not already
         if 'to do' in status:
@@ -6938,20 +7272,7 @@ Verification report: {resolved_report_path}
 Files modified:
 {chr(10).join(['- ' + f for f in reported_files]) if reported_files else '(see git log for details)'}
 """)
-
-        # Transition to In Progress if not already
-        if 'to do' in status:
-            self.jira.transition_issue(work_item_key, 'In Progress')
-            self.jira.add_comment(work_item_key, f"""
-Implementation started by Claude Code Developer
-Branch: {self.config.feature_branch}
-Base SHA: {head_sha_before[:8] if head_sha_before else 'unknown'}
-
-**Guardrails v1 Active:**
-- Diff budget: {max_files} files
-- Frontend-only: {frontend_only}
-""")
-            self.log("IMPLEMENTER", f"Story {key} implementation complete")
+            self.log("IMPLEMENTER", f"{work_item_type} {key} implementation complete")
 
             # PATCH 2-C: Upsert ledger entry on success
             self._upsert_kan_story_run(key, {
@@ -6966,28 +7287,22 @@ Base SHA: {head_sha_before[:8] if head_sha_before else 'unknown'}
             # PATCH 5: Record success to work ledger
             self._upsert_work_ledger_entry(
                 issue_key=key,
-                issue_type="Story",
+                issue_type=work_item_type,
                 status="In Progress",
                 last_step=LastStep.IMPLEMENTER.value,
-                last_step_result=StepResult.SUCCESS.value,  # FIXUP-1 PATCH 5
+                last_step_result=StepResult.SUCCESS.value,
                 last_commit_sha=head_sha_after or head_sha_before,
                 verification_report_path=resolved_report_path,
             )
         else:
-            # FIXUP-1 PATCH 1: Short-circuit if AGENT_TEMPLATE_ERROR already handled in _invoke_claude_code
-            if _is_agent_template_error(claude_output):
+            # FIXUP-1 PATCH 1: Short-circuit if AGENT_TEMPLATE_ERROR already handled
+            if _is_agent_template_error(output):
                 self.log("IMPLEMENTER", f"[{key}] AGENT_TEMPLATE_ERROR already handled; skipping generic failure handling")
                 return True  # Terminal handled
 
             self.log("IMPLEMENTER", f"Claude Code encountered issues")
 
-        # Invoke Claude
-        self.log("DEVELOPER", "Invoking Claude Code CLI for implementation...")
-        success, output, _ = self._invoke_claude_code(work_item_key, summary, description)
-
-        if not success:
-            self.log("DEVELOPER", f"Claude Code encountered issues")
-            self.jira.add_comment(work_item_key, f"""
+            self.jira.add_comment(key, f"""
 Claude Code implementation encountered issues.
 
 Claude Code failed; output saved to {artifact_path}
@@ -6997,10 +7312,11 @@ Run ID: {self.run_id}
 
 Human intervention may be required.
 """)
+
             self.escalate(
                 "IMPLEMENTER",
-                f"Story {key} Claude Code implementation issue",
-                f"Claude Code failed; output saved to {artifact_path}\nRun ID: {self.run_id}\n\nStory: {summary}"
+                f"{work_item_type} {key} Claude Code implementation issue",
+                f"Claude Code failed; output saved to {artifact_path}\nRun ID: {self.run_id}\n\n{work_item_type}: {summary}"
             )
 
             # PATCH 2-C: Upsert ledger entry on failure
@@ -7014,7 +7330,7 @@ Human intervention may be required.
             })
 
             # FIXUP-2 PATCH 1: Classify terminal result for proper Work Ledger recording
-            terminal_result = _classify_implementer_terminal_result(claude_output)
+            terminal_result = _classify_implementer_terminal_result(output)
             error_constants = {
                 StepResult.TIMED_OUT.value: "Implementation timed out",
                 StepResult.CANCELLED.value: "Implementation cancelled (lock/session conflict)",
@@ -7022,17 +7338,16 @@ Human intervention may be required.
             }
             error_text = error_constants.get(terminal_result, "Implementation failed")
 
-            # PATCH 5: Record to work ledger with classified terminal outcome
+            # PATCH 5: Record failure to work ledger
             self._upsert_work_ledger_entry(
                 issue_key=key,
-                issue_type="Story",
+                issue_type=work_item_type,
                 status="failed",
                 last_step=LastStep.IMPLEMENTER.value,
-                last_step_result=terminal_result,  # FIXUP-2 PATCH 1: Classified result
+                last_step_result=terminal_result,
                 last_commit_sha=head_sha_after or head_sha_before,
                 error_text=error_text,
             )
-            return True
 
         self.log("IMPLEMENTER", "Notifying Supervisor for verification...")
         return True
@@ -7095,8 +7410,28 @@ Important:
 - Make ONLY the changes specified in the PATCH BATCH
 - Do NOT refactor or change unrelated code
 - Preserve existing formatting and structure
-- If PATCH BATCH is unclear, implement based on the Epic requirements
 - Run tool/command actions sequentially (one at a time); do not run concurrent tool operations.
+
+## GOVERNANCE v3.3 - IMPLEMENTER ROLE CONTRACT
+
+**HARD RULES (NON-NEGOTIABLE):**
+1. NEVER GUESS: If PATCH BATCH is unclear, ambiguous, or contains placeholders - STOP IMMEDIATELY
+2. NEVER SPECULATE: Do not invent file paths, code patterns, or implementation details
+3. EXPLICIT ONLY: Every change must be explicitly specified in the PATCH BATCH
+4. FAIL-CLOSED: If uncertain about any patch, output "AMBIGUOUS PATCH BATCH" and halt
+
+If you encounter:
+- TODO/TBD markers in patch content
+- Template variables ({{ }})
+- Missing ---OLD--- or ---NEW--- sections
+- Files that don't exist at specified paths
+
+Then STOP and output:
+```
+AMBIGUOUS PATCH BATCH DETECTED
+Cannot proceed without explicit, complete patches.
+Blocking for Supervisor regeneration.
+```
 
 Begin implementation now.
 """
@@ -7641,6 +7976,25 @@ Examples:
                 # Force specific issue type
                 issue = engine.jira.get_issue(issue_key)
                 if issue:
+                    actual_type = issue['fields']['issuetype']['name'].lower()
+                    forced_type = args.type.lower()
+
+                    # GOVERNANCE: Warn about cross-role forced routing
+                    # This is allowed but logged for audit purposes
+                    cross_role_map = {
+                        ('epic', 'story'): ('SUPERVISOR', 'IMPLEMENTER'),
+                        ('epic', 'bug'): ('SUPERVISOR', 'IMPLEMENTER'),
+                        ('story', 'epic'): ('IMPLEMENTER', 'SUPERVISOR'),
+                        ('bug', 'epic'): ('IMPLEMENTER', 'SUPERVISOR'),
+                        ('idea', 'story'): ('UEP', 'IMPLEMENTER'),
+                        ('idea', 'epic'): ('UEP', 'SUPERVISOR'),
+                    }
+                    cross_key = (actual_type, forced_type)
+                    if cross_key in cross_role_map:
+                        actual_role, forced_role = cross_role_map[cross_key]
+                        engine.log("GOVERNANCE", f"Cross-role forced routing: {issue_key} actual={actual_type}({actual_role}) -> forced={forced_type}({forced_role})")
+                        engine.log("GOVERNANCE", "WARNING: Forcing type may bypass role contracts. Ensure this is intentional.")
+
                     # Override issue type
                     issue['fields']['issuetype']['name'] = args.type.title()
                     if args.type == 'idea':

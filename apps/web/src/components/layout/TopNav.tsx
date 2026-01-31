@@ -265,10 +265,11 @@ export default function TopNav() {
     );
   }
 
+  // [KAN-94: EA-54] Redesigned TopNav for calm, premium feel
   return (
-    <header className="sticky top-0 z-50 bg-background border-b border-border">
+    <header className="sticky top-0 z-50 bg-background border-b border-border/60">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
+        <div className="flex justify-between h-14">
           <div className="flex">
             <GuardedLink
               href="/projects"
@@ -291,10 +292,11 @@ export default function TopNav() {
                 className="hidden dark:block"
               />
             </GuardedLink>
-            <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
+            {/* [KAN-94: EA-54] Primary nav links with improved active states */}
+            <div className="hidden sm:ml-8 sm:flex sm:items-center sm:gap-1">
               <GuardedLink
                 href="/projects"
-                className="inline-flex items-center px-1 pt-1 text-sm font-medium text-foreground hover:text-primary"
+                className="inline-flex items-center px-3 py-2 text-sm font-medium text-foreground relative after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:w-4/5 after:h-0.5 after:rounded-full after:bg-[hsl(var(--nav-active-indicator,var(--primary)))] hover:bg-muted/30 transition-colors rounded"
               >
                 Projects
               </GuardedLink>
@@ -302,7 +304,7 @@ export default function TopNav() {
               {user?.role === 'ADMIN' && !!user?.adminRole && (
                 <GuardedLink
                   href="/admin"
-                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-purple-700 dark:text-purple-400 hover:text-purple-900 dark:hover:text-purple-300"
+                  className="inline-flex items-center px-3 py-2 text-sm font-medium text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/30 transition-colors rounded"
                 >
                   Admin
                 </GuardedLink>

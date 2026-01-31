@@ -10,6 +10,8 @@ import {
 } from '@/lib/route-context';
 // [DRAFT-AI-ENTRYPOINT-CLARITY-1] AI boundary note for generation entrypoints
 import { DraftAiBoundaryNote } from '@/components/common/DraftAiBoundaryNote';
+// [KAN-88: EA-50] Centralized governance narrative
+import { GOVERNANCE_PHRASES, GOVERNANCE_BADGES, GOVERNANCE_MICROCOPY } from '@/lib/governance-narrative';
 // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-1] Use centralized routing helper
 import {
   buildPlaybookRunHref,
@@ -371,17 +373,18 @@ export function ActionBundleCard({
 
         {/* AI usage badge */}
         {/* [COUNT-INTEGRITY-1.1 PATCH 8] Trust-building AI badge copy */}
+        {/* [KAN-88: EA-50] Uses centralized governance phrases */}
         <span
           className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
             bundle.aiUsage === 'NONE'
               ? 'bg-gray-100 text-gray-600'
               : 'bg-purple-100 text-purple-700'
           }`}
-          title={bundle.aiDisclosureText}
+          title={bundle.aiDisclosureText || (bundle.aiUsage === 'NONE' ? GOVERNANCE_BADGES.AI_USAGE.NONE : GOVERNANCE_PHRASES.AI_DRAFT_DISCLOSURE)}
           data-testid={`action-bundle-ai-badge-${bundle.aiUsage.toLowerCase()}`}
         >
           {bundle.aiUsage === 'NONE' ? (
-            'Does not use AI'
+            GOVERNANCE_BADGES.AI_USAGE.NONE
           ) : (
             <>
               <svg
@@ -392,7 +395,7 @@ export function ActionBundleCard({
                 <path d="M10 2a8 8 0 100 16 8 8 0 000-16zm0 14a6 6 0 110-12 6 6 0 010 12z" />
                 <path d="M10 5a1 1 0 011 1v4.586l2.707 2.707a1 1 0 01-1.414 1.414l-3-3A1 1 0 019 11V6a1 1 0 011-1z" />
               </svg>
-              AI used for drafts only
+              {GOVERNANCE_BADGES.AI_USAGE.DRAFTS_ONLY}
             </>
           )}
         </span>
@@ -476,6 +479,12 @@ export function ActionBundleCard({
         {(primaryCta === 'Generate Drafts' ||
           primaryCta === 'Generate Full Drafts') && (
           <DraftAiBoundaryNote mode="generate" />
+        )}
+        {/* [KAN-88: EA-50] Governance micro-copy for all actionable bundles */}
+        {primaryCta && !disabledReason && (
+          <p className="mt-1 text-xs text-gray-500">
+            {GOVERNANCE_MICROCOPY.WORK_QUEUE.BUNDLE_HINT}
+          </p>
         )}
       </div>
     </div>

@@ -1,5 +1,6 @@
 /**
  * [DRAFT-AI-ENTRYPOINT-CLARITY-1] AI Boundary Note Component
+ * [KAN-88: EA-50] Updated to use centralized governance narrative
  *
  * Provides explicit labeling at AI boundaries in the draft workflow:
  * - Review mode: Clarifies that review/edit is human-only
@@ -7,10 +8,12 @@
  *
  * LOCKED COPY (do not modify without phase approval):
  * - Review: "Review & edit (no AI on this step)"
- * - Generate: "AI used for drafts only" + "AI is not used at Apply"
+ * - Generate: Uses GOVERNANCE_PHRASES.AI_DRAFT_DISCLOSURE
  */
 
 'use client';
+
+import { GOVERNANCE_PHRASES } from '@/lib/governance-narrative';
 
 interface DraftAiBoundaryNoteProps {
   mode: 'review' | 'generate';
@@ -76,7 +79,7 @@ export function DraftAiBoundaryNote({ mode }: DraftAiBoundaryNoteProps) {
         />
       </svg>
       <span>
-        <strong>AI used for drafts only</strong> · AI is not used at Apply
+        <strong>{GOVERNANCE_PHRASES.AI_USED_FOR_DRAFTS_ONLY}</strong> · {GOVERNANCE_PHRASES.AI_NOT_USED_AT_APPLY}
       </span>
     </div>
   );

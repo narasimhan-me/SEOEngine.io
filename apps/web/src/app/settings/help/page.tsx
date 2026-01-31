@@ -3,11 +3,14 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { isAuthenticated } from '@/lib/auth';
+import { SafetyBoundariesPanel } from '@/components/common/SafetyBoundariesPanel';
 
 /**
  * [SELF-SERVICE-1] Help Hub (D7)
  * [GTM-ONBOARD-1] First DEO Win restart entry point
+ * [KAN-90: EA-52] Safety Boundaries discoverable location
  *
+ * - Safety boundaries explanation (EA-52)
  * - Help center link
  * - Contact support entry point
  * - "Report an issue" with context guidance
@@ -29,6 +32,11 @@ export default function HelpPage() {
       </p>
 
       <div className="space-y-6">
+        {/* [KAN-90: EA-52] Safety Boundaries - Primary discoverable location */}
+        <div id="safety-boundaries">
+          <SafetyBoundariesPanel mode="full" />
+        </div>
+
         {/* Help Center */}
         <div className="bg-white shadow rounded-lg p-6">
           <div className="flex items-start">

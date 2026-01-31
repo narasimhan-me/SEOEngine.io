@@ -21,6 +21,7 @@ import {
   BlockedStateExplanation,
   type BlockerCategory,
 } from '@/components/common/BlockedStateExplanation';
+import { SAFETY_BOUNDARIES } from '@/lib/governance-narrative';
 
 interface ApplyButtonProps {
   /** Governance signals for state derivation */
@@ -205,6 +206,13 @@ export function ApplyButton({
           </>
         )}
       </button>
+
+      {/* [KAN-90: EA-52] Safety boundary reminder */}
+      {governance.state === 'CAN_APPLY' && (
+        <p className="text-[10px] text-muted-foreground/60 text-center">
+          {SAFETY_BOUNDARIES.GUARANTEES.NO_AUTO_APPLY.description.split('.')[0]}.
+        </p>
+      )}
     </div>
   );
 }
