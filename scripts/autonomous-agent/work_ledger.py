@@ -359,15 +359,16 @@ class WorkLedger:
         """
         return dict(self._entries)
 
-    def get_resumable_entries(self, canonical_report_checker=None) -> List[WorkLedgerEntry]:
-        """Get entries that are resumable (non-terminal or missing artifacts).
+    def get_resumable_entries(self, canonical_report_checker=None, canonical_patch_batch_checker=None) -> List[WorkLedgerEntry]:
+        """Get entries that are resumable (bounded retries; missing-artifact aware).
 
         An entry is resumable if:
         1. last_step is set AND
         2. Either:
-           a. Required artifact missing (canonical verification report for VERIFY/RECONCILE)
+           a. Entry is BLOCKED_WAITING_PATCH_BATCH AND canonical patch batch now exists
+           b. Transient terminal failure: last_step_result is timed_out or cancelled
+           c. Required artifact missing (canonical verification report for VERIFY/RECONCILE)
               ONLY for implement issue types (Story/Bug by default)
-           b. last_error_fingerprint is present (terminal failure, may have retries)
         3. AND NOT a non-retryable error (AGENT_TEMPLATE_ERROR)
 
         PATCH 2: Epics/Ideas are NOT resumable solely due to missing canonical reports.
@@ -377,6 +378,8 @@ class WorkLedger:
         Args:
             canonical_report_checker: Optional callable(issue_key) -> bool
                 that returns True if canonical report exists.
+            canonical_patch_batch_checker: Optional callable(issue_key) -> bool
+                that returns True if canonical patch batch exists.
 
         Returns:
             List of resumable WorkLedgerEntry objects.
@@ -392,13 +395,21 @@ class WorkLedger:
             if not entry.last_step:
                 continue
 
+            # Missing PATCH BATCH is a hard precondition failure:
+            # do NOT treat as resumable until the canonical artifact exists.
+            if entry.status_last_observed == "BLOCKED_WAITING_PATCH_BATCH":
+                if canonical_patch_batch_checker and canonical_patch_batch_checker(entry.issueKey):
+                    resumable.append(entry)
+                continue
+
             # FIXUP-1 PATCH 2: Skip non-retryable AGENT_TEMPLATE_ERROR entries
             if entry.last_error_fingerprint == agent_template_error_fp:
                 continue
 
-            # Check for terminal failure with error fingerprint
+            # Only transient failures are resumable (timeouts, cancellations).
             if entry.last_error_fingerprint:
-                resumable.append(entry)
+                if entry.last_step_result in (StepResult.TIMED_OUT.value, StepResult.CANCELLED.value):
+                    resumable.append(entry)
                 continue
 
             # Check for missing artifacts in VERIFY/RECONCILE paths

@@ -507,6 +507,15 @@ def _canonical_verification_report_relpath(issue_key: str) -> str:
     return f"{artifacts_dir}/{issue_key}-verification.md"
 
 
+def _canonical_patch_batch_relpath(issue_key: str) -> str:
+    """Get canonical patch batch repo-relative path.
+
+    Returns: {ARTIFACTS_DIR}/{ISSUE_KEY}-patch-batch.md (repo root level)
+    """
+    artifacts_dir = _artifact_dirname()
+    return f"{artifacts_dir}/{issue_key}-patch-batch.md"
+
+
 def _legacy_verification_report_relpath(issue_key: str) -> str:
     """Get legacy verification report repo-relative path (for backward compat search).
 
@@ -2918,7 +2927,10 @@ class ExecutionEngine:
         if self.work_ledger.load():
             self.log("SUPERVISOR", f"Work ledger loaded: {len(self.work_ledger.all_entries())} entries")
             # Print resumable entries summary on startup
-            resumable = self.work_ledger.get_resumable_entries(self._canonical_report_exists)
+            resumable = self.work_ledger.get_resumable_entries(
+                self._canonical_report_exists,
+                self._canonical_patch_batch_exists,
+            )
             if resumable:
                 self.log("SUPERVISOR", f"Resumable entries: {len(resumable)}")
                 for entry in resumable[:3]:  # Show first 3
@@ -2975,6 +2987,15 @@ class ExecutionEngine:
         Canonical path is {ARTIFACTS_DIR}/{ISSUE_KEY}-verification.md (artifact dir configurable).
         """
         rel = _canonical_verification_report_relpath(issue_key)
+        canonical_path = Path(self.config.repo_path) / rel
+        return canonical_path.exists()
+
+    def _canonical_patch_batch_exists(self, issue_key: str) -> bool:
+        """Check if canonical patch batch exists for a Story/Bug.
+
+        Canonical path is {ARTIFACTS_DIR}/{ISSUE_KEY}-patch-batch.md (artifact dir configurable).
+        """
+        rel = _canonical_patch_batch_relpath(issue_key)
         canonical_path = Path(self.config.repo_path) / rel
         return canonical_path.exists()
 
@@ -3363,7 +3384,10 @@ class ExecutionEngine:
 
         # Priority 1: RECOVER
         # Check work ledger for resumable entries (errors or missing artifacts)
-        resumable = self.work_ledger.get_resumable_entries(self._canonical_report_exists)
+        resumable = self.work_ledger.get_resumable_entries(
+                self._canonical_report_exists,
+                self._canonical_patch_batch_exists,
+            )
         for entry in resumable:
             self.log("SUPERVISOR", f"[RECOVER] Processing resumable entry: {entry.issueKey}")
 
@@ -7012,8 +7036,7 @@ Ready for Developer implementation.
         Guardrails v1: Full enforcement (same as step_3_story_implementation)
         Bug Execution Enablement: Bugs are routed here and subject to same guardrails.
         """
-        work_item_key = issue['key']
-        key = work_item_key  # Alias for compatibility
+        key = issue['key']
         work_item_type = issue['fields']['issuetype']['name']
         summary = issue['fields']['summary']
         description = self.jira.parse_adf_to_text(issue['fields'].get('description', {}))
@@ -7029,6 +7052,57 @@ Ready for Developer implementation.
         # Check if docs modifications are allowed by ALLOWED FILES constraints
         allow_docs = _docs_allowed_by_constraints(description)
 
+        # Preflight gate: new-style Stories MUST have a canonical patch batch artifact.
+        requires_patch_batch = PATCH_BATCH_FILE_MARKER in description
+        canonical_patch_rel = _canonical_patch_batch_relpath(key)
+        canonical_patch_full = Path(self.config.repo_path) / canonical_patch_rel
+
+        if requires_patch_batch and not canonical_patch_full.exists():
+            failure_fp = compute_error_fingerprint(LastStep.IMPLEMENTER.value, "PATCH_BATCH_MISSING")
+            existing_entry = self.work_ledger.get(key)
+
+            # Idempotency: do not spam comments/escalations on repeat loops.
+            if (existing_entry and
+                existing_entry.status_last_observed == "BLOCKED_WAITING_PATCH_BATCH" and
+                existing_entry.last_error_fingerprint == failure_fp):
+                self.log("SUPERVISOR", f"[{key}] Waiting for patch batch artifact: {canonical_patch_rel}")
+                return True
+
+            artifacts_dir = _artifact_dirname()
+
+            self.jira.add_comment(key, f"""## Implementation BLOCKED — PATCH BATCH missing
+
+Canonical patch batch file not found: {canonical_patch_rel}
+
+**Required action (Supervisor):**
+1. Generate a fully concrete PATCH BATCH (no TODO/TBD/templates)
+2. Save it to: {key}-patch-batch.md
+
+Once the file exists at the canonical path, the engine will resume and route back to IMPLEMENTER.
+
+---
+*Status: BLOCKED_WAITING_PATCH_BATCH*
+""")
+
+            # Escalate once (deduped by ledger fingerprint/state)
+            self.escalate(
+                "SUPERVISOR",
+                f"PATCH_BATCH_MISSING: {key}",
+                f"Canonical patch batch missing: {canonical_patch_rel}\nStory: {summary}\n\nSupervisor must generate and write a concrete patch batch to {artifacts_dir}/{key}-patch-batch.md.",
+            )
+
+            # Transition to BLOCKED (Jira) and record non-resumable waiting state (ledger)
+            self.jira.transition_issue(key, 'BLOCKED')
+            self._upsert_work_ledger_entry(
+                issue_key=key,
+                issue_type=work_item_type,
+                status="BLOCKED_WAITING_PATCH_BATCH",
+                last_step=LastStep.IMPLEMENTER.value,
+                last_step_result=StepResult.FAILED.value,
+                error_text="PATCH_BATCH_MISSING",
+            )
+            return True  # STOP: do not invoke Implementer until artifact exists
+
         # PATCH A: Load patch batch from file (IMPLEMENTER access)
         patch_batch_content, patch_batch_source = _load_patch_batch_from_file(
             self.config.repo_path, key, description
@@ -7036,79 +7110,11 @@ Ready for Developer implementation.
 
         if patch_batch_content:
             self.log("IMPLEMENTER", f"Loaded patch batch from: {patch_batch_source}")
-
-            # GOVERNANCE: Reject placeholder/ambiguous patch batch content
-            if _patch_batch_is_placeholder(patch_batch_content):
-                self.log("IMPLEMENTER", f"[{key}] GOVERNANCE: Patch batch is placeholder/ambiguous - blocking")
-                artifacts_dir = _artifact_dirname()
-                self.jira.add_comment(key, f"""## Implementation BLOCKED - Placeholder Patch Batch
-
-The patch batch file was found but contains placeholder or ambiguous content:
-- Source: {patch_batch_source}
-
-**GOVERNANCE RULE:** Implementer must NOT guess or speculate. Explicit patches required.
-
-**ACTION REQUIRED:** Supervisor must regenerate the patch batch with explicit, complete diffs.
-
-Common placeholder indicators detected:
-- TODO/TBD markers
-- Template variables ({{ }})
-- Very short content (<50 chars)
-
----
-*Governance v3.3 - Role contract enforcement*
-""")
-                self.jira.transition_issue(key, 'BLOCKED')
-                self._upsert_work_ledger_entry(
-                    issue_key=key,
-                    issue_type="Story",
-                    status="BLOCKED",
-                    last_step=LastStep.IMPLEMENTER.value,
-                    last_step_result=StepResult.FAILED.value,
-                    error_text="Patch batch is placeholder/ambiguous",
-                )
-                self.escalate("IMPLEMENTER", "Placeholder Patch Batch", f"Story {key} has placeholder patch batch content. Supervisor must regenerate.")
-                return True  # Handled, but blocked
-
             # Append patch batch to description for Claude
             description = description + f"\n\n## PATCH BATCH (from {patch_batch_source})\n\n{patch_batch_content}"
         else:
-            # PATCH A: Check if this is a new-style story that should have a patch batch file
-            if PATCH_BATCH_FILE_MARKER in description:
-                # Story description references a patch batch file but file is missing
-                self.log("IMPLEMENTER", f"[{key}] FAIL-CLOSED: Patch batch file missing")
-                artifacts_dir = _artifact_dirname()
-                self.jira.add_comment(key, f"""## Implementation BLOCKED
-
-Patch batch file not found.
-
-The story description references a patch batch file (via {PATCH_BATCH_FILE_MARKER}) but the file could not be located.
-
-Expected paths searched:
-- {artifacts_dir}/{key}-patch-batch.md (preferred)
-- Path from PATCH_BATCH_FILE: marker in description
-
-**ACTION REQUIRED:** Supervisor must regenerate the patch batch file or update the story description.
-
----
-*Status: BLOCKED - patch batch file missing*
-""")
-                # Transition to BLOCKED if available
-                self.jira.transition_issue(key, 'BLOCKED')
-
-                # Record blocked status to work ledger
-                self._upsert_work_ledger_entry(
-                    issue_key=key,
-                    issue_type="Story",
-                    status="BLOCKED",
-                    last_step=LastStep.IMPLEMENTER.value,
-                    last_step_result=StepResult.FAILED.value,
-                    error_text="Patch batch file missing",
-                )
-                return True  # Handled, but blocked
-            else:
-                # Legacy story without patch batch file marker - proceed with description only
-                self.log("IMPLEMENTER", "No patch batch file found (legacy story format)")
+            # Legacy story without patch batch file marker - proceed with description only
+            self.log("IMPLEMENTER", "No patch batch file found (legacy story format)")
 
         # Transition to In Progress if not already
         if 'to do' in status:
