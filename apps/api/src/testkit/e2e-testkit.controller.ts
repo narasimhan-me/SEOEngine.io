@@ -272,6 +272,287 @@ export class E2eTestkitController {
   }
 
   // ==========================================================================
+  // [SMOKE-TESTS] E2E Seeds for Smoke Test Suite
+  // ==========================================================================
+
+  /**
+   * POST /testkit/e2e/seed-bare-user
+   *
+   * Seed a user with no projects (bare account).
+   * Used for testing project creation flow.
+   *
+   * Body:
+   * - plan: "free" | "pro" | "business" (default: "free")
+   *
+   * Returns:
+   * - user (id, email)
+   * - accessToken
+   */
+  @Post('seed-bare-user')
+  async seedBareUser(
+    @Body() body: { plan?: string } = {}
+  ) {
+    this.ensureE2eMode();
+
+    const plan = body.plan ?? 'free';
+
+    const { user } = await createTestUser(this.prisma as any, {
+      plan,
+    });
+
+    const accessToken = this.jwtService.sign({ sub: user.id });
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+      },
+      accessToken,
+    };
+  }
+
+  /**
+   * POST /testkit/e2e/seed-user-at-project-limit
+   *
+   * Seed a free-plan user who has already reached their project limit.
+   * Used for testing plan gating on project creation.
+   *
+   * Returns:
+   * - user (id, email)
+   * - projectId (the existing project)
+   * - accessToken
+   */
+  @Post('seed-user-at-project-limit')
+  async seedUserAtProjectLimit() {
+    this.ensureE2eMode();
+
+    const { user } = await createTestUser(this.prisma as any, {
+      plan: 'free',
+    });
+
+    // Free plan allows 1 project - create it
+    const project = await createTestProject(this.prisma as any, {
+      userId: user.id,
+    });
+
+    const accessToken = this.jwtService.sign({ sub: user.id });
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+      },
+      projectId: project.id,
+      accessToken,
+    };
+  }
+
+  /**
+   * POST /testkit/e2e/seed-user-with-2fa
+   *
+   * Seed a user with 2FA enabled using a known TOTP secret.
+   * Returns a temp token for 2FA verification testing.
+   *
+   * The TOTP secret is deterministic so tests can generate valid codes.
+   *
+   * Returns:
+   * - user (id, email)
+   * - tempToken (for 2FA verification)
+   * - totpSecret (base32 secret for code generation)
+   */
+  @Post('seed-user-with-2fa')
+  async seedUserWith2FA() {
+    this.ensureE2eMode();
+
+    // Use a deterministic TOTP secret for E2E testing
+    const totpSecret = 'JBSWY3DPEHPK3PXP'; // Base32-encoded secret
+
+    const { user } = await createTestUser(this.prisma as any, {
+      plan: 'pro',
+    });
+
+    // Enable 2FA with known secret
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        twoFactorEnabled: true,
+        twoFactorSecret: totpSecret,
+      },
+    });
+
+    // Generate a temp token (simulating login with 2FA required)
+    const tempToken = this.jwtService.sign(
+      { sub: user.id, type: '2fa_pending' },
+      { expiresIn: '5m' }
+    );
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+      },
+      tempToken,
+      totpSecret,
+    };
+  }
+
+  /**
+   * POST /testkit/e2e/seed-project-missing-scope
+   *
+   * Seed a project with Shopify integration that has missing scopes.
+   * Used for testing rescope/reconnect flows.
+   *
+   * Returns:
+   * - user (id, email)
+   * - projectId
+   * - accessToken
+   * - missingScopes
+   */
+  @Post('seed-project-missing-scope')
+  async seedProjectMissingScope() {
+    this.ensureE2eMode();
+
+    const { user } = await createTestUser(this.prisma as any, {
+      plan: 'pro',
+    });
+
+    const project = await createTestProject(this.prisma as any, {
+      userId: user.id,
+    });
+
+    // Create Shopify integration with incomplete scopes
+    await this.prisma.integration.create({
+      data: {
+        projectId: project.id,
+        type: 'SHOPIFY',
+        externalId: `test-store-${Date.now()}.myshopify.com`,
+        config: {
+          shop: `test-store-${Date.now()}.myshopify.com`,
+          accessToken: 'shpat_test_token',
+          scope: 'read_products', // Missing read_content
+        },
+      },
+    });
+
+    const accessToken = this.jwtService.sign({ sub: user.id });
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+      },
+      projectId: project.id,
+      accessToken,
+      missingScopes: ['read_content'],
+    };
+  }
+
+  /**
+   * POST /testkit/e2e/seed-full-project-with-data
+   *
+   * Seed a complete project with:
+   * - Shopify connection (full scopes)
+   * - Products with mixed SEO states
+   * - Completed crawl with DEO score
+   * - Issues computed
+   *
+   * Used for testing full dashboard/insights flows.
+   *
+   * Returns:
+   * - user (id, email)
+   * - projectId
+   * - productIds
+   * - accessToken
+   * - deoScore
+   */
+  @Post('seed-full-project-with-data')
+  async seedFullProjectWithData() {
+    this.ensureE2eMode();
+
+    const { user } = await createTestUser(this.prisma as any, {
+      plan: 'pro',
+    });
+
+    const project = await createTestProject(this.prisma as any, {
+      userId: user.id,
+    });
+
+    // Connect Shopify with full scopes
+    await createTestShopifyStoreConnection(this.prisma as any, {
+      projectId: project.id,
+      scope: 'read_products,write_products,read_content,write_content',
+    });
+
+    // Create products with varied SEO states
+    const products = await createTestProducts(this.prisma as any, {
+      projectId: project.id,
+      count: 10,
+      withSeo: false,
+      withIssues: true,
+    });
+
+    // Add some products with complete SEO
+    const optimizedProducts = [];
+    for (let i = 0; i < 3; i++) {
+      const product = await this.prisma.product.create({
+        data: {
+          projectId: project.id,
+          externalId: `optimized_product_${i}_${Date.now()}`,
+          title: `Optimized Product ${i + 1}`,
+          description: 'A complete product description with all the details.',
+          seoTitle: `Optimized Product ${i + 1} | Best Quality`,
+          seoDescription: `Buy the best Optimized Product ${i + 1}. High quality materials, fast shipping, and excellent customer support.`,
+        },
+      });
+      optimizedProducts.push(product);
+    }
+
+    // Simulate completed crawl
+    await this.prisma.project.update({
+      where: { id: project.id },
+      data: {
+        lastCrawledAt: new Date(),
+      },
+    });
+
+    // Create DEO snapshot with score
+    const deoScore = 72;
+    await this.prisma.deoScoreSnapshot.create({
+      data: {
+        projectId: project.id,
+        overallScore: deoScore,
+        contentScore: 75,
+        entityScore: 70,
+        technicalScore: 68,
+        visibilityScore: 74,
+        computedAt: new Date(),
+      },
+    });
+
+    // Also update project's current DEO score
+    await this.prisma.project.update({
+      where: { id: project.id },
+      data: {
+        currentDeoScore: deoScore,
+        currentDeoScoreComputedAt: new Date(),
+      },
+    });
+
+    const accessToken = this.jwtService.sign({ sub: user.id });
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+      },
+      projectId: project.id,
+      productIds: [...products.map((p) => p.id), ...optimizedProducts.map((p) => p.id)],
+      accessToken,
+      deoScore,
+    };
+  }
+
+  // ==========================================================================
   // [SELF-SERVICE-1] E2E Seeds
   // ==========================================================================
 

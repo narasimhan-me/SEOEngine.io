@@ -11,6 +11,8 @@
  * - Config management
  */
 import { LocalDiscoveryService } from '../../../src/projects/local-discovery.service';
+import { RoleResolutionService } from '../../../src/common/role-resolution.service';
+import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import type { LocalDiscoveryScorecard, LocalSignalType } from '@engineo/shared';
 
 // Minimal mock factory for Prisma
@@ -36,13 +38,24 @@ const createPrismaMock = () => ({
   },
 });
 
+const createRoleResolutionMock = () => ({
+  assertProjectAccess: jest.fn().mockResolvedValue(undefined),
+  assertOwnerRole: jest.fn().mockResolvedValue(undefined),
+  hasProjectAccess: jest.fn().mockResolvedValue(true),
+});
+
 describe('LocalDiscoveryService', () => {
   let service: LocalDiscoveryService;
   let prismaMock: ReturnType<typeof createPrismaMock>;
+  let roleResolutionMock: ReturnType<typeof createRoleResolutionMock>;
 
   beforeEach(() => {
     prismaMock = createPrismaMock();
-    service = new LocalDiscoveryService(prismaMock as any);
+    roleResolutionMock = createRoleResolutionMock();
+    service = new LocalDiscoveryService(
+      prismaMock as any,
+      roleResolutionMock as unknown as RoleResolutionService
+    );
   });
 
   describe('determineApplicability', () => {
@@ -750,6 +763,242 @@ describe('LocalDiscoveryService', () => {
 
       expect(result.score).toBe(0);
       expect(prismaMock.projectLocalSignal.findMany).toHaveBeenCalled();
+    });
+  });
+
+  describe('getProjectLocalData', () => {
+    it('should return complete local data for project', async () => {
+      prismaMock.project.findUnique.mockResolvedValue({
+        id: 'proj-1',
+        userId: 'user-1',
+      });
+      prismaMock.projectLocalCoverage.findFirst.mockResolvedValue({
+        id: 'cov-1',
+        projectId: 'proj-1',
+        applicabilityStatus: 'APPLICABLE',
+        applicabilityReasons: ['merchant_declared_physical_presence'],
+        score: 50,
+        status: 'NEEDS_IMPROVEMENT',
+        signalCounts: {
+          location_presence: 1,
+          local_intent_coverage: 0,
+          local_trust_signals: 0,
+          local_schema_readiness: 0,
+        },
+        missingLocalSignalsCount: 1,
+        computedAt: new Date(),
+      });
+      prismaMock.projectLocalSignal.findMany.mockResolvedValue([
+        {
+          id: 'sig-1',
+          projectId: 'proj-1',
+          signalType: 'LOCATION_PRESENCE',
+          label: 'Store Address',
+          description: 'Main store location',
+          url: null,
+          evidence: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ]);
+      prismaMock.projectLocalFixDraft.findMany.mockResolvedValue([]);
+
+      const result = await service.getProjectLocalData('proj-1', 'user-1');
+
+      expect(result.projectId).toBe('proj-1');
+      expect(result.scorecard).toBeDefined();
+      expect(result.signals).toHaveLength(1);
+      expect(result.gaps).toBeDefined();
+      expect(result.openDrafts).toHaveLength(0);
+    });
+
+    it('should throw NotFoundException when project does not exist', async () => {
+      prismaMock.project.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.getProjectLocalData('proj-1', 'user-1')
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw ForbiddenException when user lacks access', async () => {
+      prismaMock.project.findUnique.mockResolvedValue({
+        id: 'proj-1',
+        userId: 'other-user',
+      });
+      roleResolutionMock.assertProjectAccess.mockRejectedValue(
+        new ForbiddenException('Access denied')
+      );
+
+      await expect(
+        service.getProjectLocalData('proj-1', 'user-1')
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should include open drafts that have not expired', async () => {
+      prismaMock.project.findUnique.mockResolvedValue({
+        id: 'proj-1',
+        userId: 'user-1',
+      });
+      prismaMock.projectLocalCoverage.findFirst.mockResolvedValue({
+        id: 'cov-1',
+        projectId: 'proj-1',
+        applicabilityStatus: 'APPLICABLE',
+        applicabilityReasons: ['merchant_declared_physical_presence'],
+        score: 50,
+        status: 'NEEDS_IMPROVEMENT',
+        signalCounts: {
+          location_presence: 0,
+          local_intent_coverage: 0,
+          local_trust_signals: 0,
+          local_schema_readiness: 0,
+        },
+        missingLocalSignalsCount: 2,
+        computedAt: new Date(),
+      });
+      prismaMock.projectLocalSignal.findMany.mockResolvedValue([]);
+      prismaMock.projectLocalFixDraft.findMany.mockResolvedValue([
+        {
+          id: 'draft-1',
+          projectId: 'proj-1',
+          productId: null,
+          gapType: 'MISSING_LOCATION_CONTENT',
+          signalType: 'LOCATION_PRESENCE',
+          focusKey: 'address',
+          draftType: 'CITY_SECTION',
+          draftPayload: { text: 'Draft content' },
+          aiWorkKey: 'work-123',
+          reusedFromWorkKey: null,
+          generatedWithAi: true,
+          createdAt: new Date(),
+          expiresAt: null,
+        },
+      ]);
+
+      const result = await service.getProjectLocalData('proj-1', 'user-1');
+
+      expect(result.openDrafts).toHaveLength(1);
+      expect(result.openDrafts[0].id).toBe('draft-1');
+      expect(result.openDrafts[0].draftType).toBe('city_section');
+    });
+  });
+
+  describe('getCachedProjectScorecard', () => {
+    it('should return null when no cache exists', async () => {
+      prismaMock.projectLocalCoverage.findFirst.mockResolvedValue(null);
+
+      const result = await service.getCachedProjectScorecard('proj-1');
+
+      expect(result).toBeNull();
+    });
+
+    it('should return cached scorecard without computing', async () => {
+      prismaMock.projectLocalCoverage.findFirst.mockResolvedValue({
+        id: 'cov-1',
+        projectId: 'proj-1',
+        applicabilityStatus: 'NOT_APPLICABLE',
+        applicabilityReasons: ['global_only_config'],
+        score: null,
+        status: null,
+        signalCounts: {
+          location_presence: 0,
+          local_intent_coverage: 0,
+          local_trust_signals: 0,
+          local_schema_readiness: 0,
+        },
+        missingLocalSignalsCount: 0,
+        computedAt: new Date(),
+      });
+
+      const result = await service.getCachedProjectScorecard('proj-1');
+
+      expect(result).not.toBeNull();
+      expect(result?.applicabilityStatus).toBe('not_applicable');
+      expect(result?.score).toBeUndefined();
+      expect(prismaMock.projectLocalSignal.findMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('buildLocalIssuesForProjectReadOnly', () => {
+    it('should return empty array when no cached scorecard exists', async () => {
+      prismaMock.projectLocalCoverage.findFirst.mockResolvedValue(null);
+
+      const result = await service.buildLocalIssuesForProjectReadOnly('proj-1');
+
+      expect(result).toEqual([]);
+    });
+
+    it('should return empty array for non-applicable projects', async () => {
+      prismaMock.projectLocalCoverage.findFirst.mockResolvedValue({
+        id: 'cov-1',
+        projectId: 'proj-1',
+        applicabilityStatus: 'NOT_APPLICABLE',
+        applicabilityReasons: ['global_only_config'],
+        score: null,
+        status: null,
+        signalCounts: {
+          location_presence: 0,
+          local_intent_coverage: 0,
+          local_trust_signals: 0,
+          local_schema_readiness: 0,
+        },
+        missingLocalSignalsCount: 0,
+        computedAt: new Date(),
+      });
+
+      const result = await service.buildLocalIssuesForProjectReadOnly('proj-1');
+
+      expect(result).toEqual([]);
+    });
+
+    it('should generate issues for applicable projects with gaps', async () => {
+      prismaMock.projectLocalCoverage.findFirst.mockResolvedValue({
+        id: 'cov-1',
+        projectId: 'proj-1',
+        applicabilityStatus: 'APPLICABLE',
+        applicabilityReasons: ['merchant_declared_physical_presence'],
+        score: 0,
+        status: 'WEAK',
+        signalCounts: {
+          location_presence: 0,
+          local_intent_coverage: 0,
+          local_trust_signals: 0,
+          local_schema_readiness: 0,
+        },
+        missingLocalSignalsCount: 2,
+        computedAt: new Date(),
+      });
+
+      const result = await service.buildLocalIssuesForProjectReadOnly('proj-1');
+
+      expect(result.length).toBeGreaterThan(0);
+      expect(result.every((i) => i.pillarId === 'local_discovery')).toBe(true);
+      expect(result.every((i) => i.actionability === 'manual')).toBe(true);
+    });
+  });
+
+  describe('getProjectLocalConfig', () => {
+    it('should return null when no config exists', async () => {
+      prismaMock.projectLocalConfig.findUnique.mockResolvedValue(null);
+
+      const result = await service.getProjectLocalConfig('proj-1');
+
+      expect(result).toBeNull();
+    });
+
+    it('should return config with serviceAreaDescription', async () => {
+      prismaMock.projectLocalConfig.findUnique.mockResolvedValue({
+        projectId: 'proj-1',
+        hasPhysicalLocation: true,
+        serviceAreaDescription: 'Denver metro area',
+        enabled: true,
+      });
+
+      const result = await service.getProjectLocalConfig('proj-1');
+
+      expect(result).not.toBeNull();
+      expect(result?.hasPhysicalLocation).toBe(true);
+      expect(result?.serviceAreaDescription).toBe('Denver metro area');
+      expect(result?.enabled).toBe(true);
     });
   });
 });

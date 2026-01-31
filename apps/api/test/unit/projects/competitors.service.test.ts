@@ -31,6 +31,9 @@ const createPrismaMock = () => ({
   productCompetitiveFixDraft: {
     findMany: jest.fn(),
   },
+  project: {
+    findUnique: jest.fn(),
+  },
 });
 
 const createRoleResolutionServiceMock = () => ({
@@ -211,5 +214,352 @@ describe('CompetitorsService', () => {
 
       expect(result).toEqual([]);
     });
+
+    it('should aggregate issues by gap type and area', async () => {
+      const mockProducts = [
+        { id: 'prod-1', title: 'Product 1' },
+        { id: 'prod-2', title: 'Product 2' },
+      ];
+
+      const mockCoverageRows = [
+        {
+          id: 'cov-1',
+          productId: 'prod-1',
+          coverageData: [
+            {
+              areaId: 'transactional_intent',
+              gapType: 'intent_gap',
+              merchantCovers: false,
+              oneCompetitorCovers: true,
+              twoOrMoreCompetitorsCovers: true,
+              severityWeight: 10,
+              intentType: 'transactional',
+            },
+          ],
+          overallScore: 40,
+          areasWhereCompetitorsLead: 1,
+          status: 'BEHIND',
+        },
+        {
+          id: 'cov-2',
+          productId: 'prod-2',
+          coverageData: [
+            {
+              areaId: 'transactional_intent',
+              gapType: 'intent_gap',
+              merchantCovers: false,
+              oneCompetitorCovers: true,
+              twoOrMoreCompetitorsCovers: false,
+              severityWeight: 10,
+              intentType: 'transactional',
+            },
+          ],
+          overallScore: 50,
+          areasWhereCompetitorsLead: 1,
+          status: 'BEHIND',
+        },
+      ];
+
+      prismaMock.product.findMany.mockResolvedValue(mockProducts);
+      prismaMock.productCompetitiveCoverage.findMany.mockResolvedValue(
+        mockCoverageRows
+      );
+
+      const result = await service.buildCompetitiveIssues('proj-1');
+
+      // Should aggregate both products into one issue
+      const intentIssue = result.find(
+        (i) => i.competitiveAreaId === 'transactional_intent'
+      );
+      expect(intentIssue).toBeDefined();
+      expect(intentIssue?.affectedProducts).toHaveLength(2);
+      expect(intentIssue?.pillarId).toBe('competitive_positioning');
+    });
+
+    it('should skip areas where merchant covers or no competitor covers', async () => {
+      const mockProducts = [{ id: 'prod-1', title: 'Product 1' }];
+
+      const mockCoverageRows = [
+        {
+          id: 'cov-1',
+          productId: 'prod-1',
+          coverageData: [
+            {
+              areaId: 'transactional_intent',
+              gapType: 'intent_gap',
+              merchantCovers: true, // Merchant covers
+              oneCompetitorCovers: true,
+              severityWeight: 10,
+            },
+            {
+              areaId: 'comparison_section',
+              gapType: 'content_section_gap',
+              merchantCovers: false,
+              oneCompetitorCovers: false, // No competitor covers
+              severityWeight: 8,
+            },
+          ],
+          overallScore: 70,
+          areasWhereCompetitorsLead: 0,
+          status: 'ON_PAR',
+        },
+      ];
+
+      prismaMock.product.findMany.mockResolvedValue(mockProducts);
+      prismaMock.productCompetitiveCoverage.findMany.mockResolvedValue(
+        mockCoverageRows
+      );
+
+      const result = await service.buildCompetitiveIssues('proj-1');
+
+      expect(result).toHaveLength(0);
+    });
   });
+
+  describe('getProjectCompetitiveScorecard', () => {
+    it('should return scorecard with aggregated metrics', async () => {
+      prismaMock.project.findUnique.mockResolvedValue({ id: 'proj-1' });
+      prismaMock.product.findMany.mockResolvedValue([
+        { id: 'prod-1' },
+        { id: 'prod-2' },
+      ]);
+      prismaMock.productCompetitiveCoverage.findMany.mockResolvedValue([
+        {
+          productId: 'prod-1',
+          overallScore: 80,
+          areasWhereCompetitorsLead: 1,
+          status: 'AHEAD',
+          coverageData: [
+            {
+              areaId: 'transactional_intent',
+              gapType: 'intent_gap',
+              merchantCovers: true,
+            },
+          ],
+        },
+        {
+          productId: 'prod-2',
+          overallScore: 40,
+          areasWhereCompetitorsLead: 3,
+          status: 'BEHIND',
+          coverageData: [
+            {
+              areaId: 'transactional_intent',
+              gapType: 'intent_gap',
+              merchantCovers: false,
+            },
+          ],
+        },
+      ]);
+
+      const result = await service.getProjectCompetitiveScorecard(
+        'proj-1',
+        'user-1'
+      );
+
+      expect(result.totalProducts).toBe(2);
+      expect(result.productsAhead).toBe(1);
+      expect(result.productsBehind).toBe(1);
+      expect(result.overallScore).toBe(60); // (80 + 40) / 2
+      expect(result.gapBreakdown).toBeDefined();
+    });
+
+    it('should throw NotFoundException when project not found', async () => {
+      prismaMock.project.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.getProjectCompetitiveScorecard('proj-1', 'user-1')
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should return default scorecard when no products exist', async () => {
+      prismaMock.project.findUnique.mockResolvedValue({ id: 'proj-1' });
+      prismaMock.product.findMany.mockResolvedValue([]);
+
+      const result = await service.getProjectCompetitiveScorecard(
+        'proj-1',
+        'user-1'
+      );
+
+      expect(result.totalProducts).toBe(0);
+      expect(result.overallScore).toBe(0);
+      expect(result.status).toBe('Behind');
+      expect(result.gapBreakdown).toHaveLength(3);
+    });
+
+    it('should throw ForbiddenException when user lacks access', async () => {
+      prismaMock.project.findUnique.mockResolvedValue({ id: 'proj-1' });
+      roleResolutionServiceMock.assertProjectAccess.mockRejectedValue(
+        new ForbiddenException('Access denied')
+      );
+
+      await expect(
+        service.getProjectCompetitiveScorecard('proj-1', 'user-1')
+      ).rejects.toThrow(ForbiddenException);
+    });
+  });
+
+  describe('analyzeProductCompetitiveCoverage', () => {
+    it('should analyze coverage and create heuristic competitors', async () => {
+      const mockProduct = {
+        id: 'prod-1',
+        projectId: 'proj-1',
+        title: 'Test Widget Product',
+        description: 'A test description with buy keyword',
+        seoTitle: null,
+        seoDescription: null,
+        answerBlocks: [],
+        intentCoverages: [],
+      };
+
+      prismaMock.product.findUnique.mockResolvedValue(mockProduct);
+      prismaMock.productCompetitor.findMany.mockResolvedValue([]);
+      prismaMock.productCompetitor.create.mockResolvedValue({});
+      prismaMock.productCompetitiveCoverage.upsert.mockResolvedValue({});
+
+      const result = await service.analyzeProductCompetitiveCoverage('prod-1');
+
+      expect(result.productId).toBe('prod-1');
+      expect(result.competitors).toBeDefined();
+      expect(result.coverageAreas).toBeDefined();
+      expect(result.overallScore).toBeDefined();
+      expect(result.status).toBeDefined();
+
+      // Should have created heuristic competitors
+      expect(prismaMock.productCompetitor.create).toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException for non-existent product', async () => {
+      prismaMock.product.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.analyzeProductCompetitiveCoverage('prod-1')
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should detect intent coverage from product data', async () => {
+      const mockProduct = {
+        id: 'prod-1',
+        projectId: 'proj-1',
+        title: 'Premium Widget',
+        description: 'Compare this to alternatives, buy now with guarantee',
+        seoTitle: 'Best Widget - Why Choose Us',
+        seoDescription: 'FAQ about our product features',
+        answerBlocks: [
+          {
+            questionText: 'What is it?',
+            answerText: 'This product helps you with buying decisions',
+          },
+        ],
+        intentCoverages: [
+          { intentType: 'TRANSACTIONAL', coverageStatus: 'COVERED' },
+        ],
+      };
+
+      prismaMock.product.findUnique.mockResolvedValue(mockProduct);
+      prismaMock.productCompetitor.findMany.mockResolvedValue([
+        { id: 'comp-1', displayName: 'Competitor A', source: 'heuristic_category' },
+      ]);
+      prismaMock.productCompetitiveCoverage.upsert.mockResolvedValue({});
+
+      const result = await service.analyzeProductCompetitiveCoverage('prod-1');
+
+      // Should detect multiple coverage areas
+      expect(result.coverageAreas.some((a) => a.merchantCovers)).toBe(true);
+      expect(result.overallScore).toBeGreaterThan(0);
+    });
+  });
+
+  describe('invalidateCoverage', () => {
+    it('should delete coverage for a product', async () => {
+      prismaMock.productCompetitiveCoverage.deleteMany.mockResolvedValue({
+        count: 1,
+      });
+
+      await service.invalidateCoverage('prod-1');
+
+      expect(
+        prismaMock.productCompetitiveCoverage.deleteMany
+      ).toHaveBeenCalledWith({
+        where: { productId: 'prod-1' },
+      });
+    });
+  });
+
+  describe('getProductCompetitiveData - with drafts', () => {
+    it('should include open drafts in response', async () => {
+      const mockProduct = {
+        id: 'prod-1',
+        projectId: 'proj-1',
+        title: 'Test Product',
+        description: 'Test',
+        seoTitle: null,
+        seoDescription: null,
+        project: { id: 'proj-1', userId: 'user-1' },
+        competitors: [
+          {
+            id: 'comp-1',
+            displayName: 'Competitor A',
+            logoUrl: null,
+            homepageUrl: null,
+            source: 'heuristic_category',
+          },
+        ],
+      };
+
+      const mockCoverage = {
+        productId: 'prod-1',
+        coverageData: [
+          {
+            areaId: 'transactional_intent',
+            gapType: 'intent_gap',
+            merchantCovers: false,
+            oneCompetitorCovers: true,
+            twoOrMoreCompetitorsCovers: false,
+            severityWeight: 10,
+            intentType: 'transactional',
+          },
+        ],
+        overallScore: 50,
+        areasWhereCompetitorsLead: 1,
+        status: 'BEHIND',
+        computedAt: new Date(),
+      };
+
+      const mockDrafts = [
+        {
+          id: 'draft-1',
+          productId: 'prod-1',
+          gapType: 'INTENT_GAP',
+          intentType: 'TRANSACTIONAL',
+          areaId: 'transactional_intent',
+          draftType: 'ANSWER_BLOCK',
+          draftPayload: { text: 'Draft answer' },
+          aiWorkKey: 'work-123',
+          reusedFromWorkKey: null,
+          generatedWithAi: true,
+          createdAt: new Date(),
+          expiresAt: null,
+        },
+      ];
+
+      prismaMock.product.findUnique.mockResolvedValue(mockProduct);
+      prismaMock.productCompetitiveCoverage.findUnique.mockResolvedValue(
+        mockCoverage
+      );
+      prismaMock.productCompetitiveFixDraft.findMany.mockResolvedValue(
+        mockDrafts
+      );
+
+      const result = await service.getProductCompetitiveData(
+        'prod-1',
+        'user-1'
+      );
+
+      expect(result.openDrafts).toHaveLength(1);
+      expect(result.openDrafts[0].draftType).toBe('answer_block');
+      expect(result.openDrafts[0].gapType).toBe('intent_gap');
+    });
+  });
+
 });

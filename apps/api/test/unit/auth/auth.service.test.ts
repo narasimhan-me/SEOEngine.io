@@ -32,8 +32,11 @@ const createPrismaMock = () => ({
   },
   userSession: {
     create: jest.fn(),
+    findUnique: jest.fn(),
     findMany: jest.fn(),
     deleteMany: jest.fn(),
+    update: jest.fn(),
+    updateMany: jest.fn(),
   },
   userAccountAuditLog: {
     create: jest.fn(),
@@ -378,6 +381,44 @@ describe('AuthService', () => {
         service.verifyTwoFactor('temp-token', 'wrong-code')
       ).rejects.toThrow(BadRequestException);
     });
+
+    it('should throw BadRequestException when user not found', async () => {
+      const payload: JwtPayload = {
+        sub: 'user-1',
+        email: 'test@example.com',
+        role: 'user',
+        twoFactor: true,
+      };
+
+      jwtServiceMock.verify.mockReturnValue(payload);
+      prismaMock.user.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.verifyTwoFactor('temp-token', '123456')
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw BadRequestException when 2FA not configured', async () => {
+      const payload: JwtPayload = {
+        sub: 'user-1',
+        email: 'test@example.com',
+        role: 'user',
+        twoFactor: true,
+      };
+
+      const mockUser = {
+        id: 'user-1',
+        email: 'test@example.com',
+        twoFactorSecret: null, // 2FA not configured
+      };
+
+      jwtServiceMock.verify.mockReturnValue(payload);
+      prismaMock.user.findUnique.mockResolvedValue(mockUser);
+
+      await expect(
+        service.verifyTwoFactor('temp-token', '123456')
+      ).rejects.toThrow(BadRequestException);
+    });
   });
 
   describe('validateJwtPayload', () => {
@@ -421,6 +462,119 @@ describe('AuthService', () => {
       await expect(service.validateJwtPayload(payload)).rejects.toThrow(
         UnauthorizedException
       );
+    });
+  });
+
+  describe('signOutAllSessions', () => {
+    it('should revoke all sessions and update tokenInvalidBefore', async () => {
+      const userId = 'user-1';
+      const now = new Date();
+
+      prismaMock.user.update.mockResolvedValue({ id: userId });
+      prismaMock.userSession.updateMany.mockResolvedValue({ count: 3 });
+      prismaMock.userAccountAuditLog.create.mockResolvedValue({
+        id: 'audit-1',
+        actorUserId: userId,
+        actionType: 'sign_out_all_sessions',
+      });
+
+      const result = await service.signOutAllSessions(userId);
+
+      expect(result).toEqual({ revokedCount: 3 });
+      expect(prismaMock.user.update).toHaveBeenCalledWith({
+        where: { id: userId },
+        data: { tokenInvalidBefore: expect.any(Date) },
+      });
+      expect(prismaMock.userSession.updateMany).toHaveBeenCalledWith({
+        where: {
+          userId,
+          revokedAt: null,
+        },
+        data: { revokedAt: expect.any(Date) },
+      });
+      expect(prismaMock.userAccountAuditLog.create).toHaveBeenCalledWith({
+        data: {
+          actorUserId: userId,
+          actionType: 'sign_out_all_sessions',
+          metadata: {
+            revokedCount: 3,
+            timestamp: expect.any(String),
+          },
+        },
+      });
+    });
+
+    it('should handle case with no active sessions', async () => {
+      const userId = 'user-1';
+
+      prismaMock.user.update.mockResolvedValue({ id: userId });
+      prismaMock.userSession.updateMany.mockResolvedValue({ count: 0 });
+      prismaMock.userAccountAuditLog.create.mockResolvedValue({
+        id: 'audit-1',
+      });
+
+      const result = await service.signOutAllSessions(userId);
+
+      expect(result).toEqual({ revokedCount: 0 });
+    });
+  });
+
+  describe('updateSessionLastSeen', () => {
+    it('should update session lastSeenAt timestamp', async () => {
+      const sessionId = 'session-1';
+
+      prismaMock.userSession.update.mockResolvedValue({
+        id: sessionId,
+        lastSeenAt: new Date(),
+      });
+
+      await service.updateSessionLastSeen(sessionId);
+
+      expect(prismaMock.userSession.update).toHaveBeenCalledWith({
+        where: { id: sessionId },
+        data: { lastSeenAt: expect.any(Date) },
+      });
+    });
+  });
+
+  describe('isSessionValid', () => {
+    it('should return true for valid non-revoked session', async () => {
+      const sessionId = 'session-1';
+
+      prismaMock.userSession.findUnique.mockResolvedValue({
+        id: sessionId,
+        revokedAt: null,
+      });
+
+      const result = await service.isSessionValid(sessionId);
+
+      expect(result).toBe(true);
+      expect(prismaMock.userSession.findUnique).toHaveBeenCalledWith({
+        where: { id: sessionId },
+      });
+    });
+
+    it('should return false for revoked session', async () => {
+      const sessionId = 'session-1';
+
+      prismaMock.userSession.findUnique.mockResolvedValue({
+        id: sessionId,
+        revokedAt: new Date(),
+      });
+
+      const result = await service.isSessionValid(sessionId);
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false for non-existent session', async () => {
+      const sessionId = 'non-existent-session';
+
+      prismaMock.userSession.findUnique.mockResolvedValue(null);
+
+      const result = await service.isSessionValid(sessionId);
+
+      expect(result).toBe(false);
     });
   });
 });

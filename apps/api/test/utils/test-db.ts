@@ -42,6 +42,22 @@ export async function cleanupTestDb(): Promise<void> {
   // Tables with FK to Product must be deleted first
   await safeDelete('AnswerBlock');
   await safeDelete('AnswerBlockAutomationLog');
+  // Competitive Positioning tables (COMPETITIVE-1)
+  await safeDelete('ProductCompetitiveFixApplication');
+  await safeDelete('ProductCompetitiveFixDraft');
+  await safeDelete('ProductCompetitiveCoverage');
+  await safeDelete('ProductCompetitor');
+  // Search Intent tables (SEARCH-INTENT-1)
+  await safeDelete('ProductIntentFixApplication');
+  await safeDelete('ProductIntentFixDraft');
+  await safeDelete('ProductIntentCoverage');
+  // Media Accessibility tables (MEDIA-1)
+  await safeDelete('ProductMediaFixApplication');
+  await safeDelete('ProductMediaFixDraft');
+  await safeDelete('ProductImage');
+  // GEO Fix tables (GEO-1)
+  await safeDelete('ProductGeoFixApplication');
+  await safeDelete('ProductGeoFixDraft');
   // Tables with FK to Project must be deleted next
   await safeDelete('Integration');
   await safeDelete('DeoScoreSnapshot');
@@ -58,6 +74,16 @@ export async function cleanupTestDb(): Promise<void> {
   await safeDelete('ProjectLocalSignal');
   await safeDelete('ProjectLocalConfig');
   await safeDelete('Product');
+  // Governance and Audit tables (ENTERPRISE-GEO-1)
+  await safeDelete('GovernanceAuditEvent');
+  await safeDelete('AutomationSuggestion');
+  // Approval and Share Link tables (GOVERNANCE-VIEWER-1)
+  await safeDelete('ApprovalRequest');
+  await safeDelete('GeoReportShareLink');
+  // AI Usage tracking (FK to User and Project)
+  await safeDelete('AiUsageEvent');
+  // ProjectMember (FK to Project and User)
+  await safeDelete('ProjectMember');
   // Now delete Project (which has FK to User)
   await safeDelete('Project');
   // Delete Subscription (FK to User) before User

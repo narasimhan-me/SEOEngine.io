@@ -80,6 +80,21 @@ describe('EntitlementsService', () => {
 
       expect(result).toBe('free');
     });
+
+    it('should return free when plan ID is invalid', async () => {
+      const mockSubscription = {
+        id: 'sub-1',
+        userId: 'user-1',
+        plan: 'invalid-plan-id',
+        status: 'active',
+      };
+
+      prismaMock.subscription.findUnique.mockResolvedValue(mockSubscription);
+
+      const result = await service.getUserPlan('user-1');
+
+      expect(result).toBe('free');
+    });
   });
 
   describe('getEntitlementsSummary', () => {
@@ -308,6 +323,64 @@ describe('EntitlementsService', () => {
         'ENTITLEMENTS_LIMIT_REACHED'
       );
       expect(error.response).toHaveProperty('feature', 'projects');
+    });
+
+    it('should enforce crawl feature limit', async () => {
+      const mockSubscription = {
+        id: 'sub-1',
+        userId: 'user-1',
+        plan: 'free',
+        status: 'active',
+      };
+
+      prismaMock.subscription.findUnique.mockResolvedValue(mockSubscription);
+
+      // Should not throw when within limit
+      await expect(
+        service.enforceEntitlement('user-1', 'crawl', 50, 100)
+      ).resolves.not.toThrow();
+
+      // Should throw when limit reached
+      await expect(
+        service.enforceEntitlement('user-1', 'crawl', 100, 100)
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should enforce suggestions feature limit', async () => {
+      const mockSubscription = {
+        id: 'sub-1',
+        userId: 'user-1',
+        plan: 'free',
+        status: 'active',
+      };
+
+      prismaMock.subscription.findUnique.mockResolvedValue(mockSubscription);
+
+      // Should not throw when within limit
+      await expect(
+        service.enforceEntitlement('user-1', 'suggestions', 3, 5)
+      ).resolves.not.toThrow();
+
+      // Should throw when limit reached
+      await expect(
+        service.enforceEntitlement('user-1', 'suggestions', 5, 5)
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should use plan limits when no override provided', async () => {
+      const mockSubscription = {
+        id: 'sub-1',
+        userId: 'user-1',
+        plan: 'free',
+        status: 'active',
+      };
+
+      prismaMock.subscription.findUnique.mockResolvedValue(mockSubscription);
+
+      // Free plan has 1 project limit
+      await expect(
+        service.enforceEntitlement('user-1', 'projects', 1)
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 

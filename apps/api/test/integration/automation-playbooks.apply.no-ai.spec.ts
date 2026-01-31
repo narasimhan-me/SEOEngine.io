@@ -15,6 +15,7 @@ import { ProductIssueFixService } from '../../src/ai/product-issue-fix.service';
 import { TokenUsageService } from '../../src/ai/token-usage.service';
 import { AiUsageQuotaService } from '../../src/ai/ai-usage-quota.service';
 import { RoleResolutionService } from '../../src/common/role-resolution.service';
+import { AutomationSafetyRailsService } from '../../src/projects/automation-safety-rails.service';
 
 describe('AutomationPlaybooksService.applyPlaybook – no AI contract', () => {
   let service: AutomationPlaybooksService;
@@ -108,6 +109,37 @@ describe('AutomationPlaybooksService.applyPlaybook – no AI contract', () => {
             assertCanGenerateDrafts: jest.fn().mockResolvedValue(undefined),
             assertOwnerRole: jest.fn().mockResolvedValue(undefined),
             canApply: jest.fn().mockResolvedValue(true),
+          },
+        },
+        {
+          provide: AutomationSafetyRailsService,
+          useValue: {
+            evaluateSafetyRails: jest.fn().mockResolvedValue({
+              status: 'PASSED',
+              checks: [],
+              evaluatedAt: new Date().toISOString(),
+              projectId: 'project-456',
+              userId: 'user-123',
+              automationId: 'missing_seo_title',
+              declaredScope: {
+                scopeId: 'scope-abc',
+                assetCount: 1,
+                assetType: 'product',
+              },
+            }),
+            enforceOrBlock: jest.fn().mockResolvedValue({
+              status: 'PASSED',
+              checks: [],
+              evaluatedAt: new Date().toISOString(),
+              projectId: 'project-456',
+              userId: 'user-123',
+              automationId: 'missing_seo_title',
+              declaredScope: {
+                scopeId: 'scope-abc',
+                assetCount: 1,
+                assetType: 'product',
+              },
+            }),
           },
         },
       ],
