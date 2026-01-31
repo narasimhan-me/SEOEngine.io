@@ -1604,8 +1604,8 @@ export class AdminService {
     ]);
 
     const scopes = drafts.map((draft) => {
-      // Extract counts from JSON field if available
-      const counts = (draft.counts as Record<string, number>) || {};
+      // Extract counts from the JSON field (defaults to 0 if not present)
+      const counts = (draft.counts as { affectedTotal?: number; draftGenerated?: number } | null) || {};
       return {
         draftId: draft.id,
         projectId: draft.projectId,
@@ -1614,6 +1614,7 @@ export class AdminService {
         playbookId: draft.playbookId,
         scopeId: draft.scopeId,
         rulesHash: draft.rulesHash,
+        assetType: 'products' as const, // Automation playbooks work on products
         status: draft.status,
         boundaries: {
           affectedTotal: counts.affectedTotal ?? 0,
