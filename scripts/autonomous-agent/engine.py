@@ -179,17 +179,53 @@ def _epic_has_required_uep_intent_contract(epic_description: str) -> bool:
 
 
 def _patch_batch_is_placeholder(content: str) -> bool:
-    """Detect placeholder/ambiguous patch batch content."""
-    c = (content or "").lower()
-    # Common placeholder indicators
-    if "todo:" in c or "tbd:" in c or "placeholder" in c:
+    """Detect non-actionable PATCH BATCH content (placeholder/TODO/template/boilerplate).
+
+    GOVERNANCE INVARIANT:
+    - Placeholder PATCH BATCH == NON-EXISTENT (must not be written to disk or forwarded).
+    """
+    raw = content or ""
+    c = raw.strip()
+    cl = c.lower()
+
+    if not c:
         return True
-    if "{{" in c and "}}" in c:
+
+    # Must look like an actionable PATCH BATCH (basic structural markers).
+    required = ["file:", "---old---", "---new---", "---end---"]
+    if not all(marker in cl for marker in required):
         return True
-    # Very short content is likely placeholder
-    if len(content.strip()) < 50:
+
+    placeholder_markers = [
+        "todo",
+        "tbd",
+        "placeholder",
+        "human assistance required",
+        "no patches generated",
+        "identify exact code block",
+        "specify replacement code",
+        "file: <",
+        "operation: <",
+        "description: <",
+        "<existing code",
+        "<new code",
+        "status: placeholder",
+        "please update this file",
+    ]
+    if any(m in cl for m in placeholder_markers):
         return True
+
+    if "{{" in raw and "}}" in raw:
+        return True
+
+    if len(c) < 80:
+        return True
+
     return False
+
+
+class NonActionablePatchBatchError(RuntimeError):
+    """Raised when Supervisor output cannot be executed (placeholder/missing/invalid)."""
 
 # -----------------------------------------------------------------------------
 # CLAUDE EXECUTION HARDENING
@@ -749,6 +785,11 @@ def _write_patch_batch_artifact(repo_path: str, epic_key: str, run_id: str, cont
         Tuple of (epic_artifact_path, story_artifact_path_pattern).
         The story_artifact_path_pattern is the pattern used for the final stable path.
     """
+    # GOVERNANCE INVARIANT: Placeholder PATCH BATCH is treated as NON-EXISTENT.
+    # Never write placeholder/non-actionable patch batches to disk.
+    if _patch_batch_is_placeholder(content):
+        raise ValueError("Supervisor output is non-actionable (placeholder/TODO/template detected).")
+
     artifacts_dir = _artifact_dirname()
     reports_dir = Path(repo_path) / artifacts_dir
     reports_dir.mkdir(parents=True, exist_ok=True)
@@ -778,6 +819,8 @@ def _copy_patch_batch_for_story(repo_path: str, epic_artifact_path: str, story_k
 
     PATCH A: Creates {STORY_KEY}-patch-batch.md for stable reference.
 
+    GOVERNANCE: Do not propagate placeholder/non-actionable patch batches.
+
     Args:
         repo_path: Path to repository root.
         epic_artifact_path: Path to epic's patch batch file.
@@ -794,6 +837,8 @@ def _copy_patch_batch_for_story(repo_path: str, epic_artifact_path: str, story_k
     if full_epic_path.exists():
         try:
             content = full_epic_path.read_text(encoding='utf-8')
+            if _patch_batch_is_placeholder(content):
+                return story_path
             temp_path = full_story_path.with_suffix('.md.tmp')
             temp_path.write_text(content, encoding='utf-8')
             os.replace(str(temp_path), str(full_story_path))
@@ -807,6 +852,8 @@ def _load_patch_batch_from_file(repo_path: str, story_key: str, description: str
     """Load patch batch content from file.
 
     PATCH A: IMPLEMENTER loads patch batch from file instead of description.
+
+    GOVERNANCE: Placeholder PATCH BATCH == NON-EXISTENT.
 
     Priority:
     1. {STORY_KEY}-patch-batch.md (stable per-story path)
@@ -827,6 +874,8 @@ def _load_patch_batch_from_file(repo_path: str, story_key: str, description: str
     if story_path.exists():
         try:
             content = story_path.read_text(encoding='utf-8')
+            if _patch_batch_is_placeholder(content):
+                return None, f"{artifacts_dir}/{story_key}-patch-batch.md"
             return content, f"{artifacts_dir}/{story_key}-patch-batch.md"
         except OSError:
             pass
@@ -841,6 +890,8 @@ def _load_patch_batch_from_file(repo_path: str, story_key: str, description: str
                     if file_path.exists():
                         try:
                             content = file_path.read_text(encoding='utf-8')
+                            if _patch_batch_is_placeholder(content):
+                                return None, path_part
                             return content, path_part
                         except OSError:
                             pass
@@ -4222,11 +4273,13 @@ IMPORTANT: Output ONLY the markdown in the required format."""
         relevant_files = self._find_relevant_files(keywords)
         self.log("SUPERVISOR", f"Found {len(relevant_files)} potentially relevant files")
 
+        # GOVERNANCE: Never create placeholder stories/patches.
         if not relevant_files:
-            self.log("SUPERVISOR", "No relevant files found - creating placeholder Story")
-            return [self._create_placeholder_story(epic_key, summary, description)]
+            raise NonActionablePatchBatchError(
+                "Supervisor output is non-actionable (no relevant files found for exact diffs)."
+            )
 
-        # Analyze files and generate PATCH BATCH instructions
+        # Analyze files and generate PATCH BATCH instructions (fail-closed; no templates).
         patch_instructions = self._generate_patch_batch(epic_key, summary, description, relevant_files)
 
         return [patch_instructions]
@@ -4303,6 +4356,9 @@ IMPORTANT: Output ONLY the markdown in the required format."""
         PATCH A: Story description is concise and does NOT embed full patch batch.
         Full patch batch is returned separately for file storage.
 
+        GOVERNANCE: Template/fallback PATCH BATCH generation is forbidden.
+        Placeholder PATCH BATCH is treated as NON-EXISTENT.
+
         Returns:
             Dict with 'summary', 'description', and 'patch_batch_text' keys.
         """
@@ -4317,26 +4373,18 @@ IMPORTANT: Output ONLY the markdown in the required format."""
                     'content': content[:4000]  # Limit content size
                 })
 
-        # Use Claude Code CLI to generate PATCH BATCH (no API key required)
-        if self.claude_code_available and file_contents:
-            self.log("SUPERVISOR", "Using Claude Code CLI to analyze code and generate PATCH BATCH...")
-            patch_batch_text = self._claude_code_generate_patches(epic_key, summary, description, file_contents)
-        else:
-            self.log("SUPERVISOR", "Claude Code CLI not available - generating template PATCH BATCH")
-            # Create template patches
-            patch_sections = []
-            for f in files[:3]:
-                patch_sections.append(f"""
-FILE: {f['path']}
-OPERATION: edit
-DESCRIPTION: Add changes per Epic requirements
----OLD---
-// TODO: Identify exact code block to modify
----NEW---
-// TODO: Specify replacement code
----END---
-""")
-            patch_batch_text = '\n'.join(patch_sections) if patch_sections else "No patches generated"
+        if not (self.claude_code_available and file_contents):
+            raise NonActionablePatchBatchError(
+                "Supervisor output is non-actionable (insufficient code context to produce exact diffs)."
+            )
+
+        self.log("SUPERVISOR", "Using Claude Code CLI to analyze code and generate PATCH BATCH...")
+        patch_batch_text = self._claude_code_generate_patches(epic_key, summary, description, file_contents)
+
+        if _patch_batch_is_placeholder(patch_batch_text):
+            raise NonActionablePatchBatchError(
+                "Supervisor output is non-actionable (placeholder/TODO/template detected)."
+            )
 
         # PATCH A: Build concise story description (no full patch batch embedded)
         # Truncate implementation goal to stay within limits
@@ -4388,14 +4436,17 @@ Canonical verification report: {artifacts_dir}/{{STORY_KEY}}-verification.md
         """Use Claude Code CLI to analyze code and generate actual PATCH BATCH instructions (no API key required)
 
         Guardrails v1: Prompt requires ALLOWED FILES section in output
-        """
-        try:
-            # Build the file context for Claude
-            files_context = ""
-            for f in files:
-                files_context += f"\n\n### FILE: {f['path']}\n```\n{f['content']}\n```"
 
-            prompt = f"""You are the SUPERVISOR in an autonomous development system. Your role is to analyze code and generate PATCH BATCH instructions for implementation.
+        GOVERNANCE:
+        - Placeholder PATCH BATCH == NON-EXISTENT.
+        - Max retries: 2 (bounded).
+        - If exact diffs cannot be produced, Supervisor must STOP (NON_ACTIONABLE_PATCH_BATCH).
+        """
+        files_context = ""
+        for f in files:
+            files_context += f"\n\n### FILE: {f['path']}\n```\n{f['content']}\n```"
+
+        base_prompt = f"""You are the SUPERVISOR in an autonomous development system. Your role is to analyze code and generate PATCH BATCH instructions for implementation.
 
 ## Epic Requirements
 {epic_key}: {summary}
@@ -4448,143 +4499,100 @@ IMPORTANT: Output ONLY the PATCH BATCH instructions followed by the ALLOWED FILE
 
 Generate the PATCH BATCH instructions now:"""
 
-            # GOVERNANCE: Use locked model assignment
-            model = _model_for_role("SUPERVISOR")
-            self.log("SUPERVISOR", f"Calling Claude Code CLI ({model}) for code analysis...")
+        max_retries = 2
+        max_attempts = 1 + max_retries
+        model = _model_for_role("SUPERVISOR")
 
-            # PATCH 4: Use unified timeout source
-            self.log("SUPERVISOR", f"step timeout: DECOMPOSE={self.claude_timeout_seconds}s (derived from claude_timeout_seconds)")
+        for attempt in range(1, max_attempts + 1):
+            extra = ""
+            if attempt > 1:
+                extra = f"""
 
-            # Run Claude Code CLI with the prompt (using opus for deep code analysis)
-            result = subprocess.run(
-                ['claude', '--model', model, '-p', prompt, '--dangerously-skip-permissions'],
-                cwd=self.config.repo_path,
-                capture_output=True,
-                text=True,
-                timeout=self.claude_timeout_seconds  # PATCH 4: unified timeout
-            )
+## RETRY ATTEMPT {attempt}/{max_attempts} — STRICT RULES (NON-NEGOTIABLE)
 
-            if result.returncode != 0:
-                self.log("SUPERVISOR", f"Claude Code CLI error: {result.stderr[:200]}")
-                # Fallback to template
-                return self._generate_template_patches(files)
+1. Do NOT output TODO/TBD/placeholder/template content.
+2. If you cannot produce exact diffs with concrete ---OLD--- and ---NEW--- blocks, output exactly:
+   NON_ACTIONABLE_PATCH_BATCH
+   Reason: <one sentence>
+3. Do NOT guess intent or invent routes/behavior.
+"""
+            prompt = base_prompt + extra
 
-            patch_content = result.stdout.strip()
-            self.log("SUPERVISOR", f"Claude Code CLI generated {len(patch_content)} chars of PATCH BATCH")
+            try:
+                self.log("SUPERVISOR", f"Calling Claude Code CLI ({model}) for code analysis... (attempt {attempt}/{max_attempts})")
+                self.log("SUPERVISOR", f"step timeout: DECOMPOSE={self.claude_timeout_seconds}s (derived from claude_timeout_seconds)")
 
-            # GOVERNANCE: Reject placeholder/ambiguous patches
-            if _patch_batch_is_placeholder(patch_content):
-                self.log("SUPERVISOR", "GOVERNANCE: Patch batch appears to be placeholder/ambiguous - rejecting")
-                self.escalate("SUPERVISOR", "Placeholder Patch Detected", f"Supervisor generated placeholder patches for {epic_key}. Human intervention required.")
-                return self._generate_template_patches(files)
+                result = subprocess.run(
+                    ['claude', '--model', model, '-p', prompt, '--dangerously-skip-permissions'],
+                    cwd=self.config.repo_path,
+                    capture_output=True,
+                    text=True,
+                    timeout=self.claude_timeout_seconds
+                )
 
-            return patch_content
+                if result.returncode != 0:
+                    self.log("SUPERVISOR", f"Claude Code CLI error: {result.stderr[:200]}")
+                    if attempt < max_attempts:
+                        continue
+                    raise NonActionablePatchBatchError(
+                        "Supervisor output is non-actionable (Claude CLI error; no valid PATCH BATCH)."
+                    )
 
-        except subprocess.TimeoutExpired:
-            self.log("SUPERVISOR", "Claude Code CLI timed out")
-            return self._generate_template_patches(files)
-        except Exception as e:
-            self.log("SUPERVISOR", f"Claude Code CLI error: {e}")
-            return self._generate_template_patches(files)
+                patch_content = (result.stdout or "").strip()
+                self.log("SUPERVISOR", f"Claude Code CLI generated {len(patch_content)} chars of PATCH BATCH")
+
+                if (patch_content or "").strip().upper().startswith("NON_ACTIONABLE_PATCH_BATCH"):
+                    if attempt < max_attempts:
+                        continue
+                    raise NonActionablePatchBatchError(
+                        "Supervisor output is non-actionable (explicit NON_ACTIONABLE_PATCH_BATCH)."
+                    )
+
+                if _patch_batch_is_placeholder(patch_content):
+                    if attempt < max_attempts:
+                        continue
+                    raise NonActionablePatchBatchError(
+                        "Supervisor output is non-actionable (placeholder/TODO/template detected)."
+                    )
+
+                return patch_content
+
+            except subprocess.TimeoutExpired:
+                self.log("SUPERVISOR", "Claude Code CLI timed out")
+                if attempt < max_attempts:
+                    continue
+                raise NonActionablePatchBatchError(
+                    "Supervisor output is non-actionable (Claude CLI timeout; no valid PATCH BATCH)."
+                )
+            except NonActionablePatchBatchError:
+                raise
+            except Exception as e:
+                self.log("SUPERVISOR", f"Claude Code CLI error: {e}")
+                if attempt < max_attempts:
+                    continue
+                raise NonActionablePatchBatchError(
+                    "Supervisor output is non-actionable (unexpected error; no valid PATCH BATCH)."
+                )
+
+        raise NonActionablePatchBatchError("Supervisor output is non-actionable (no valid PATCH BATCH after retries).")
 
     def _generate_template_patches(self, files: List[dict]) -> str:
-        """Generate template patches when Claude Code CLI is not available"""
-        patch_sections = []
-        for f in files[:3]:
-            patch_sections.append(f"""
-FILE: {f.get('path', 'unknown')}
-OPERATION: edit
-DESCRIPTION: Add changes per Epic requirements
----OLD---
-// TODO: Identify exact code block to modify
----NEW---
-// TODO: Specify replacement code
----END---
-""")
-        return '\n'.join(patch_sections) if patch_sections else "No patches generated"
+        """Legacy helper (disabled).
+
+        GOVERNANCE: Template/placeholder PATCH BATCH generation is forbidden.
+        """
+        raise NonActionablePatchBatchError(
+            "Supervisor output is non-actionable (template PATCH BATCH generation is forbidden)."
+        )
 
     def _create_placeholder_story(self, epic_key: str, summary: str, description: str) -> dict:
-        """Create placeholder Story when no relevant files found.
+        """Legacy helper (disabled).
 
-        PATCH A: Story description is concise with patch batch file marker.
-        Returns placeholder patch batch text for file storage.
+        GOVERNANCE: Placeholder stories/patches must not be generated.
         """
-        # PATCH A: Truncate implementation goal for Jira limits
-        impl_goal = description[:JIRA_STORY_DESC_TARGET_CHARS // 2] if description else ""
-        if len(impl_goal) < len(description):
-            impl_goal += "\n\n[...truncated for Jira limits...]"
-
-        # PATCH A: Concise story description with file marker
-        artifacts_dir = _artifact_dirname()
-        story_description = f"""## Parent Epic
-{epic_key}: {summary}
-
-## Implementation Goal
-{impl_goal}
-
----
-
-## Codebase Analysis
-
-**Status:** No directly relevant files found in initial scan.
-
-The Supervisor requires human assistance to:
-1. Identify the correct files to modify
-2. Provide context about the codebase structure
-3. Specify the exact locations for changes
-
----
-
-## PATCH BATCH Location
-
-{PATCH_BATCH_FILE_MARKER} {artifacts_dir}/{{STORY_KEY}}-patch-batch.md
-
-Full PATCH BATCH instructions (placeholder template) stored in the artifact file above.
-
----
-
-## Verification Report Path
-
-Canonical verification report: {artifacts_dir}/{{STORY_KEY}}-verification.md
-
----
-*Story created by SUPERVISOR v3.2*
-*Human assistance required for PATCH BATCH specification*
-"""
-
-        # PATCH A: Enforce size limit
-        if len(story_description) > JIRA_STORY_DESC_MAX_CHARS:
-            truncate_at = JIRA_STORY_DESC_MAX_CHARS - 100
-            story_description = story_description[:truncate_at] + "\n\n[TRUNCATED]"
-
-        # PATCH A: Placeholder patch batch text for file storage
-        patch_batch_text = f"""PATCH BATCH: {summary}
-
-## Status: PLACEHOLDER - Human assistance required
-
-No directly relevant files found in initial codebase scan.
-
-## Action Required
-Please update this file with specific PATCH BATCH instructions
-after identifying the relevant codebase locations.
-
-## Template
-
-FILE: <path/to/relevant/file.tsx>
-OPERATION: edit
-DESCRIPTION: <description of change needed>
----OLD---
-<existing code to replace>
----NEW---
-<new code with changes>
----END---
-"""
-
-        return {
-            'summary': f"Implement: {summary}",
-            'description': story_description,
-            'patch_batch_text': patch_batch_text,  # PATCH A: Return separately
-        }
+        raise NonActionablePatchBatchError(
+            "Supervisor output is non-actionable (placeholder story generation is forbidden)."
+        )
 
     def step_3_story_implementation(self) -> bool:
         """Developer: Implement Stories using Claude Code CLI.
@@ -6663,8 +6671,48 @@ No new stories created.
         # PATCH 3: Analyze and generate stories
         self.log("SUPERVISOR", "Analyzing codebase to identify implementation targets...")
 
-        # Use enhanced Supervisor analysis
-        stories_to_create = self._supervisor_analyze_epic(epic_key, summary, description)
+        # Use enhanced Supervisor analysis (fail-closed on non-actionable/placeholder output).
+        try:
+            stories_to_create = self._supervisor_analyze_epic(epic_key, summary, description)
+        except NonActionablePatchBatchError as e:
+            reason = str(e) or "Supervisor output is non-actionable (placeholder/TODO/template detected)."
+            input_fp = compute_decomposition_fingerprint(description)
+            error_text = f"PATCH_BATCH_NON_ACTIONABLE[{input_fp[:12]}]: {reason}"
+            error_fp = compute_error_fingerprint(LastStep.SUPERVISOR.value, error_text)
+
+            existing_entry = self.work_ledger.get(key)
+            should_notify = not (existing_entry and existing_entry.last_error_fingerprint == error_fp)
+
+            if should_notify:
+                self.jira.add_comment(key, f"""## BLOCKED FOR REVIEW — Non-Actionable Supervisor Output
+
+Supervisor output is non-actionable (placeholder/TODO/template detected).
+
+**Reason:** {reason}
+
+**Governance invariant:** Placeholder PATCH BATCH is treated as NON-EXISTENT.
+- No placeholder patch artifacts will be written to disk.
+- Implementer will not be invoked for this ticket.
+
+**Next step:** Human must provide concrete diffs or clarify target files/intent so Supervisor can produce exact ---OLD---/---NEW--- blocks.
+""")
+                self.escalate(
+                    "SUPERVISOR",
+                    "Supervisor output is non-actionable (placeholder/TODO/template detected).",
+                    f"{key}: {reason}",
+                )
+
+            self.jira.transition_issue(key, contract_human_review_status())
+
+            self._upsert_work_ledger_entry(
+                issue_key=key,
+                issue_type="Epic",
+                status=status,
+                last_step=LastStep.SUPERVISOR.value,
+                last_step_result=StepResult.FAILED.value,
+                error_text=error_text,
+            )
+            return True
 
         # PATCH 3: Filter to only create missing stories (delta mode)
         stories_actually_needed = []
@@ -6698,16 +6746,84 @@ No new stories created.
         for story_def in stories_actually_needed:
             # PATCH A: Write patch batch to artifact file BEFORE story creation
             patch_batch_text = story_def.get('patch_batch_text', '')
-            if patch_batch_text:
-                try:
-                    epic_artifact_path, _ = _write_patch_batch_artifact(
-                        self.config.repo_path, key, self.run_id, patch_batch_text
+
+            # GOVERNANCE: Placeholder PATCH BATCH == NON-EXISTENT (hard stop).
+            if not patch_batch_text or _patch_batch_is_placeholder(patch_batch_text):
+                reason = "Supervisor output is non-actionable (placeholder/TODO/template detected)."
+                input_fp = compute_decomposition_fingerprint(description)
+                error_text = f"PATCH_BATCH_NON_ACTIONABLE[{input_fp[:12]}]: {reason}"
+                error_fp = compute_error_fingerprint(LastStep.SUPERVISOR.value, error_text)
+                existing_entry = self.work_ledger.get(key)
+                should_notify = not (existing_entry and existing_entry.last_error_fingerprint == error_fp)
+
+                if should_notify:
+                    self.jira.add_comment(key, f"""## BLOCKED FOR REVIEW — Non-Actionable Supervisor Output
+
+Supervisor output is non-actionable (placeholder/TODO/template detected).
+
+**Reason:** {reason}
+
+**Governance invariant:** Placeholder PATCH BATCH is treated as NON-EXISTENT.
+- No placeholder patch artifacts will be written to disk.
+- Implementer will not be invoked for this ticket.
+""")
+                    self.escalate(
+                        "SUPERVISOR",
+                        "Supervisor output is non-actionable (placeholder/TODO/template detected).",
+                        f"{key}: {reason}",
                     )
-                    self.log("SUPERVISOR", f"Wrote patch batch artifact: {epic_artifact_path}")
-                except Exception as e:
-                    self.log("SUPERVISOR", f"Failed to write patch batch artifact: {e}")
-                    artifacts_dir = _artifact_dirname()
-                    epic_artifact_path = f"{artifacts_dir}/{key}-{self.run_id}-patch-batch.md"
+
+                self.jira.transition_issue(key, contract_human_review_status())
+                self._upsert_work_ledger_entry(
+                    issue_key=key,
+                    issue_type="Epic",
+                    status=status,
+                    last_step=LastStep.SUPERVISOR.value,
+                    last_step_result=StepResult.FAILED.value,
+                    error_text=error_text,
+                )
+                return True
+
+            try:
+                epic_artifact_path, _ = _write_patch_batch_artifact(
+                    self.config.repo_path, key, self.run_id, patch_batch_text
+                )
+                self.log("SUPERVISOR", f"Wrote patch batch artifact: {epic_artifact_path}")
+            except (ValueError, OSError) as e:
+                reason = f"Supervisor output is non-actionable (failed to persist a valid PATCH BATCH artifact: {e})."
+                input_fp = compute_decomposition_fingerprint(description)
+                error_text = f"PATCH_BATCH_NON_ACTIONABLE[{input_fp[:12]}]: {reason}"
+                error_fp = compute_error_fingerprint(LastStep.SUPERVISOR.value, error_text)
+                existing_entry = self.work_ledger.get(key)
+                should_notify = not (existing_entry and existing_entry.last_error_fingerprint == error_fp)
+
+                if should_notify:
+                    self.jira.add_comment(key, f"""## BLOCKED FOR REVIEW — Non-Actionable Supervisor Output
+
+Supervisor output is non-actionable (placeholder/TODO/template detected).
+
+**Reason:** {reason}
+
+**Governance invariant:** Placeholder PATCH BATCH is treated as NON-EXISTENT.
+- No placeholder patch artifacts will be written to disk.
+- Implementer will not be invoked for this ticket.
+""")
+                    self.escalate(
+                        "SUPERVISOR",
+                        "Supervisor output is non-actionable (placeholder/TODO/template detected).",
+                        f"{key}: {reason}",
+                    )
+
+                self.jira.transition_issue(key, contract_human_review_status())
+                self._upsert_work_ledger_entry(
+                    issue_key=key,
+                    issue_type="Epic",
+                    status=status,
+                    last_step=LastStep.SUPERVISOR.value,
+                    last_step_result=StepResult.FAILED.value,
+                    error_text=error_text,
+                )
+                return True
 
             # PATCH A: Use create_story_with_retry for CONTENT_LIMIT_EXCEEDED handling
             artifacts_dir = _artifact_dirname()
