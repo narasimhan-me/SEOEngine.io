@@ -51,6 +51,11 @@ html.dark {
   --surface-secondary: 0 0% 98%;     /* secondary/supporting panels - calmer than primary */
   --text-secondary-muted: 215.4 16.3% 52%;  /* quieter secondary text for supporting UI */
 
+  /* [KAN-94: EA-54] Top Nav visual hierarchy tokens */
+  --nav-active-indicator: 221.2 83.2% 53.3%;  /* primary accent for active nav states */
+  --nav-coming-soon: 215.4 16.3% 70%;         /* calm, non-shouty coming soon treatment */
+  --nav-utility-muted: 215.4 16.3% 60%;       /* utilities visually subordinate to primary nav */
+
   /* === Text tokens === */
   --foreground: 222.2 84% 4.9%;      /* near-black - primary text */
   --muted-foreground: 215.4 16.3% 46.9%; /* gray-500 - secondary text */
@@ -115,6 +120,11 @@ html.dark {
   /* [EA-31] Visual hierarchy tokens for primary vs secondary panels */
   --surface-secondary: 222.2 47% 10%;  /* secondary/supporting panels - subtler than card */
   --text-secondary-muted: 215 20% 62%; /* quieter secondary text for supporting UI */
+
+  /* [KAN-94: EA-54] Top Nav visual hierarchy tokens (dark mode) */
+  --nav-active-indicator: 217.2 91.2% 59.8%;  /* primary accent for active nav states */
+  --nav-coming-soon: 215 20% 50%;             /* calm, non-shouty coming soon treatment */
+  --nav-utility-muted: 215 20% 55%;           /* utilities visually subordinate to primary nav */
 
   /* === Text tokens (dark) === */
   --foreground: 210 40% 98%;         /* near-white - primary text */

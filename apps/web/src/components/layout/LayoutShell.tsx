@@ -27,6 +27,7 @@ function isActivePath(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+// [KAN-94: EA-54] IconButton - calmer, subordinate utility controls
 function IconButton({
   label,
   children,
@@ -39,7 +40,7 @@ function IconButton({
       type="button"
       aria-label={label}
       aria-disabled="true"
-      className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-[hsl(var(--surface-card))] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-border/40 bg-transparent text-muted-foreground/60 transition-colors hover:bg-muted/40 hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
       {children}
     </button>
@@ -298,49 +299,56 @@ function LayoutShellInner({ children }: { children: ReactNode }) {
   const isActiveHref = (href: string) =>
     pathname === href || pathname.startsWith(`${href}/`);
 
+  // [KAN-94: EA-54] Redesigned nav link styling for calm, premium feel
+  // Active state: unmissable with bottom border indicator + bolder weight
+  // Inactive: reduced visual weight, calm hover transition
   const navLinkClassName = (active: boolean) =>
     [
-      'inline-flex items-center px-1 pt-1 text-sm font-medium transition-colors',
+      'inline-flex items-center px-3 py-2 text-sm transition-colors relative',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-      active ? 'text-primary' : 'text-muted-foreground hover:text-foreground',
+      active
+        ? 'text-foreground font-semibold after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:w-4/5 after:h-0.5 after:rounded-full after:bg-[hsl(var(--nav-active-indicator,var(--primary)))]'
+        : 'text-muted-foreground/80 font-normal hover:text-foreground hover:bg-muted/30',
     ].join(' ');
 
   return (
     <div className="flex h-screen flex-col bg-background text-foreground">
-      <header className="z-50 h-16 shrink-0 border-b border-border bg-background">
-        <div className="flex h-full items-center gap-3 px-4">
-          <IconButton label="App switcher — not yet available">
-            <AppSwitcherIcon className="h-5 w-5 opacity-50" />
-          </IconButton>
-          <GuardedLink href="/projects" className="flex items-center gap-2">
-            <Image
-              src="/branding/engineo/logo-light.png"
-              alt="EngineO.ai"
-              width={28}
-              height={28}
-              className="dark:hidden"
-              priority
-            />
-            <Image
-              src="/branding/engineo/logo-dark.png"
-              alt="EngineO.ai"
-              width={28}
-              height={28}
-              className="hidden dark:block"
-              priority
-            />
-            <span className="text-sm font-semibold text-foreground">
-              EngineO.ai
-            </span>
-            <span className="hidden sm:inline text-sm text-muted-foreground">
-              Control Plane
-            </span>
-          </GuardedLink>
+      {/* [KAN-94: EA-54] Increased header height for breathing room, calmer visual presence */}
+      <header className="z-50 h-14 shrink-0 border-b border-border/60 bg-background">
+        <div className="flex h-full items-center gap-6 px-5">
+          {/* [KAN-94: EA-54] Brand/workspace grouping - clear visual hierarchy */}
+          <div className="flex items-center gap-3 pr-4 border-r border-border/40">
+            <IconButton label="App switcher — not yet available">
+              <AppSwitcherIcon className="h-4 w-4 opacity-40" />
+            </IconButton>
+            <GuardedLink href="/projects" className="flex items-center gap-2">
+              <Image
+                src="/branding/engineo/logo-light.png"
+                alt="EngineO.ai"
+                width={24}
+                height={24}
+                className="dark:hidden"
+                priority
+              />
+              <Image
+                src="/branding/engineo/logo-dark.png"
+                alt="EngineO.ai"
+                width={24}
+                height={24}
+                className="hidden dark:block"
+                priority
+              />
+              <span className="text-sm font-semibold text-foreground">
+                EngineO
+              </span>
+            </GuardedLink>
+          </div>
 
-          {/* [EA-53] Primary product areas (desktop-only); Media is explicitly non-functional. */}
+          {/* [KAN-94: EA-54] Primary product areas - calm, intentional spacing
+              Visual grouping: core nav items together, billing separated */}
           <nav
             aria-label="Primary navigation"
-            className="hidden lg:flex items-center gap-4"
+            className="hidden lg:flex items-center gap-1"
           >
             <GuardedLink
               href={projectsHref}
@@ -364,14 +372,17 @@ function LayoutShellInner({ children }: { children: ReactNode }) {
             >
               Products
             </GuardedLink>
+            {/* [KAN-94: EA-54] Coming soon: visually distinct, calm, non-clickable
+                - Reduced opacity, no hover state, subtle badge
+                - aria-disabled for accessibility */}
             <span
               aria-disabled="true"
               title="Media is coming soon"
-              className="inline-flex items-center gap-1 px-1 pt-1 text-sm font-medium text-muted-foreground/50 cursor-not-allowed select-none"
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-normal text-[hsl(var(--nav-coming-soon,var(--muted-foreground)))] opacity-60 cursor-default select-none"
             >
               Media
-              <span className="text-[10px] uppercase tracking-wide text-muted-foreground/50">
-                (Coming soon)
+              <span className="text-[9px] font-medium uppercase tracking-wider px-1.5 py-0.5 rounded bg-muted/50 text-muted-foreground/70">
+                Soon
               </span>
             </span>
             <GuardedLink
@@ -390,6 +401,8 @@ function LayoutShellInner({ children }: { children: ReactNode }) {
             >
               Performance
             </GuardedLink>
+            {/* Visual separator before billing */}
+            <div className="w-px h-5 bg-border/40 mx-2" aria-hidden="true" />
             <GuardedLink
               href={billingHref}
               className={navLinkClassName(isActiveHref(billingHref))}
@@ -398,23 +411,21 @@ function LayoutShellInner({ children }: { children: ReactNode }) {
             </GuardedLink>
           </nav>
 
-          <div className="flex flex-1 items-center justify-center px-4">
+          {/* [KAN-94: EA-54] Search - centered, calm, doesn't compete with nav */}
+          <div className="flex flex-1 items-center justify-center px-6">
             {/* Desktop command palette trigger */}
             <button
               type="button"
               onClick={openPalette}
               aria-label="Open command palette"
               data-testid="command-palette-open"
-              className="hidden w-full max-w-xl items-center gap-2 rounded-md border border-border bg-[hsl(var(--surface-card))] px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background md:flex"
+              className="hidden w-full max-w-md items-center gap-2 rounded-lg border border-border/50 bg-muted/30 px-3 py-1.5 text-sm text-muted-foreground/70 transition-colors hover:bg-muted/50 hover:text-muted-foreground hover:border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background md:flex"
             >
               {/* [ICONS-LOCAL-LIBRARY-1] Using Icon component for search icon */}
-              <Icon name="utility.search" size={16} />
-              <span className="flex-1 text-left">Search…</span>
-              <kbd className="rounded border border-border bg-background px-2 py-0.5 text-xs text-muted-foreground">
+              <Icon name="utility.search" size={14} className="opacity-60" />
+              <span className="flex-1 text-left text-xs">Search…</span>
+              <kbd className="rounded border border-border/50 bg-background/50 px-1.5 py-0.5 text-[10px] text-muted-foreground/60 font-medium">
                 ⌘K
-              </kbd>
-              <kbd className="rounded border border-border bg-background px-2 py-0.5 text-xs text-muted-foreground">
-                Ctrl K
               </kbd>
             </button>
             {/* Small screen command palette trigger */}
@@ -423,40 +434,43 @@ function LayoutShellInner({ children }: { children: ReactNode }) {
               onClick={openPalette}
               aria-label="Open command palette"
               data-testid="command-palette-open-mobile"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-[hsl(var(--surface-card))] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background md:hidden"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border/50 bg-muted/30 text-muted-foreground/60 transition-colors hover:bg-muted/50 hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background md:hidden"
             >
               {/* [ICONS-LOCAL-LIBRARY-1] Using Icon component for search icon */}
-              <Icon name="utility.search" size={20} />
+              <Icon name="utility.search" size={16} />
             </button>
           </div>
-          <div className="flex items-center gap-2">
+          {/* [KAN-94: EA-54] Control-plane utilities - visually subordinate to primary nav
+              - Smaller icons, reduced opacity
+              - Consistent muted styling for disabled states
+              - Clear visual grouping */}
+          <div className="flex items-center gap-1.5">
             <IconButton label="Notifications — not yet available">
-              <BellIcon className="h-5 w-5 opacity-50" />
+              <BellIcon className="h-4 w-4 opacity-40" />
             </IconButton>
             <IconButton label="Help & Docs — not yet available">
-              <HelpIcon className="h-5 w-5 opacity-50" />
+              <HelpIcon className="h-4 w-4 opacity-40" />
             </IconButton>
             <button
               type="button"
               aria-label="Tenant / Project switcher — not yet available"
               aria-disabled="true"
               title="Multi-tenant switching is planned for a future release"
-              className="hidden items-center gap-2 rounded-md border border-border bg-[hsl(var(--surface-card))] px-3 py-2 text-sm text-muted-foreground/50 cursor-not-allowed sm:inline-flex"
+              className="hidden items-center gap-1.5 rounded-md border border-border/50 bg-transparent px-2 py-1.5 text-xs text-[hsl(var(--nav-utility-muted,var(--muted-foreground)))] opacity-50 cursor-default sm:inline-flex"
             >
-              <span className="max-w-[160px] truncate">Tenant</span>
-              <ChevronRightIcon className="h-4 w-4 opacity-50" />
+              <span className="max-w-[120px] truncate">Workspace</span>
+              <ChevronRightIcon className="h-3 w-3 opacity-60" />
             </button>
             <button
               type="button"
               aria-label="Account menu — not yet available"
               aria-disabled="true"
               title="Account management is planned for a future release"
-              className="inline-flex items-center gap-2 rounded-md border border-border bg-[hsl(var(--surface-card))] px-2 py-2 text-sm text-muted-foreground/50 cursor-not-allowed"
+              className="inline-flex items-center gap-1 rounded-md border border-border/50 bg-transparent px-1.5 py-1.5 text-xs text-[hsl(var(--nav-utility-muted,var(--muted-foreground)))] opacity-50 cursor-default"
             >
-              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs font-semibold text-foreground/50">
+              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-muted/60 text-[10px] font-medium text-muted-foreground">
                 U
               </span>
-              <ChevronRightIcon className="h-4 w-4 opacity-50" />
             </button>
           </div>
         </div>
