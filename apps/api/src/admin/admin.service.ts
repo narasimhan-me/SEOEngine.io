@@ -1585,10 +1585,8 @@ export class AdminService {
           playbookId: true,
           scopeId: true,
           rulesHash: true,
-          assetType: true,
           status: true,
-          affectedTotal: true,
-          draftGenerated: true,
+          counts: true,
           appliedAt: true,
           expiresAt: true,
           createdAt: true,
@@ -1605,26 +1603,29 @@ export class AdminService {
       }),
     ]);
 
-    const scopes = drafts.map((draft) => ({
-      draftId: draft.id,
-      projectId: draft.projectId,
-      projectName: draft.project.name,
-      projectDomain: draft.project.domain,
-      playbookId: draft.playbookId,
-      scopeId: draft.scopeId,
-      rulesHash: draft.rulesHash,
-      assetType: draft.assetType,
-      status: draft.status,
-      boundaries: {
-        affectedTotal: draft.affectedTotal,
-        draftGenerated: draft.draftGenerated,
-      },
-      applied: !!draft.appliedAt,
-      appliedAt: draft.appliedAt,
-      expired: draft.expiresAt ? draft.expiresAt < new Date() : false,
-      expiresAt: draft.expiresAt,
-      createdAt: draft.createdAt,
-    }));
+    const scopes = drafts.map((draft) => {
+      // Extract counts from JSON field if available
+      const counts = (draft.counts as Record<string, number>) || {};
+      return {
+        draftId: draft.id,
+        projectId: draft.projectId,
+        projectName: draft.project.name,
+        projectDomain: draft.project.domain,
+        playbookId: draft.playbookId,
+        scopeId: draft.scopeId,
+        rulesHash: draft.rulesHash,
+        status: draft.status,
+        boundaries: {
+          affectedTotal: counts.affectedTotal ?? 0,
+          draftGenerated: counts.draftGenerated ?? 0,
+        },
+        applied: !!draft.appliedAt,
+        appliedAt: draft.appliedAt,
+        expired: draft.expiresAt ? draft.expiresAt < new Date() : false,
+        expiresAt: draft.expiresAt,
+        createdAt: draft.createdAt,
+      };
+    });
 
     return {
       scopes,

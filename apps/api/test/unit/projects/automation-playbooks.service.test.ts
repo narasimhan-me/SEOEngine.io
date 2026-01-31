@@ -20,6 +20,7 @@ import { TokenUsageService } from '../../../src/ai/token-usage.service';
 import { AiService } from '../../../src/ai/ai.service';
 import { AiUsageQuotaService } from '../../../src/ai/ai-usage-quota.service';
 import { RoleResolutionService } from '../../../src/common/role-resolution.service';
+import { AutomationSafetyRailsService } from '../../../src/projects/automation-safety-rails.service';
 import {
   NotFoundException,
   ForbiddenException,
@@ -73,6 +74,27 @@ const createRoleResolutionServiceMock = () => ({
   resolveEffectiveRole: jest.fn().mockResolvedValue('OWNER'),
 });
 
+const createAutomationSafetyRailsServiceMock = () => ({
+  evaluateSafetyRails: jest.fn().mockResolvedValue({
+    status: 'PASSED',
+    checks: [],
+    evaluatedAt: new Date().toISOString(),
+    projectId: 'proj-1',
+    userId: 'user-1',
+    automationId: 'automation-1',
+    declaredScope: { scopeId: 'scope-1', assetCount: 1, assetType: 'product' },
+  }),
+  enforceOrBlock: jest.fn().mockResolvedValue({
+    status: 'PASSED',
+    checks: [],
+    evaluatedAt: new Date().toISOString(),
+    projectId: 'proj-1',
+    userId: 'user-1',
+    automationId: 'automation-1',
+    declaredScope: { scopeId: 'scope-1', assetCount: 1, assetType: 'product' },
+  }),
+});
+
 describe('AutomationPlaybooksService', () => {
   let service: AutomationPlaybooksService;
   let prismaMock: ReturnType<typeof createPrismaMock>;
@@ -83,6 +105,9 @@ describe('AutomationPlaybooksService', () => {
   let roleResolutionServiceMock: ReturnType<
     typeof createRoleResolutionServiceMock
   >;
+  let automationSafetyRailsServiceMock: ReturnType<
+    typeof createAutomationSafetyRailsServiceMock
+  >;
 
   beforeEach(async () => {
     prismaMock = createPrismaMock();
@@ -91,6 +116,7 @@ describe('AutomationPlaybooksService', () => {
     aiServiceMock = createAiServiceMock();
     aiUsageQuotaServiceMock = createAiUsageQuotaServiceMock();
     roleResolutionServiceMock = createRoleResolutionServiceMock();
+    automationSafetyRailsServiceMock = createAutomationSafetyRailsServiceMock();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -101,6 +127,10 @@ describe('AutomationPlaybooksService', () => {
         { provide: AiService, useValue: aiServiceMock },
         { provide: AiUsageQuotaService, useValue: aiUsageQuotaServiceMock },
         { provide: RoleResolutionService, useValue: roleResolutionServiceMock },
+        {
+          provide: AutomationSafetyRailsService,
+          useValue: automationSafetyRailsServiceMock,
+        },
       ],
     }).compile();
 
@@ -112,7 +142,7 @@ describe('AutomationPlaybooksService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    (global.console.log as jest.Mock).mockRestore();
+    jest.restoreAllMocks();
   });
 
   describe('estimatePlaybook', () => {
@@ -719,8 +749,21 @@ describe('AutomationPlaybooksService', () => {
         userId,
       };
 
+      const mockProducts = [{ id: 'prod-1', seoTitle: null }];
+
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
+      prismaMock.product.findMany.mockResolvedValue(mockProducts as any);
       entitlementsServiceMock.getUserPlan.mockResolvedValue('free');
+
+      // Safety rails now handles entitlement checks - mock it to throw for free plan
+      automationSafetyRailsServiceMock.enforceOrBlock.mockRejectedValueOnce(
+        new ForbiddenException({
+          code: 'AUTOMATION_SAFETY_BLOCKED',
+          reason: 'ENTITLEMENT_BLOCKED',
+          message:
+            'Your plan does not include automation execution. Upgrade to Pro or Business to unlock this feature.',
+        })
+      );
 
       await expect(
         service.applyPlaybook(userId, projectId, playbookId, scopeId, rulesHash)

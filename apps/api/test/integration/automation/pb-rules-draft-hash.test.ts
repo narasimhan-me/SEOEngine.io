@@ -615,6 +615,7 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
       });
 
       // Attempt Apply with old scopeId
+      // [EA-44] Safety rails now handle scope validation, returning 403 with SCOPE_EXCEEDED
       const applyRes = await request(server)
         .post(`/projects/${projectId}/automation-playbooks/apply`)
         .set('Authorization', `Bearer ${token}`)
@@ -624,8 +625,8 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
           rulesHash,
         });
 
-      expect(applyRes.status).toBe(409);
-      expect(applyRes.body).toHaveProperty('code', 'PLAYBOOK_SCOPE_INVALID');
+      expect(applyRes.status).toBe(403);
+      expect(applyRes.body).toHaveProperty('reason', 'SCOPE_EXCEEDED');
     });
   });
 
@@ -1008,14 +1009,16 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
       // Second Apply (resume) - After first apply, products are updated with SEO titles,
       // so the scope changes and the draft is no longer valid for this scope
       // The apply should fail because the products no longer match the playbook criteria
+      // [EA-44] Safety rails now handle scope validation, returning 403 with SCOPE_EXCEEDED
       aiServiceStub.generateMetadataCallCount = 0;
       const apply2 = await request(server)
         .post(`/projects/${projectId}/automation-playbooks/apply`)
         .set('Authorization', `Bearer ${token}`)
         .send({ playbookId: 'missing_seo_title', scopeId, rulesHash });
       // After first apply, products have SEO titles, so scope is invalid
-      expect(apply2.status).toBe(409);
-      expect(apply2.body).toHaveProperty('code', 'PLAYBOOK_SCOPE_INVALID');
+      // Safety rails block with 403 SCOPE_EXCEEDED instead of 409 PLAYBOOK_SCOPE_INVALID
+      expect(apply2.status).toBe(403);
+      expect(apply2.body).toHaveProperty('reason', 'SCOPE_EXCEEDED');
       expect(aiServiceStub.generateMetadataCallCount).toBe(0);
     });
   });

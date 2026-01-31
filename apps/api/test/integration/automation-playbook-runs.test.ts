@@ -160,6 +160,28 @@ describe('AutomationPlaybookRuns Integration', () => {
       isMultiUserProject: jest.fn().mockResolvedValue(false),
     };
 
+    // [EA-44] Mock AutomationSafetyRailsService
+    const safetyRailsMock = {
+      evaluateSafetyRails: jest.fn().mockResolvedValue({
+        status: 'PASSED',
+        checks: [],
+        evaluatedAt: new Date().toISOString(),
+        projectId: mockProject.id,
+        userId: 'user-1',
+        automationId: 'missing_seo_title',
+        declaredScope: { scopeId: 'scope-1', assetCount: 2, assetType: 'products' },
+      }),
+      enforceOrBlock: jest.fn().mockResolvedValue({
+        status: 'PASSED',
+        checks: [],
+        evaluatedAt: new Date().toISOString(),
+        projectId: mockProject.id,
+        userId: 'user-1',
+        automationId: 'missing_seo_title',
+        declaredScope: { scopeId: 'scope-1', assetCount: 2, assetType: 'products' },
+      }),
+    };
+
     // Create the real service instances with mocked dependencies
     playbooksService = new AutomationPlaybooksService(
       prismaMock,
@@ -167,7 +189,8 @@ describe('AutomationPlaybookRuns Integration', () => {
       tokenUsageMock as any,
       aiServiceMock as any,
       quotaServiceMock as any,
-      roleResolutionMock as any
+      roleResolutionMock as any,
+      safetyRailsMock as any
     );
 
     processor = new AutomationPlaybookRunProcessor(

@@ -395,4 +395,944 @@ describe('BillingService', () => {
       });
     });
   });
+
+  describe('handleWebhook', () => {
+    it('should return received when Stripe is not configured', async () => {
+      const config = createConfigMock({ STRIPE_SECRET_KEY: undefined });
+      const serviceWithoutStripe = new BillingService(
+        prismaMock as unknown as PrismaService,
+        config,
+        entitlementsServiceMock as unknown as EntitlementsService
+      );
+
+      jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const result = await serviceWithoutStripe.handleWebhook(
+        Buffer.from('{}'),
+        'sig_123'
+      );
+
+      expect(result).toEqual({ received: true });
+      (console.warn as jest.Mock).mockRestore();
+    });
+
+    it('should return received when webhook secret is not set', async () => {
+      const config = createConfigMock({
+        STRIPE_SECRET_KEY: 'sk_test_key',
+        STRIPE_WEBHOOK_SECRET: undefined,
+      });
+      const serviceWithNoSecret = new BillingService(
+        prismaMock as unknown as PrismaService,
+        config,
+        entitlementsServiceMock as unknown as EntitlementsService
+      );
+
+      jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const result = await serviceWithNoSecret.handleWebhook(
+        Buffer.from('{}'),
+        'sig_123'
+      );
+
+      expect(result).toEqual({ received: true });
+      (console.warn as jest.Mock).mockRestore();
+    });
+
+    it('should throw BadRequestException on signature verification failure', async () => {
+      const config = createConfigMock({
+        STRIPE_SECRET_KEY: 'sk_test_key',
+        STRIPE_WEBHOOK_SECRET: 'whsec_test',
+      });
+      const serviceWithSecret = new BillingService(
+        prismaMock as unknown as PrismaService,
+        config,
+        entitlementsServiceMock as unknown as EntitlementsService
+      );
+
+      const mockStripeInstance = (serviceWithSecret as any).stripe;
+      mockStripeInstance.webhooks.constructEvent.mockImplementation(() => {
+        throw new Error('Invalid signature');
+      });
+
+      jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      await expect(
+        serviceWithSecret.handleWebhook(Buffer.from('{}'), 'invalid_sig')
+      ).rejects.toThrow(BadRequestException);
+
+      (console.error as jest.Mock).mockRestore();
+    });
+
+    it('should handle checkout.session.completed event', async () => {
+      const config = createConfigMock({
+        STRIPE_SECRET_KEY: 'sk_test_key',
+        STRIPE_WEBHOOK_SECRET: 'whsec_test',
+      });
+      const serviceWithSecret = new BillingService(
+        prismaMock as unknown as PrismaService,
+        config,
+        entitlementsServiceMock as unknown as EntitlementsService
+      );
+
+      const mockEvent = {
+        id: 'evt_123',
+        type: 'checkout.session.completed',
+        data: {
+          object: {
+            id: 'cs_123',
+            metadata: { userId: 'user-1', planId: 'pro' },
+            subscription: 'sub_123',
+            customer: 'cus_123',
+          },
+        },
+      };
+
+      const mockStripeInstance = (serviceWithSecret as any).stripe;
+      mockStripeInstance.webhooks.constructEvent.mockReturnValue(mockEvent);
+      prismaMock.subscription.findUnique.mockResolvedValue(null);
+      prismaMock.subscription.upsert.mockResolvedValue({
+        id: 'sub-1',
+        userId: 'user-1',
+        plan: 'pro',
+      });
+      prismaMock.subscription.update.mockResolvedValue({});
+
+      jest.spyOn(console, 'log').mockImplementation(() => {});
+
+      const result = await serviceWithSecret.handleWebhook(
+        Buffer.from('{}'),
+        'sig_123'
+      );
+
+      expect(result).toEqual({ received: true });
+      expect(prismaMock.subscription.upsert).toHaveBeenCalled();
+
+      (console.log as jest.Mock).mockRestore();
+    });
+
+    it('should handle customer.subscription.updated event', async () => {
+      const config = createConfigMock({
+        STRIPE_SECRET_KEY: 'sk_test_key',
+        STRIPE_WEBHOOK_SECRET: 'whsec_test',
+        STRIPE_PRICE_PRO: 'price_pro',
+      });
+      const serviceWithSecret = new BillingService(
+        prismaMock as unknown as PrismaService,
+        config,
+        entitlementsServiceMock as unknown as EntitlementsService
+      );
+
+      const mockEvent = {
+        id: 'evt_123',
+        type: 'customer.subscription.updated',
+        data: {
+          object: {
+            id: 'sub_123',
+            customer: 'cus_123',
+            status: 'active',
+            current_period_start: Math.floor(Date.now() / 1000),
+            current_period_end: Math.floor(Date.now() / 1000) + 2592000,
+            items: {
+              data: [{ price: { id: 'price_pro' } }],
+            },
+          },
+        },
+      };
+
+      const mockStripeInstance = (serviceWithSecret as any).stripe;
+      mockStripeInstance.webhooks.constructEvent.mockReturnValue(mockEvent);
+      prismaMock.subscription.findFirst.mockResolvedValue({
+        id: 'sub-1',
+        userId: 'user-1',
+        stripeCustomerId: 'cus_123',
+      });
+      prismaMock.subscription.update.mockResolvedValue({});
+
+      jest.spyOn(console, 'log').mockImplementation(() => {});
+
+      const result = await serviceWithSecret.handleWebhook(
+        Buffer.from('{}'),
+        'sig_123'
+      );
+
+      expect(result).toEqual({ received: true });
+      expect(prismaMock.subscription.update).toHaveBeenCalled();
+
+      (console.log as jest.Mock).mockRestore();
+    });
+
+    it('should handle customer.subscription.deleted event', async () => {
+      const config = createConfigMock({
+        STRIPE_SECRET_KEY: 'sk_test_key',
+        STRIPE_WEBHOOK_SECRET: 'whsec_test',
+      });
+      const serviceWithSecret = new BillingService(
+        prismaMock as unknown as PrismaService,
+        config,
+        entitlementsServiceMock as unknown as EntitlementsService
+      );
+
+      const mockEvent = {
+        id: 'evt_123',
+        type: 'customer.subscription.deleted',
+        data: {
+          object: {
+            id: 'sub_123',
+            customer: 'cus_123',
+            current_period_end: Math.floor(Date.now() / 1000) + 2592000,
+          },
+        },
+      };
+
+      const mockStripeInstance = (serviceWithSecret as any).stripe;
+      mockStripeInstance.webhooks.constructEvent.mockReturnValue(mockEvent);
+      prismaMock.subscription.findFirst.mockResolvedValue({
+        id: 'sub-1',
+        userId: 'user-1',
+        stripeCustomerId: 'cus_123',
+        currentPeriodEnd: new Date(),
+      });
+      prismaMock.subscription.update.mockResolvedValue({});
+
+      jest.spyOn(console, 'log').mockImplementation(() => {});
+
+      const result = await serviceWithSecret.handleWebhook(
+        Buffer.from('{}'),
+        'sig_123'
+      );
+
+      expect(result).toEqual({ received: true });
+      expect(prismaMock.subscription.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            plan: 'free',
+            status: 'canceled',
+          }),
+        })
+      );
+
+      (console.log as jest.Mock).mockRestore();
+    });
+
+    it('should handle unrecognized event types gracefully', async () => {
+      const config = createConfigMock({
+        STRIPE_SECRET_KEY: 'sk_test_key',
+        STRIPE_WEBHOOK_SECRET: 'whsec_test',
+      });
+      const serviceWithSecret = new BillingService(
+        prismaMock as unknown as PrismaService,
+        config,
+        entitlementsServiceMock as unknown as EntitlementsService
+      );
+
+      const mockEvent = {
+        id: 'evt_123',
+        type: 'invoice.payment_succeeded',
+        data: { object: {} },
+      };
+
+      const mockStripeInstance = (serviceWithSecret as any).stripe;
+      mockStripeInstance.webhooks.constructEvent.mockReturnValue(mockEvent);
+
+      jest.spyOn(console, 'log').mockImplementation(() => {});
+
+      const result = await serviceWithSecret.handleWebhook(
+        Buffer.from('{}'),
+        'sig_123'
+      );
+
+      expect(result).toEqual({ received: true });
+
+      (console.log as jest.Mock).mockRestore();
+    });
+
+    it('should skip duplicate events (idempotency)', async () => {
+      const config = createConfigMock({
+        STRIPE_SECRET_KEY: 'sk_test_key',
+        STRIPE_WEBHOOK_SECRET: 'whsec_test',
+      });
+      const serviceWithSecret = new BillingService(
+        prismaMock as unknown as PrismaService,
+        config,
+        entitlementsServiceMock as unknown as EntitlementsService
+      );
+
+      const mockEvent = {
+        id: 'evt_123',
+        type: 'checkout.session.completed',
+        data: {
+          object: {
+            id: 'cs_123',
+            metadata: { userId: 'user-1', planId: 'pro' },
+            subscription: 'sub_123',
+            customer: 'cus_123',
+          },
+        },
+      };
+
+      const mockStripeInstance = (serviceWithSecret as any).stripe;
+      mockStripeInstance.webhooks.constructEvent.mockReturnValue(mockEvent);
+      // Return existing subscription with same event ID
+      prismaMock.subscription.findUnique.mockResolvedValue({
+        id: 'sub-1',
+        userId: 'user-1',
+        lastStripeEventId: 'evt_123', // Same event ID
+      });
+
+      jest.spyOn(console, 'log').mockImplementation(() => {});
+
+      const result = await serviceWithSecret.handleWebhook(
+        Buffer.from('{}'),
+        'sig_123'
+      );
+
+      expect(result).toEqual({ received: true });
+      expect(prismaMock.subscription.upsert).not.toHaveBeenCalled();
+
+      (console.log as jest.Mock).mockRestore();
+    });
+  });
+
+  describe('createCheckoutSession - price not configured', () => {
+    it('should throw BadRequestException when price not configured', async () => {
+      const config = createConfigMock({
+        STRIPE_SECRET_KEY: 'sk_test_key',
+        STRIPE_PRICE_PRO: undefined,
+      });
+      const serviceWithNoPrice = new BillingService(
+        prismaMock as unknown as PrismaService,
+        config,
+        entitlementsServiceMock as unknown as EntitlementsService
+      );
+
+      prismaMock.subscription.findFirst.mockResolvedValue(null);
+
+      await expect(
+        serviceWithNoPrice.createCheckoutSession('user-1', 'pro')
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw NotFoundException when user not found', async () => {
+      prismaMock.subscription.findFirst.mockResolvedValue(null);
+      prismaMock.user.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.createCheckoutSession('user-1', 'pro')
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('getBillingSummary - free plan', () => {
+    it('should return active status for free plan regardless of subscription status', async () => {
+      const mockEntitlements = {
+        plan: 'free',
+        limits: { projects: 1 },
+        usage: { projects: 0 },
+      };
+
+      prismaMock.subscription.findUnique.mockResolvedValue(null);
+      entitlementsServiceMock.getEntitlementsSummary.mockResolvedValue(
+        mockEntitlements
+      );
+
+      const result = await service.getBillingSummary('user-1');
+
+      expect(result.plan).toBe('free');
+      expect(result.status).toBe('active');
+    });
+  });
+
+  describe('handleWebhook - subscription.updated edge cases', () => {
+    it('should return early when customer ID is missing in subscription.updated', async () => {
+      const config = createConfigMock({
+        STRIPE_SECRET_KEY: 'sk_test_key',
+        STRIPE_WEBHOOK_SECRET: 'whsec_test',
+      });
+      const serviceWithSecret = new BillingService(
+        prismaMock as unknown as PrismaService,
+        config,
+        entitlementsServiceMock as unknown as EntitlementsService
+      );
+
+      const mockEvent = {
+        id: 'evt_123',
+        type: 'customer.subscription.updated',
+        data: {
+          object: {
+            id: 'sub_123',
+            customer: '', // Empty customer ID
+            status: 'active',
+            items: { data: [] },
+          },
+        },
+      };
+
+      const mockStripeInstance = (serviceWithSecret as any).stripe;
+      mockStripeInstance.webhooks.constructEvent.mockReturnValue(mockEvent);
+
+      jest.spyOn(console, 'log').mockImplementation(() => {});
+      jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const result = await serviceWithSecret.handleWebhook(
+        Buffer.from('{}'),
+        'sig_123'
+      );
+
+      expect(result).toEqual({ received: true });
+      expect(prismaMock.subscription.update).not.toHaveBeenCalled();
+
+      jest.restoreAllMocks();
+    });
+
+    it('should return early when no subscription found for customer', async () => {
+      const config = createConfigMock({
+        STRIPE_SECRET_KEY: 'sk_test_key',
+        STRIPE_WEBHOOK_SECRET: 'whsec_test',
+      });
+      const serviceWithSecret = new BillingService(
+        prismaMock as unknown as PrismaService,
+        config,
+        entitlementsServiceMock as unknown as EntitlementsService
+      );
+
+      const mockEvent = {
+        id: 'evt_123',
+        type: 'customer.subscription.updated',
+        data: {
+          object: {
+            id: 'sub_123',
+            customer: 'cus_unknown',
+            status: 'active',
+            items: { data: [] },
+          },
+        },
+      };
+
+      const mockStripeInstance = (serviceWithSecret as any).stripe;
+      mockStripeInstance.webhooks.constructEvent.mockReturnValue(mockEvent);
+      prismaMock.subscription.findFirst.mockResolvedValue(null);
+
+      jest.spyOn(console, 'log').mockImplementation(() => {});
+      jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const result = await serviceWithSecret.handleWebhook(
+        Buffer.from('{}'),
+        'sig_123'
+      );
+
+      expect(result).toEqual({ received: true });
+      expect(prismaMock.subscription.update).not.toHaveBeenCalled();
+
+      jest.restoreAllMocks();
+    });
+
+    it('should skip duplicate events (idempotency) for subscription.updated', async () => {
+      const config = createConfigMock({
+        STRIPE_SECRET_KEY: 'sk_test_key',
+        STRIPE_WEBHOOK_SECRET: 'whsec_test',
+      });
+      const serviceWithSecret = new BillingService(
+        prismaMock as unknown as PrismaService,
+        config,
+        entitlementsServiceMock as unknown as EntitlementsService
+      );
+
+      const mockEvent = {
+        id: 'evt_duplicate',
+        type: 'customer.subscription.updated',
+        data: {
+          object: {
+            id: 'sub_123',
+            customer: 'cus_123',
+            status: 'active',
+            items: { data: [] },
+          },
+        },
+      };
+
+      const mockStripeInstance = (serviceWithSecret as any).stripe;
+      mockStripeInstance.webhooks.constructEvent.mockReturnValue(mockEvent);
+      prismaMock.subscription.findFirst.mockResolvedValue({
+        id: 'sub-1',
+        userId: 'user-1',
+        stripeCustomerId: 'cus_123',
+        lastStripeEventId: 'evt_duplicate', // Same event ID
+      });
+
+      jest.spyOn(console, 'log').mockImplementation(() => {});
+
+      const result = await serviceWithSecret.handleWebhook(
+        Buffer.from('{}'),
+        'sig_123'
+      );
+
+      expect(result).toEqual({ received: true });
+      expect(prismaMock.subscription.update).not.toHaveBeenCalled();
+
+      jest.restoreAllMocks();
+    });
+
+    it('should handle business plan price in subscription.updated', async () => {
+      const config = createConfigMock({
+        STRIPE_SECRET_KEY: 'sk_test_key',
+        STRIPE_WEBHOOK_SECRET: 'whsec_test',
+        STRIPE_PRICE_PRO: 'price_pro',
+        STRIPE_PRICE_BUSINESS: 'price_business',
+      });
+      const serviceWithSecret = new BillingService(
+        prismaMock as unknown as PrismaService,
+        config,
+        entitlementsServiceMock as unknown as EntitlementsService
+      );
+
+      const mockEvent = {
+        id: 'evt_123',
+        type: 'customer.subscription.updated',
+        data: {
+          object: {
+            id: 'sub_123',
+            customer: 'cus_123',
+            status: 'active',
+            current_period_start: Math.floor(Date.now() / 1000),
+            current_period_end: Math.floor(Date.now() / 1000) + 2592000,
+            items: {
+              data: [{ price: { id: 'price_business' } }],
+            },
+          },
+        },
+      };
+
+      const mockStripeInstance = (serviceWithSecret as any).stripe;
+      mockStripeInstance.webhooks.constructEvent.mockReturnValue(mockEvent);
+      prismaMock.subscription.findFirst.mockResolvedValue({
+        id: 'sub-1',
+        userId: 'user-1',
+        stripeCustomerId: 'cus_123',
+      });
+      prismaMock.subscription.update.mockResolvedValue({});
+
+      jest.spyOn(console, 'log').mockImplementation(() => {});
+
+      const result = await serviceWithSecret.handleWebhook(
+        Buffer.from('{}'),
+        'sig_123'
+      );
+
+      expect(result).toEqual({ received: true });
+      expect(prismaMock.subscription.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            plan: 'business',
+          }),
+        })
+      );
+
+      jest.restoreAllMocks();
+    });
+
+    it('should handle customer.subscription.created event', async () => {
+      const config = createConfigMock({
+        STRIPE_SECRET_KEY: 'sk_test_key',
+        STRIPE_WEBHOOK_SECRET: 'whsec_test',
+        STRIPE_PRICE_PRO: 'price_pro',
+      });
+      const serviceWithSecret = new BillingService(
+        prismaMock as unknown as PrismaService,
+        config,
+        entitlementsServiceMock as unknown as EntitlementsService
+      );
+
+      const mockEvent = {
+        id: 'evt_123',
+        type: 'customer.subscription.created',
+        data: {
+          object: {
+            id: 'sub_123',
+            customer: 'cus_123',
+            status: 'active',
+            current_period_start: Math.floor(Date.now() / 1000),
+            current_period_end: Math.floor(Date.now() / 1000) + 2592000,
+            items: {
+              data: [{ price: { id: 'price_pro' } }],
+            },
+          },
+        },
+      };
+
+      const mockStripeInstance = (serviceWithSecret as any).stripe;
+      mockStripeInstance.webhooks.constructEvent.mockReturnValue(mockEvent);
+      prismaMock.subscription.findFirst.mockResolvedValue({
+        id: 'sub-1',
+        userId: 'user-1',
+        stripeCustomerId: 'cus_123',
+      });
+      prismaMock.subscription.update.mockResolvedValue({});
+
+      jest.spyOn(console, 'log').mockImplementation(() => {});
+
+      const result = await serviceWithSecret.handleWebhook(
+        Buffer.from('{}'),
+        'sig_123'
+      );
+
+      expect(result).toEqual({ received: true });
+      expect(prismaMock.subscription.update).toHaveBeenCalled();
+
+      jest.restoreAllMocks();
+    });
+  });
+
+  describe('handleWebhook - subscription.deleted edge cases', () => {
+    it('should return early when customer ID is missing in subscription.deleted', async () => {
+      const config = createConfigMock({
+        STRIPE_SECRET_KEY: 'sk_test_key',
+        STRIPE_WEBHOOK_SECRET: 'whsec_test',
+      });
+      const serviceWithSecret = new BillingService(
+        prismaMock as unknown as PrismaService,
+        config,
+        entitlementsServiceMock as unknown as EntitlementsService
+      );
+
+      const mockEvent = {
+        id: 'evt_123',
+        type: 'customer.subscription.deleted',
+        data: {
+          object: {
+            id: 'sub_123',
+            customer: '', // Empty customer ID
+          },
+        },
+      };
+
+      const mockStripeInstance = (serviceWithSecret as any).stripe;
+      mockStripeInstance.webhooks.constructEvent.mockReturnValue(mockEvent);
+
+      jest.spyOn(console, 'log').mockImplementation(() => {});
+      jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const result = await serviceWithSecret.handleWebhook(
+        Buffer.from('{}'),
+        'sig_123'
+      );
+
+      expect(result).toEqual({ received: true });
+      expect(prismaMock.subscription.update).not.toHaveBeenCalled();
+
+      jest.restoreAllMocks();
+    });
+
+    it('should return early when no subscription found for deleted event', async () => {
+      const config = createConfigMock({
+        STRIPE_SECRET_KEY: 'sk_test_key',
+        STRIPE_WEBHOOK_SECRET: 'whsec_test',
+      });
+      const serviceWithSecret = new BillingService(
+        prismaMock as unknown as PrismaService,
+        config,
+        entitlementsServiceMock as unknown as EntitlementsService
+      );
+
+      const mockEvent = {
+        id: 'evt_123',
+        type: 'customer.subscription.deleted',
+        data: {
+          object: {
+            id: 'sub_123',
+            customer: 'cus_unknown',
+          },
+        },
+      };
+
+      const mockStripeInstance = (serviceWithSecret as any).stripe;
+      mockStripeInstance.webhooks.constructEvent.mockReturnValue(mockEvent);
+      prismaMock.subscription.findFirst.mockResolvedValue(null);
+
+      jest.spyOn(console, 'log').mockImplementation(() => {});
+
+      const result = await serviceWithSecret.handleWebhook(
+        Buffer.from('{}'),
+        'sig_123'
+      );
+
+      expect(result).toEqual({ received: true });
+      expect(prismaMock.subscription.update).not.toHaveBeenCalled();
+
+      jest.restoreAllMocks();
+    });
+
+    it('should skip duplicate events (idempotency) for subscription.deleted', async () => {
+      const config = createConfigMock({
+        STRIPE_SECRET_KEY: 'sk_test_key',
+        STRIPE_WEBHOOK_SECRET: 'whsec_test',
+      });
+      const serviceWithSecret = new BillingService(
+        prismaMock as unknown as PrismaService,
+        config,
+        entitlementsServiceMock as unknown as EntitlementsService
+      );
+
+      const mockEvent = {
+        id: 'evt_duplicate',
+        type: 'customer.subscription.deleted',
+        data: {
+          object: {
+            id: 'sub_123',
+            customer: 'cus_123',
+          },
+        },
+      };
+
+      const mockStripeInstance = (serviceWithSecret as any).stripe;
+      mockStripeInstance.webhooks.constructEvent.mockReturnValue(mockEvent);
+      prismaMock.subscription.findFirst.mockResolvedValue({
+        id: 'sub-1',
+        userId: 'user-1',
+        stripeCustomerId: 'cus_123',
+        lastStripeEventId: 'evt_duplicate', // Same event ID
+      });
+
+      jest.spyOn(console, 'log').mockImplementation(() => {});
+
+      const result = await serviceWithSecret.handleWebhook(
+        Buffer.from('{}'),
+        'sig_123'
+      );
+
+      expect(result).toEqual({ received: true });
+      expect(prismaMock.subscription.update).not.toHaveBeenCalled();
+
+      jest.restoreAllMocks();
+    });
+  });
+
+  describe('handleWebhook - checkout.session.completed edge cases', () => {
+    it('should return early when metadata is missing in checkout session', async () => {
+      const config = createConfigMock({
+        STRIPE_SECRET_KEY: 'sk_test_key',
+        STRIPE_WEBHOOK_SECRET: 'whsec_test',
+      });
+      const serviceWithSecret = new BillingService(
+        prismaMock as unknown as PrismaService,
+        config,
+        entitlementsServiceMock as unknown as EntitlementsService
+      );
+
+      const mockEvent = {
+        id: 'evt_123',
+        type: 'checkout.session.completed',
+        data: {
+          object: {
+            id: 'cs_123',
+            metadata: {}, // Missing userId and planId
+            subscription: 'sub_123',
+            customer: 'cus_123',
+          },
+        },
+      };
+
+      const mockStripeInstance = (serviceWithSecret as any).stripe;
+      mockStripeInstance.webhooks.constructEvent.mockReturnValue(mockEvent);
+
+      jest.spyOn(console, 'log').mockImplementation(() => {});
+      jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      const result = await serviceWithSecret.handleWebhook(
+        Buffer.from('{}'),
+        'sig_123'
+      );
+
+      expect(result).toEqual({ received: true });
+      expect(prismaMock.subscription.upsert).not.toHaveBeenCalled();
+
+      jest.restoreAllMocks();
+    });
+  });
+
+  describe('handleWebhook - Stripe status mappings', () => {
+    it.each([
+      ['trialing', 'active'],
+      ['past_due', 'past_due'],
+      ['unpaid', 'past_due'],
+      ['canceled', 'canceled'],
+      ['incomplete_expired', 'canceled'],
+      ['paused', 'past_due'], // default case
+    ])(
+      'should map Stripe status "%s" to internal status "%s"',
+      async (stripeStatus, expectedStatus) => {
+        const config = createConfigMock({
+          STRIPE_SECRET_KEY: 'sk_test_key',
+          STRIPE_WEBHOOK_SECRET: 'whsec_test',
+          STRIPE_PRICE_PRO: 'price_pro',
+        });
+        const serviceWithSecret = new BillingService(
+          prismaMock as unknown as PrismaService,
+          config,
+          entitlementsServiceMock as unknown as EntitlementsService
+        );
+
+        const mockEvent = {
+          id: `evt_${stripeStatus}`,
+          type: 'customer.subscription.updated',
+          data: {
+            object: {
+              id: 'sub_123',
+              customer: 'cus_123',
+              status: stripeStatus,
+              current_period_start: Math.floor(Date.now() / 1000),
+              current_period_end: Math.floor(Date.now() / 1000) + 2592000,
+              items: {
+                data: [{ price: { id: 'price_pro' } }],
+              },
+            },
+          },
+        };
+
+        const mockStripeInstance = (serviceWithSecret as any).stripe;
+        mockStripeInstance.webhooks.constructEvent.mockReturnValue(mockEvent);
+        prismaMock.subscription.findFirst.mockResolvedValue({
+          id: 'sub-1',
+          userId: 'user-1',
+          stripeCustomerId: 'cus_123',
+        });
+        prismaMock.subscription.update.mockResolvedValue({});
+
+        jest.spyOn(console, 'log').mockImplementation(() => {});
+
+        await serviceWithSecret.handleWebhook(Buffer.from('{}'), 'sig_123');
+
+        expect(prismaMock.subscription.update).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({
+              status: expectedStatus,
+            }),
+          })
+        );
+
+        jest.restoreAllMocks();
+      }
+    );
+  });
+
+  describe('createCheckoutSession - existing customer', () => {
+    it('should use existing Stripe customer ID when available', async () => {
+      const mockUser = {
+        id: 'user-1',
+        email: 'test@example.com',
+      };
+
+      const existingSubscription = {
+        id: 'sub-1',
+        userId: 'user-1',
+        stripeCustomerId: 'cus_existing',
+        plan: 'free',
+        status: 'active',
+      };
+
+      prismaMock.subscription.findFirst.mockResolvedValue(null); // No active subscription
+      prismaMock.subscription.findUnique.mockResolvedValue(existingSubscription);
+      prismaMock.user.findUnique.mockResolvedValue(mockUser);
+
+      const mockStripeInstance = (service as any).stripe;
+      mockStripeInstance.checkout.sessions.create.mockResolvedValue({
+        url: 'https://checkout.stripe.com/session',
+      });
+
+      const result = await service.createCheckoutSession('user-1', 'pro');
+
+      expect(result.url).toBe('https://checkout.stripe.com/session');
+      expect(mockStripeInstance.customers.create).not.toHaveBeenCalled();
+      expect(mockStripeInstance.checkout.sessions.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          customer: 'cus_existing',
+        })
+      );
+    });
+  });
+
+  describe('handleWebhook - error propagation', () => {
+    it('should propagate errors from webhook handlers', async () => {
+      const config = createConfigMock({
+        STRIPE_SECRET_KEY: 'sk_test_key',
+        STRIPE_WEBHOOK_SECRET: 'whsec_test',
+      });
+      const serviceWithSecret = new BillingService(
+        prismaMock as unknown as PrismaService,
+        config,
+        entitlementsServiceMock as unknown as EntitlementsService
+      );
+
+      const mockEvent = {
+        id: 'evt_123',
+        type: 'checkout.session.completed',
+        data: {
+          object: {
+            id: 'cs_123',
+            metadata: { userId: 'user-1', planId: 'pro' },
+            subscription: 'sub_123',
+            customer: 'cus_123',
+          },
+        },
+      };
+
+      const mockStripeInstance = (serviceWithSecret as any).stripe;
+      mockStripeInstance.webhooks.constructEvent.mockReturnValue(mockEvent);
+      prismaMock.subscription.findUnique.mockResolvedValue(null);
+      prismaMock.subscription.upsert.mockRejectedValue(
+        new Error('Database error')
+      );
+
+      jest.spyOn(console, 'log').mockImplementation(() => {});
+      jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      await expect(
+        serviceWithSecret.handleWebhook(Buffer.from('{}'), 'sig_123')
+      ).rejects.toThrow('Database error');
+
+      jest.restoreAllMocks();
+    });
+  });
+
+  describe('getOrCreateStripeCustomer - update existing subscription', () => {
+    it('should update existing subscription with new Stripe customer ID', async () => {
+      const mockUser = {
+        id: 'user-1',
+        email: 'test@example.com',
+      };
+
+      const existingSubscription = {
+        id: 'sub-1',
+        userId: 'user-1',
+        stripeCustomerId: null, // No customer ID yet
+        plan: 'free',
+        status: 'active',
+      };
+
+      prismaMock.subscription.findFirst.mockResolvedValue(null);
+      prismaMock.subscription.findUnique.mockResolvedValue(existingSubscription);
+      prismaMock.user.findUnique.mockResolvedValue(mockUser);
+
+      const mockStripeInstance = (service as any).stripe;
+      mockStripeInstance.customers.create.mockResolvedValue({ id: 'cus_new' });
+      prismaMock.subscription.update.mockResolvedValue({
+        ...existingSubscription,
+        stripeCustomerId: 'cus_new',
+      });
+      mockStripeInstance.checkout.sessions.create.mockResolvedValue({
+        url: 'https://checkout.stripe.com/session',
+      });
+
+      const result = await service.createCheckoutSession('user-1', 'pro');
+
+      expect(result.url).toBe('https://checkout.stripe.com/session');
+      expect(mockStripeInstance.customers.create).toHaveBeenCalledWith({
+        email: 'test@example.com',
+        metadata: { userId: 'user-1' },
+      });
+      expect(prismaMock.subscription.update).toHaveBeenCalledWith({
+        where: { userId: 'user-1' },
+        data: { stripeCustomerId: 'cus_new' },
+      });
+    });
+  });
 });
