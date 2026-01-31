@@ -283,6 +283,28 @@ function LayoutShellInner({ children }: { children: ReactNode }) {
 
   const titleText = routeInfo.sectionLabel;
 
+  // [EA-53] Global top navigation destinations:
+  // - Project-contextual when /projects/[id]/... is in context
+  // - Safe fallback to /projects when no project context (no new routes)
+  const hasProjectContext = routeInfo.type === 'project';
+  const projectBase = hasProjectContext ? `/projects/${routeInfo.projectId}` : '';
+  const projectsHref = '/projects';
+  const contentHref = hasProjectContext ? `${projectBase}/content` : '/projects';
+  const productsHref = hasProjectContext ? `${projectBase}/products` : '/projects';
+  const automationsHref = hasProjectContext ? `${projectBase}/automation` : '/projects';
+  const performanceHref = hasProjectContext ? `${projectBase}/performance` : '/projects';
+  const billingHref = '/settings/billing';
+
+  const isActiveHref = (href: string) =>
+    pathname === href || pathname.startsWith(`${href}/`);
+
+  const navLinkClassName = (active: boolean) =>
+    [
+      'inline-flex items-center px-1 pt-1 text-sm font-medium transition-colors',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+      active ? 'text-primary' : 'text-muted-foreground hover:text-foreground',
+    ].join(' ');
+
   return (
     <div className="flex h-screen flex-col bg-background text-foreground">
       <header className="z-50 h-16 shrink-0 border-b border-border bg-background">
@@ -314,6 +336,68 @@ function LayoutShellInner({ children }: { children: ReactNode }) {
               Control Plane
             </span>
           </GuardedLink>
+
+          {/* [EA-53] Primary product areas (desktop-only); Media is explicitly non-functional. */}
+          <nav
+            aria-label="Primary navigation"
+            className="hidden lg:flex items-center gap-4"
+          >
+            <GuardedLink
+              href={projectsHref}
+              className={navLinkClassName(isActiveHref(projectsHref))}
+            >
+              Projects
+            </GuardedLink>
+            <GuardedLink
+              href={contentHref}
+              className={navLinkClassName(
+                hasProjectContext && isActiveHref(contentHref)
+              )}
+            >
+              Content
+            </GuardedLink>
+            <GuardedLink
+              href={productsHref}
+              className={navLinkClassName(
+                hasProjectContext && isActiveHref(productsHref)
+              )}
+            >
+              Products
+            </GuardedLink>
+            <span
+              aria-disabled="true"
+              title="Media is coming soon"
+              className="inline-flex items-center gap-1 px-1 pt-1 text-sm font-medium text-muted-foreground/50 cursor-not-allowed select-none"
+            >
+              Media
+              <span className="text-[10px] uppercase tracking-wide text-muted-foreground/50">
+                (Coming soon)
+              </span>
+            </span>
+            <GuardedLink
+              href={automationsHref}
+              className={navLinkClassName(
+                hasProjectContext && isActiveHref(automationsHref)
+              )}
+            >
+              Automations
+            </GuardedLink>
+            <GuardedLink
+              href={performanceHref}
+              className={navLinkClassName(
+                hasProjectContext && isActiveHref(performanceHref)
+              )}
+            >
+              Performance
+            </GuardedLink>
+            <GuardedLink
+              href={billingHref}
+              className={navLinkClassName(isActiveHref(billingHref))}
+            >
+              Billing
+            </GuardedLink>
+          </nav>
+
           <div className="flex flex-1 items-center justify-center px-4">
             {/* Desktop command palette trigger */}
             <button
