@@ -1624,8 +1624,8 @@ export default function AutomationPlaybooksPage() {
     if (!confirmApply) return;
 
     const selectedDef = PLAYBOOKS.find((pb) => pb.id === selectedPlaybookId);
-    const fieldType = selectedDef?.field === 'seoTitle' ? 'titles' : 'descriptions';
-    const assetLabel = currentAssetType === 'PRODUCTS' ? 'products' : currentAssetType.toLowerCase();
+    const _fieldType = selectedDef?.field === 'seoTitle' ? 'titles' : 'descriptions';
+    const _assetLabel = currentAssetType === 'PRODUCTS' ? 'products' : currentAssetType.toLowerCase();
 
     // Trigger the intent confirmation modal
     intentConfirmation.requestConfirmation(async () => {

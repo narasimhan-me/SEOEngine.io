@@ -14,7 +14,7 @@ import React from 'react';
 import { PriorityBadge, PriorityExplanation } from '@/components/priority';
 import { getIssuePrioritySignal } from '@/lib/issue-priority-mapping';
 import { CONTEXTUAL_EDUCATION } from '@/lib/education/contextualEducation';
-import type { PrioritySignal, PriorityFactor } from '@/lib/priority-signals';
+import type { PriorityFactor } from '@/lib/priority-signals';
 
 export interface IssueCardProps {
   /** Issue type key (e.g., 'missing_seo_title') */

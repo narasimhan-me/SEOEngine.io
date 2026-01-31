@@ -81,7 +81,7 @@ export function DashboardPrioritySection({
           )}
         </div>
         <p className="text-sm text-gray-500 mt-1">
-          Ranked by impact factors. Click any issue to see why it's prioritized.
+          Ranked by impact factors. Click any issue to see why it&apos;s prioritized.
         </p>
       </div>
 

@@ -14,7 +14,7 @@ import React from 'react';
 import { IssueCard } from './IssueCard';
 import { PriorityComparisonTooltip } from '@/components/priority';
 import { getPrioritizedIssueSignals } from '@/lib/issue-priority-mapping';
-import { PRIORITY_LEVEL_LABELS, CONFIDENCE_LABELS } from '@/lib/priority-signals';
+import { PRIORITY_LEVEL_LABELS } from '@/lib/priority-signals';
 
 export interface IssueItem {
   /** Issue type key */

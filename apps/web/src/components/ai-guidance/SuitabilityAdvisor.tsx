@@ -105,7 +105,7 @@ export function SuitabilityAdvisor({
   className = '',
 }: SuitabilityAdvisorProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [advisoryResponse, setAdvisoryResponse] = useState<AIAdvisoryResponse | null>(null);
+  const [_advisoryResponse, setAdvisoryResponse] = useState<AIAdvisoryResponse | null>(null);
   const [factors, setFactors] = useState<SuitabilityFactor[]>([]);
 
   const handleRequestGuidance = useCallback(() => {

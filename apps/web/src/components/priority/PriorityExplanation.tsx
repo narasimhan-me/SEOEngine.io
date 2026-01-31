@@ -16,7 +16,6 @@ import {
   type PriorityFactor,
   IMPACT_CATEGORY_LABELS,
   CONFIDENCE_DESCRIPTIONS,
-  getPriorityExplanation,
 } from '@/lib/priority-signals';
 import { PriorityBadge } from './PriorityBadge';
 

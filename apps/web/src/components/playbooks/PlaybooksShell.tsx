@@ -28,7 +28,7 @@ export function PlaybooksShell() {
           <h1 className="text-2xl font-semibold text-foreground">Playbooks</h1>
         </div>
         <p className="text-muted-foreground max-w-2xl">
-          Browse common fix strategies and approaches for improving your store's
+          Browse common fix strategies and approaches for improving your store&apos;s
           discoverability. Playbooks help you understand repeatable patterns
           without committing to any changes.
         </p>

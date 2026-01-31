@@ -37,7 +37,7 @@ interface IssueToActionGuidancePanelProps {
 }
 
 export function IssueToActionGuidancePanel({
-  issueTitle,
+  issueTitle: _issueTitle,
   recommendations,
   onDismiss,
   defaultCollapsed = false,
