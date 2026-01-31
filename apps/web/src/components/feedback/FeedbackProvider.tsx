@@ -37,6 +37,11 @@ interface FeedbackContextValue {
   showInfo: (message: string) => void;
   showWarning: (message: string) => void;
   showLimit: (message: string, actionHref?: string) => void;
+  /**
+   * [KAN-86] Show first-loop success feedback.
+   * Calm, factual messaging for first-time users completing review → draft → apply.
+   */
+  showFirstLoopSuccess: () => void;
 }
 
 const FeedbackContext = createContext<FeedbackContextValue | undefined>(
@@ -92,6 +97,14 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
         showBase('limit', message, {
           actionHref,
           actionLabel: actionHref ? 'Upgrade' : undefined,
+        }),
+      /**
+       * [KAN-86] Show first-loop success feedback.
+       * Calm, factual messaging for first-time users completing review → draft → apply.
+       */
+      showFirstLoopSuccess: () =>
+        showBase('success', 'Applied to Shopify successfully!', {
+          description: 'Your store is now updated with your changes.',
         }),
     }),
     [showBase]

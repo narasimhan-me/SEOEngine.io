@@ -77,9 +77,9 @@ export function FirstTimeUserGuidance({
             </h3>
           </div>
 
-          {/* Success definition */}
+          {/* [KAN-86] Success definition - clear, factual, no pressure */}
           <p className="text-sm text-muted-foreground mb-3">
-            Get your first win: <span className="font-medium text-foreground">review your store&apos;s SEO issues</span> and <span className="font-medium text-foreground">draft one fix</span>. You can do this in about 10 minutes.
+            Get your first win: <span className="font-medium text-foreground">review your store&apos;s SEO issues</span>, <span className="font-medium text-foreground">draft one fix</span>, and <span className="font-medium text-foreground">apply it</span>. That&apos;s the complete loop.
           </p>
 
           {/* Quick steps */}

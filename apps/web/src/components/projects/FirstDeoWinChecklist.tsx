@@ -103,6 +103,8 @@ export function FirstDeoWinChecklist({
       <div
         className="rounded-lg border border-green-100 bg-green-50 p-4 shadow-sm mb-6"
         data-testid="first-deo-win-complete"
+        role="status"
+        aria-live="polite"
       >
         <div className="flex items-center gap-3">
           <div className="flex-shrink-0">
@@ -110,6 +112,7 @@ export function FirstDeoWinChecklist({
               className="h-5 w-5 text-green-600"
               fill="currentColor"
               viewBox="0 0 20 20"
+              aria-hidden="true"
             >
               <path
                 fillRule="evenodd"
@@ -124,6 +127,10 @@ export function FirstDeoWinChecklist({
             </p>
             <p className="mt-0.5 text-xs text-green-700">
               You&apos;ve taken the foundational steps to improve your site&apos;s discoverability.
+            </p>
+            {/* [KAN-86] Calm, factual success reinforcement */}
+            <p className="mt-1 text-xs text-green-600">
+              Your store is in a good state. Keep going at your own pace.
             </p>
           </div>
         </div>

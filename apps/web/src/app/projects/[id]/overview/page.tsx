@@ -38,6 +38,7 @@ import { FirstDeoWinChecklist } from '@/components/projects/FirstDeoWinChecklist
 import { NextDeoWinCard } from '@/components/projects/NextDeoWinCard';
 import { ProgressReinforcementCard } from '@/components/projects/ProgressReinforcementCard';
 import type { ProgressReinforcementData } from '@/components/projects/ProgressReinforcementCard';
+import { FirstLoopSuccessBanner } from '@/components/projects/FirstLoopSuccessBanner';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
 
 type CrawlFrequency = 'DAILY' | 'WEEKLY' | 'MONTHLY';
@@ -949,6 +950,12 @@ export default function ProjectOverviewPage() {
             </div>
           );
         })()}
+
+      {/* [KAN-86] First Loop Success Banner - shown when first apply is complete */}
+      <FirstLoopSuccessBanner
+        isFirstLoopComplete={hasOptimizedThreeProducts}
+        testId="first-loop-success-banner"
+      />
 
       {/* Next DEO Win Card - shown when First DEO Win checklist is fully complete */}
       {hasConnectedSource &&

@@ -126,10 +126,11 @@ export function getDraftLifecycleCopy(
           'Draft is saved locally. Apply it to Shopify to update your store.',
       };
     case 'APPLIED':
+      // [KAN-86] Success copy reinforces completion without urgency
       return {
         label: 'Draft applied',
         shortLabel: 'Applied',
-        description: 'This draft has been applied to Shopify.',
+        description: 'This draft has been applied to Shopify. Your store is updated.',
       };
   }
 }

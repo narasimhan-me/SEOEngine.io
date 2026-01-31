@@ -43,6 +43,7 @@ export interface RowStatusChipProps {
 }
 
 // [UI-POLISH-&-CLARITY-1 FIXUP-1] Token-only chip styles
+// [KAN-86] Success styling reinforces healthy/optimized state without gamification
 const chipStyles: Record<RowChipLabel, string> = {
   '✅ Optimized':
     'border-border bg-[hsl(var(--success-background))] text-[hsl(var(--success-foreground))]',
@@ -52,6 +53,14 @@ const chipStyles: Record<RowChipLabel, string> = {
     'border-border bg-[hsl(var(--info-background))] text-[hsl(var(--info-foreground))]',
   '⛔ Blocked':
     'border-border bg-[hsl(var(--danger-background))] text-[hsl(var(--danger-foreground))]',
+};
+
+/**
+ * [KAN-86] Accessible descriptions for success states.
+ * Calm, factual language reinforcing healthy state.
+ */
+const successStateDescriptions: Partial<Record<RowChipLabel, string>> = {
+  '✅ Optimized': 'This product is optimized and in a healthy state.',
 };
 
 // [ICONS-LOCAL-LIBRARY-1] Map chip labels to semantic icon keys
@@ -108,13 +117,17 @@ export function RowStatusChip({
         ? ' (contact owner)'
         : '';
 
+  // [KAN-86] Get success state description for optimized items
+  const successDescription = successStateDescriptions[chipLabel];
+
   return (
     <span
       data-testid="row-status-chip"
       className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium whitespace-nowrap ${styles}`}
       // [ERROR-&-BLOCKED-STATE-UX-1] Accessibility: title for mouse users, aria-label for screen readers
-      title={isBlocked && blockedReason ? `${blockedReason}${nextStep ? ` ${nextStep}` : ''}` : undefined}
-      aria-label={accessibleDescription ? `${cleanLabel}: ${accessibleDescription}` : undefined}
+      // [KAN-86] Include success state description for optimized items
+      title={isBlocked && blockedReason ? `${blockedReason}${nextStep ? ` ${nextStep}` : ''}` : successDescription}
+      aria-label={accessibleDescription ? `${cleanLabel}: ${accessibleDescription}` : (successDescription ? `${cleanLabel}: ${successDescription}` : undefined)}
       role={isBlocked ? 'status' : undefined}
     >
       {/* [ICONS-LOCAL-LIBRARY-1] Decorative icon (no aria-label, aria-hidden) */}
