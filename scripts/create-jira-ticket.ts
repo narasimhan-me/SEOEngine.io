@@ -221,6 +221,8 @@ class JiraClient {
           it.name.toLowerCase() === data.issueType.toLowerCase() ||
           (it.name.toLowerCase().includes('epic') &&
             data.issueType.toLowerCase().includes('epic')) ||
+          (it.name.toLowerCase().includes('story') &&
+            data.issueType.toLowerCase().includes('story')) ||
           (it.name.toLowerCase().includes('bug') &&
             data.issueType.toLowerCase().includes('bug')) ||
           (it.name.toLowerCase().includes('tech') &&
@@ -577,11 +579,13 @@ function parseMarkdownTicket(filePath: string): JiraTicketData {
   const issueType = typeMatch
     ? typeMatch[1].includes('Epic')
       ? 'Epic'
-      : typeMatch[1].includes('Bug')
-        ? 'Bug'
-        : typeMatch[1].includes('Tech Debt')
-          ? 'Technical Task'
-          : 'Task'
+      : typeMatch[1].includes('Story')
+        ? 'Story'
+        : typeMatch[1].includes('Bug')
+          ? 'Bug'
+          : typeMatch[1].includes('Tech Debt')
+            ? 'Technical Task'
+            : 'Task'
     : 'Task';
 
   const priority = priorityMatch ? priorityMatch[1].trim() : 'Medium';
@@ -816,19 +820,24 @@ if (process.argv[2] === 'update') {
 } else if (process.argv[2] === 'transition') {
   const issueKey = process.argv[3];
   const action = process.argv[2];
+  // Optional: transition EA-50 "Parking lot" --project EA
+  const targetStatus =
+    process.argv[4] && !process.argv[4].startsWith('-')
+      ? process.argv[4]
+      : undefined;
 
   if (!issueKey) {
     console.error(
-      'Usage: ts-node scripts/create-jira-ticket.ts update <ISSUE-KEY> [--project <PROJECT-KEY>]'
+      'Usage: ts-node scripts/create-jira-ticket.ts transition <ISSUE-KEY> [TARGET-STATUS] [--project <PROJECT-KEY>]'
     );
     console.error(
-      'Example: ts-node scripts/create-jira-ticket.ts update EA-11 --project EA'
+      'Example: ts-node scripts/create-jira-ticket.ts transition EA-50 "Parking lot" --project EA'
     );
     process.exit(1);
   }
 
-  // Parse project key if provided
-  const args = process.argv.slice(3);
+  // Parse project key if provided (skip targetStatus when scanning)
+  const args = process.argv.slice(4);
   let projectKey: string | undefined;
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--project' || args[i] === '-p') {
@@ -861,30 +870,37 @@ if (process.argv[2] === 'update') {
       if (action === 'transition') {
         // Get available transitions
         const transitions = await client.getTransitions(issueKey);
-        const doneTransition = transitions.find(
-          (t) =>
-            t.to.name.toLowerCase() === 'done' ||
-            t.name.toLowerCase() === 'done' ||
-            t.to.name.toLowerCase().includes('done')
-        );
+        const transition = targetStatus
+          ? transitions.find(
+              (t) =>
+                t.to.name.toLowerCase().includes(targetStatus.toLowerCase()) ||
+                targetStatus.toLowerCase().includes(t.to.name.toLowerCase())
+            )
+          : transitions.find(
+              (t) =>
+                t.to.name.toLowerCase() === 'done' ||
+                t.name.toLowerCase() === 'done' ||
+                t.to.name.toLowerCase().includes('done')
+            );
 
-        if (!doneTransition) {
-          console.error(`\n❌ No "Done" transition available for ${issueKey}`);
+        if (!transition) {
+          console.error(
+            `\n❌ No transition${targetStatus ? ` to "${targetStatus}"` : ' to Done'} available for ${issueKey}`
+          );
           console.log(
-            `   Available transitions: ${transitions.map((t) => t.name).join(', ')}`
+            `   Available transitions: ${transitions.map((t) => `${t.name} → ${t.to.name}`).join(', ')}`
           );
           process.exit(1);
         }
 
-        // Transition to Done
-        console.log(`\n🔄 Transitioning to: ${doneTransition.to.name}...`);
-        await client.transitionIssue(issueKey, doneTransition.id);
+        console.log(`\n🔄 Transitioning to: ${transition.to.name}...`);
+        await client.transitionIssue(issueKey, transition.id);
         console.log(
-          `✅ Successfully transitioned ${issueKey} to ${doneTransition.to.name}`
+          `✅ Successfully transitioned ${issueKey} to ${transition.to.name}`
         );
       }
 
-      // Add completion comment
+      // Add completion comment only when transitioning to Done (no targetStatus)
       const completionComment = `✅ Phase Complete
 
 This Epic has been successfully completed. Key accomplishments:
@@ -905,9 +921,11 @@ This Epic has been successfully completed. Key accomplishments:
 
 All acceptance criteria met. Manual testing doc exists and is linked in IMPLEMENTATION_PLAN.md.`;
 
-      console.log(`\n💬 Adding completion comment...`);
-      await client.addComment(issueKey, completionComment);
-      console.log(`✅ Comment added successfully`);
+      if (!targetStatus) {
+        console.log(`\n💬 Adding completion comment...`);
+        await client.addComment(issueKey, completionComment);
+        console.log(`✅ Comment added successfully`);
+      }
 
       console.log(`\n🎉 ${issueKey} updated successfully!`);
       console.log(`   URL: ${process.env.JIRA_BASE_URL}/browse/${issueKey}`);
