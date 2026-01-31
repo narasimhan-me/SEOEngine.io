@@ -9,7 +9,7 @@ import { ContextPanelAiAssistHints } from './ContextPanelAiAssistHints';
 // [ISSUES-ENGINE-REMOUNT-1] Import issue details component
 import { ContextPanelIssueDetails } from './ContextPanelIssueDetails';
 // [KAN-88: EA-50] Centralized governance narrative
-import { GOVERNANCE_BADGES, GOVERNANCE_MICROCOPY } from '@/lib/governance-narrative';
+import { GOVERNANCE_BADGES } from '@/lib/governance-narrative';
 
 interface ContextPanelContentRendererProps {
   activeView: PanelView;

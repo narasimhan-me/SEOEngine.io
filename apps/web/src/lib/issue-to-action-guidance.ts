@@ -19,7 +19,7 @@
 
 import type { PlaybookId } from './playbooks-routing';
 // [KAN-88: EA-50] Import centralized governance narrative
-import { GOVERNANCE_PHRASES, GOVERNANCE_MICROCOPY } from '@/lib/governance-narrative';
+import { GOVERNANCE_MICROCOPY } from '@/lib/governance-narrative';
 
 /**
  * [EA-49] AI Advisory framing constants for consistent language across all AI outputs.
