@@ -99,7 +99,7 @@ export function SafetyRailBlockedPanel({
                 aria-label="Dismiss error"
                 data-testid="safety-rail-blocked-dismiss"
               >
-                <Icon name="nav.close" size={16} />
+                <span className="text-sm leading-none" aria-hidden="true">✕</span>
               </button>
             )}
           </div>
