@@ -6694,6 +6694,8 @@ Epic decomposed by SUPERVISOR v3.2 {mode_note}{partial_note}
 {story_list}
 """)
 
+        # reused_stories = keys of existing stories that were not newly created
+        reused_stories = [s['key'] for s in existing_stories]
         all_stories = created_stories + reused_stories
 
         if all_stories:
@@ -6946,10 +6948,6 @@ Files modified:
 Implementation started by Claude Code Developer
 Branch: {self.config.feature_branch}
 Base SHA: {head_sha_before[:8] if head_sha_before else 'unknown'}
-
-**Guardrails v1 Active:**
-- Diff budget: {max_files} files
-- Frontend-only: {frontend_only}
 """)
             self.log("IMPLEMENTER", f"Story {key} implementation complete")
 
