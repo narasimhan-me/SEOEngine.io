@@ -149,7 +149,7 @@ export function AutomationIntentConfirmationModal({
             aria-label="Close confirmation dialog"
             data-testid="intent-confirmation-close"
           >
-            <Icon name="nav.close" size={20} />
+            <span className="text-lg leading-none" aria-hidden="true">✕</span>
           </button>
         </div>
 
