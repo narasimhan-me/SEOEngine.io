@@ -10,9 +10,6 @@
  * - Honest representation of platform status
  */
 
-import { cn } from '@/lib/utils';
-import { Activity, CheckCircle2, AlertCircle } from 'lucide-react';
-
 export type StabilityStatus = 'operational' | 'degraded' | 'maintenance';
 
 export interface StabilityIndicatorProps {
@@ -28,7 +25,6 @@ const STATUS_CONFIG = {
   operational: {
     label: 'All Systems Operational',
     shortLabel: 'Operational',
-    icon: CheckCircle2,
     dotClassName: 'bg-green-500',
     textClassName: 'text-green-700',
     bgClassName: 'bg-green-50',
@@ -37,7 +33,6 @@ const STATUS_CONFIG = {
   degraded: {
     label: 'Some Systems Degraded',
     shortLabel: 'Degraded',
-    icon: AlertCircle,
     dotClassName: 'bg-yellow-500',
     textClassName: 'text-yellow-700',
     bgClassName: 'bg-yellow-50',
@@ -46,7 +41,6 @@ const STATUS_CONFIG = {
   maintenance: {
     label: 'Scheduled Maintenance',
     shortLabel: 'Maintenance',
-    icon: Activity,
     dotClassName: 'bg-blue-500',
     textClassName: 'text-blue-700',
     bgClassName: 'bg-blue-50',
@@ -61,16 +55,10 @@ function PulseDot({ className }: { className: string }) {
   return (
     <span className="relative flex h-2.5 w-2.5">
       <span
-        className={cn(
-          'animate-ping absolute inline-flex h-full w-full rounded-full opacity-75',
-          className
-        )}
+        className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${className}`}
       />
       <span
-        className={cn(
-          'relative inline-flex rounded-full h-2.5 w-2.5',
-          className
-        )}
+        className={`relative inline-flex rounded-full h-2.5 w-2.5 ${className}`}
       />
     </span>
   );
@@ -81,24 +69,23 @@ function PulseDot({ className }: { className: string }) {
  */
 export function StabilityIndicator({
   status,
-  className,
+  className = '',
   showLabel = true,
   compact = false,
 }: StabilityIndicatorProps) {
   const config = STATUS_CONFIG[status];
-  const Icon = config.icon;
 
   if (compact) {
     return (
       <div
-        className={cn('inline-flex items-center gap-1.5', className)}
+        className={`inline-flex items-center gap-1.5 ${className}`}
         data-testid="stability-indicator"
         data-status={status}
         title={config.label}
       >
         <PulseDot className={config.dotClassName} />
         {showLabel && (
-          <span className={cn('text-xs font-medium', config.textClassName)}>
+          <span className={`text-xs font-medium ${config.textClassName}`}>
             {config.shortLabel}
           </span>
         )}
@@ -108,18 +95,13 @@ export function StabilityIndicator({
 
   return (
     <div
-      className={cn(
-        'inline-flex items-center gap-2 px-3 py-1.5 rounded-full border',
-        config.bgClassName,
-        config.borderClassName,
-        className
-      )}
+      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border ${config.bgClassName} ${config.borderClassName} ${className}`}
       data-testid="stability-indicator"
       data-status={status}
     >
       <PulseDot className={config.dotClassName} />
       {showLabel && (
-        <span className={cn('text-sm font-medium', config.textClassName)}>
+        <span className={`text-sm font-medium ${config.textClassName}`}>
           {config.label}
         </span>
       )}

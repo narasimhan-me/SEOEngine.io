@@ -10,8 +10,7 @@
  * - SMB-friendly presentation with progressive disclosure
  */
 
-import { Info, Shield, Activity, CheckCircle2, Clock } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Icon } from '@/components/icons';
 
 export interface MaturitySignal {
   id: string;
@@ -31,19 +30,19 @@ export interface MaturitySignalsPanelProps {
 const STATUS_CONFIG = {
   active: {
     label: 'Active',
-    icon: CheckCircle2,
+    iconName: 'status.healthy' as const,
     className: 'text-green-600 bg-green-50 border-green-200',
     iconClassName: 'text-green-600',
   },
   available: {
     label: 'Available',
-    icon: Shield,
+    iconName: 'nav.brand' as const,
     className: 'text-blue-600 bg-blue-50 border-blue-200',
     iconClassName: 'text-blue-600',
   },
   coming_soon: {
     label: 'Coming Soon',
-    icon: Clock,
+    iconName: 'workflow.history' as const,
     className: 'text-gray-500 bg-gray-50 border-gray-200',
     iconClassName: 'text-gray-400',
   },
@@ -52,33 +51,29 @@ const STATUS_CONFIG = {
 const CATEGORY_CONFIG = {
   governance: {
     label: 'Governance',
-    icon: Shield,
+    iconName: 'nav.brand' as const,
     description: 'Access control and approval workflows',
   },
   stability: {
     label: 'Stability',
-    icon: Activity,
+    iconName: 'nav.analytics' as const,
     description: 'Platform reliability indicators',
   },
   reliability: {
     label: 'Reliability',
-    icon: CheckCircle2,
+    iconName: 'status.healthy' as const,
     description: 'Data integrity and consistency',
   },
 } as const;
 
 function SignalBadge({ status }: { status: MaturitySignal['status'] }) {
   const config = STATUS_CONFIG[status];
-  const Icon = config.icon;
 
   return (
     <span
-      className={cn(
-        'inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full border',
-        config.className
-      )}
+      className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full border ${config.className}`}
     >
-      <Icon className={cn('h-3 w-3', config.iconClassName)} />
+      <Icon name={config.iconName} size={16} className={config.iconClassName} />
       {config.label}
     </span>
   );
@@ -91,8 +86,6 @@ function SignalCard({
   signal: MaturitySignal;
   showDetails?: boolean;
 }) {
-  const categoryConfig = CATEGORY_CONFIG[signal.category];
-
   return (
     <div
       className="flex items-start justify-between p-3 bg-white border border-gray-200 rounded-lg"
@@ -122,7 +115,7 @@ function SignalCard({
  */
 export function MaturitySignalsPanel({
   signals,
-  className,
+  className = '',
   showDetails = false,
 }: MaturitySignalsPanelProps) {
   // Group signals by category
@@ -145,7 +138,7 @@ export function MaturitySignalsPanel({
 
   return (
     <div
-      className={cn('space-y-4', className)}
+      className={`space-y-4 ${className}`}
       data-testid="maturity-signals-panel"
     >
       {/* Header with info tooltip */}
@@ -154,7 +147,7 @@ export function MaturitySignalsPanel({
           Platform Capabilities
         </h3>
         <div className="group relative">
-          <Info className="h-4 w-4 text-gray-400 cursor-help" />
+          <span className="text-gray-400 cursor-help" title="Platform capabilities info">ℹ️</span>
           <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-64 p-2 bg-gray-900 text-white text-xs rounded shadow-lg z-10">
             These signals indicate platform maturity and available governance
             features. All information is read-only.
@@ -171,7 +164,7 @@ export function MaturitySignalsPanel({
           return (
             <div key={category} className="space-y-2">
               <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                <config.icon className="h-3.5 w-3.5" />
+                <Icon name={config.iconName} size={16} />
                 <span className="font-medium">{config.label}</span>
               </div>
               <div className="space-y-2">

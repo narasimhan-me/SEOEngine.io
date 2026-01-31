@@ -10,8 +10,7 @@
  * - Simple enough for SMB users to understand at a glance
  */
 
-import { Shield, ChevronRight, ExternalLink } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Icon } from '@/components/icons';
 import {
   MaturitySignalsPanel,
   DEFAULT_MATURITY_SIGNALS,
@@ -38,13 +37,12 @@ export interface GovernanceReadinessCardProps {
 function ReadinessSummary({ signals }: { signals: MaturitySignal[] }) {
   const activeCount = signals.filter((s) => s.status === 'active').length;
   const totalCount = signals.length;
-  const percentage = Math.round((activeCount / totalCount) * 100);
 
   return (
     <div className="flex items-center gap-4 text-sm">
       <div className="flex items-center gap-2">
         <div className="flex items-center justify-center w-10 h-10 rounded-full bg-green-100">
-          <Shield className="h-5 w-5 text-green-600" />
+          <Icon name="nav.brand" size={20} className="text-green-600" />
         </div>
         <div>
           <div className="font-semibold text-gray-900">
@@ -64,24 +62,21 @@ function ReadinessSummary({ signals }: { signals: MaturitySignal[] }) {
  * Suitable for embedding in settings pages or dashboards.
  */
 export function GovernanceReadinessCard({
-  className,
+  className = '',
   signals = DEFAULT_MATURITY_SIGNALS,
   expanded = false,
   governancePageHref,
 }: GovernanceReadinessCardProps) {
   return (
     <div
-      className={cn(
-        'bg-white border border-gray-200 rounded-lg overflow-hidden',
-        className
-      )}
+      className={`bg-white border border-gray-200 rounded-lg overflow-hidden ${className}`}
       data-testid="governance-readiness-card"
     >
       {/* Header */}
       <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-            <Shield className="h-4 w-4 text-gray-500" />
+            <Icon name="nav.brand" size={16} className="text-gray-500" />
             Governance & Reliability
           </h3>
           {governancePageHref && (
@@ -89,8 +84,7 @@ export function GovernanceReadinessCard({
               href={governancePageHref}
               className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
             >
-              View details
-              <ChevronRight className="h-3 w-3" />
+              View details →
             </a>
           )}
         </div>
