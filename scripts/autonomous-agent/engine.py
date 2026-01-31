@@ -107,15 +107,89 @@ from verification.auto_verify import (
 
 # Claude Code CLI is used for all personas (no API key required)
 # Model configuration per persona:
-# - UEP: opus (high-quality business analysis)
-# - Supervisor: opus (code understanding and PATCH BATCH generation)
-# - Developer: sonnet (faster implementation)
+# - UEP: opus
+# - Supervisor: opus
+# - Supervisor-Light: sonnet
+# - Implementer: sonnet
 CLAUDE_CODE_AVAILABLE = True  # Will be verified at runtime
 
-# Model aliases for Claude Code CLI
-MODEL_UEP = "opus"        # Best for business analysis
-MODEL_SUPERVISOR = "opus"  # Best for code analysis
-MODEL_IMPLEMENTER = "sonnet" # Faster for implementation
+# -----------------------------------------------------------------------------
+# LOCKED MODEL ASSIGNMENTS (GOVERNANCE - NON-NEGOTIABLE)
+# -----------------------------------------------------------------------------
+MODEL_UEP = "opus"
+MODEL_SUPERVISOR = "opus"
+MODEL_SUPERVISOR_LIGHT = "sonnet"
+MODEL_IMPLEMENTER = "sonnet"
+
+_LOCKED_ROLE_MODEL_ASSIGNMENTS: Dict[str, str] = {
+    "UEP": "opus",
+    "SUPERVISOR": "opus",
+    "SUPERVISOR_LIGHT": "sonnet",
+    "IMPLEMENTER": "sonnet",
+}
+
+
+def _model_for_role(role: str) -> str:
+    """Centralized, auditable model selection (no silent substitution)."""
+    if role not in _LOCKED_ROLE_MODEL_ASSIGNMENTS:
+        raise ValueError(f"Unknown role: {role}")
+    return _LOCKED_ROLE_MODEL_ASSIGNMENTS[role]
+
+
+def _assert_locked_model_assignments() -> None:
+    """Fail-closed if any role->model mapping drifts from the locked contract."""
+    runtime = {
+        "UEP": MODEL_UEP,
+        "SUPERVISOR": MODEL_SUPERVISOR,
+        "SUPERVISOR_LIGHT": MODEL_SUPERVISOR_LIGHT,
+        "IMPLEMENTER": MODEL_IMPLEMENTER,
+    }
+    for role, expected in _LOCKED_ROLE_MODEL_ASSIGNMENTS.items():
+        actual = runtime.get(role)
+        if actual != expected:
+            raise RuntimeError(f"Locked model mismatch for {role}: expected={expected} actual={actual}")
+
+
+def _looks_like_patch_or_diff(text: str) -> bool:
+    """Detect patch/diff-like output (role contract enforcement)."""
+    t = text or ""
+    if "*** Begin Patch" in t or "diff --git" in t:
+        return True
+    # PATCH BATCH markers
+    if "FILE:" in t and "---OLD---" in t and "---NEW---" in t:
+        return True
+    return False
+
+
+def _epic_has_required_uep_intent_contract(epic_description: str) -> bool:
+    """Supervisor must STOP if UEP intent contract is missing (no guessing)."""
+    d = (epic_description or "").lower()
+    required_markers = [
+        "scope class:",
+        "allowed roots:",
+        "diff budget:",
+        "verification required:",
+    ]
+    if not all(m in d for m in required_markers):
+        return False
+    # Require at least one checklist item in acceptance criteria
+    if "- [ ]" not in d and "- [x]" not in d:
+        return False
+    return True
+
+
+def _patch_batch_is_placeholder(content: str) -> bool:
+    """Detect placeholder/ambiguous patch batch content."""
+    c = (content or "").lower()
+    # Common placeholder indicators
+    if "todo:" in c or "tbd:" in c or "placeholder" in c:
+        return True
+    if "{{" in c and "}}" in c:
+        return True
+    # Very short content is likely placeholder
+    if len(content.strip()) < 50:
+        return True
+    return False
 
 # -----------------------------------------------------------------------------
 # CLAUDE EXECUTION HARDENING
@@ -1526,12 +1600,13 @@ def load_dotenv(dotenv_path: Path) -> int:
 
 
 # =============================================================================
-# ROLE DEFINITIONS (v3.2)
+# ROLE DEFINITIONS (v3.3 - GOVERNANCE ENFORCED)
 # =============================================================================
 
 ROLE_UEP = {
     'name': 'UEP',
-    'version': '3.2',
+    'version': '3.3',
+    'model': 'opus',  # LOCKED
     'combines': [
         'Lead Product Manager',
         'Lead Technical Architect',
@@ -1552,12 +1627,19 @@ ROLE_UEP = {
         'NEVER write code',
         'NEVER describe code or file paths',
         'NEVER make implementation decisions'
-    ]
+    ],
+    # GOVERNANCE HARD CONSTRAINTS (enforced at runtime)
+    'hard_constraints': {
+        'output_must_not_contain': ['diff --git', '*** Begin Patch', 'FILE:', '---OLD---', '---NEW---'],
+        'escalate_if_violated': True,
+        'description': 'UEP output containing patch/diff markers is a role contract violation'
+    }
 }
 
 ROLE_SUPERVISOR = {
     'name': 'SUPERVISOR',
-    'version': '3.2',
+    'version': '3.3',
+    'model': 'opus',  # LOCKED
     'responsibilities': [
         'Validate UEP intent and resolve ambiguities',
         'Produce PATCH BATCH instructions (surgical, minimal diffs)',
@@ -1571,12 +1653,41 @@ ROLE_SUPERVISOR = {
         'Refuse requests requiring speculation or missing context',
         'No full file rewrites',
         'No adding new technologies unless explicitly authorized'
-    ]
+    ],
+    # GOVERNANCE HARD CONSTRAINTS (enforced at runtime)
+    'hard_constraints': {
+        'must_use_model_for_role': True,
+        'require_uep_intent_contract': True,
+        'reject_placeholder_patches': True,
+        'description': 'Supervisor must validate UEP intent contract, use locked model, reject placeholders'
+    }
+}
+
+# SUPERVISOR-LIGHT: Lightweight verification role (sonnet for cost efficiency)
+ROLE_SUPERVISOR_LIGHT = {
+    'name': 'SUPERVISOR_LIGHT',
+    'version': '3.3',
+    'model': 'sonnet',  # LOCKED
+    'responsibilities': [
+        'Lightweight verification of completed work',
+        'Checklist validation',
+        'Quick status checks'
+    ],
+    'restrictions': [
+        'No decomposition',
+        'No patch generation',
+        'No architectural decisions'
+    ],
+    'hard_constraints': {
+        'must_use_model_for_role': True,
+        'description': 'Supervisor-Light uses sonnet for cost-efficient verification'
+    }
 }
 
 ROLE_IMPLEMENTER = {
     'name': 'IMPLEMENTER',
-    'version': '3.2',
+    'version': '3.3',
+    'model': 'sonnet',  # LOCKED
     'responsibilities': [
         'Apply PATCH BATCH diffs EXACTLY as provided',
         'Write all code',
@@ -1591,7 +1702,13 @@ ROLE_IMPLEMENTER = {
         'Do NOT rewrite entire files',
         'Do NOT guess missing architecture',
         'No autonomous enhancements'
-    ]
+    ],
+    # GOVERNANCE HARD CONSTRAINTS (enforced at runtime)
+    'hard_constraints': {
+        'must_use_model_for_role': True,
+        'require_explicit_patch_batch': True,
+        'description': 'Implementer must receive explicit PATCH BATCH, never guess'
+    }
 }
 
 
@@ -2740,6 +2857,10 @@ class ExecutionEngine:
             self.log("SUPERVISOR", "Claude Code CLI enabled for all personas (no API key required)")
         else:
             self.log("SUPERVISOR", "Claude Code CLI not found - install with: npm install -g @anthropic-ai/claude-code")
+
+        # GOVERNANCE: Assert locked model assignments (fail-closed if drifted)
+        _assert_locked_model_assignments()
+        self.log("SUPERVISOR", f"Governance: model assignments verified (UEP={MODEL_UEP}, SUPERVISOR={MODEL_SUPERVISOR}, SUPERVISOR_LIGHT={MODEL_SUPERVISOR_LIGHT}, IMPLEMENTER={MODEL_IMPLEMENTER})")
 
         # PATCH 1: Initialize work ledger for state persistence across runs
         self.work_ledger = WorkLedger(config.repo_path)
@@ -3979,12 +4100,19 @@ IMPORTANT: Output ONLY the markdown in the required format."""
             epic_description = result.stdout.strip()
             self.log("UEP", f"Claude Code CLI generated {len(epic_description)} chars of business intent")
 
+            # GOVERNANCE: UEP must NOT produce patches or code
+            if _looks_like_patch_or_diff(epic_description):
+                self.log("UEP", "GOVERNANCE VIOLATION: UEP output contains patch/diff markers - role contract breach")
+                self._escalate("UEP", "Role Contract Violation", f"UEP produced patch/diff content for {idea_key}. UEP must produce intent only, never code.")
+                return self._basic_analyze_idea(idea_key, summary, description)
+
             # Add UEP signature
             epic_description += """
 
 ---
-*This Epic was created by UEP v3.2*
+*This Epic was created by UEP v3.3*
 *Powered by Claude Code CLI with Opus model (no API key required)*
+*Governance: model={MODEL_UEP}, role contract enforced*
 *Ready for Supervisor decomposition into implementation Stories*
 """
 
@@ -4320,14 +4448,16 @@ IMPORTANT: Output ONLY the PATCH BATCH instructions followed by the ALLOWED FILE
 
 Generate the PATCH BATCH instructions now:"""
 
-            self.log("SUPERVISOR", f"Calling Claude Code CLI ({MODEL_SUPERVISOR}) for code analysis...")
+            # GOVERNANCE: Use locked model assignment
+            model = _model_for_role("SUPERVISOR")
+            self.log("SUPERVISOR", f"Calling Claude Code CLI ({model}) for code analysis...")
 
             # PATCH 4: Use unified timeout source
             self.log("SUPERVISOR", f"step timeout: DECOMPOSE={self.claude_timeout_seconds}s (derived from claude_timeout_seconds)")
 
             # Run Claude Code CLI with the prompt (using opus for deep code analysis)
             result = subprocess.run(
-                ['claude', '--model', MODEL_SUPERVISOR, '-p', prompt, '--dangerously-skip-permissions'],
+                ['claude', '--model', model, '-p', prompt, '--dangerously-skip-permissions'],
                 cwd=self.config.repo_path,
                 capture_output=True,
                 text=True,
@@ -4341,6 +4471,12 @@ Generate the PATCH BATCH instructions now:"""
 
             patch_content = result.stdout.strip()
             self.log("SUPERVISOR", f"Claude Code CLI generated {len(patch_content)} chars of PATCH BATCH")
+
+            # GOVERNANCE: Reject placeholder/ambiguous patches
+            if _patch_batch_is_placeholder(patch_content):
+                self.log("SUPERVISOR", "GOVERNANCE: Patch batch appears to be placeholder/ambiguous - rejecting")
+                self._escalate("SUPERVISOR", "Placeholder Patch Detected", f"Supervisor generated placeholder patches for {epic_key}. Human intervention required.")
+                return self._generate_template_patches(files)
 
             return patch_content
 
@@ -6463,6 +6599,27 @@ Business Intent Defined - Ready for Supervisor decomposition.
 
         self.log("SUPERVISOR", f"Decomposing Epic: [{key}] {summary}")
 
+        # GOVERNANCE: Supervisor must STOP if UEP intent contract is missing
+        if not _epic_has_required_uep_intent_contract(description):
+            self.log("SUPERVISOR", f"GOVERNANCE: Epic {key} missing UEP intent contract (SCOPE CLASS, ALLOWED ROOTS, DIFF BUDGET, VERIFICATION REQUIRED)")
+            self.jira.add_comment(key, """
+**GOVERNANCE HOLD: Missing UEP Intent Contract**
+
+This Epic cannot be decomposed because it lacks required intent contract markers:
+- SCOPE CLASS: (required)
+- ALLOWED ROOTS: (required)
+- DIFF BUDGET: (required)
+- VERIFICATION REQUIRED: (required)
+- At least one checklist item `- [ ]` or `- [x]` (required)
+
+The UEP must update this Epic with the complete intent contract before Supervisor can proceed.
+No guessing or speculation will be performed.
+
+*Governance v3.3 - Role contract enforcement*
+""")
+            self._escalate("SUPERVISOR", "Missing UEP Intent Contract", f"Epic {key} lacks required intent contract markers. UEP must update before decomposition.")
+            return False
+
         # PATCH 3: Initialize manifest store
         manifest_store = DecompositionManifestStore(self.config.repo_path, manifest_dir=_artifact_dirname())
 
@@ -6760,6 +6917,40 @@ Ready for Developer implementation.
 
         if patch_batch_content:
             self.log("IMPLEMENTER", f"Loaded patch batch from: {patch_batch_source}")
+
+            # GOVERNANCE: Reject placeholder/ambiguous patch batch content
+            if _patch_batch_is_placeholder(patch_batch_content):
+                self.log("IMPLEMENTER", f"[{key}] GOVERNANCE: Patch batch is placeholder/ambiguous - blocking")
+                artifacts_dir = _artifact_dirname()
+                self.jira.add_comment(key, f"""## Implementation BLOCKED - Placeholder Patch Batch
+
+The patch batch file was found but contains placeholder or ambiguous content:
+- Source: {patch_batch_source}
+
+**GOVERNANCE RULE:** Implementer must NOT guess or speculate. Explicit patches required.
+
+**ACTION REQUIRED:** Supervisor must regenerate the patch batch with explicit, complete diffs.
+
+Common placeholder indicators detected:
+- TODO/TBD markers
+- Template variables ({{ }})
+- Very short content (<50 chars)
+
+---
+*Governance v3.3 - Role contract enforcement*
+""")
+                self.jira.transition_issue(key, 'BLOCKED')
+                self._upsert_work_ledger_entry(
+                    issue_key=key,
+                    issue_type="Story",
+                    status="BLOCKED",
+                    last_step=LastStep.IMPLEMENTER.value,
+                    last_step_result=StepResult.FAILED.value,
+                    error_text="Patch batch is placeholder/ambiguous",
+                )
+                self._escalate("IMPLEMENTER", "Placeholder Patch Batch", f"Story {key} has placeholder patch batch content. Supervisor must regenerate.")
+                return True  # Handled, but blocked
+
             # Append patch batch to description for Claude
             description = description + f"\n\n## PATCH BATCH (from {patch_batch_source})\n\n{patch_batch_content}"
         else:
@@ -7091,8 +7282,28 @@ Important:
 - Make ONLY the changes specified in the PATCH BATCH
 - Do NOT refactor or change unrelated code
 - Preserve existing formatting and structure
-- If PATCH BATCH is unclear, implement based on the Epic requirements
 - Run tool/command actions sequentially (one at a time); do not run concurrent tool operations.
+
+## GOVERNANCE v3.3 - IMPLEMENTER ROLE CONTRACT
+
+**HARD RULES (NON-NEGOTIABLE):**
+1. NEVER GUESS: If PATCH BATCH is unclear, ambiguous, or contains placeholders - STOP IMMEDIATELY
+2. NEVER SPECULATE: Do not invent file paths, code patterns, or implementation details
+3. EXPLICIT ONLY: Every change must be explicitly specified in the PATCH BATCH
+4. FAIL-CLOSED: If uncertain about any patch, output "AMBIGUOUS PATCH BATCH" and halt
+
+If you encounter:
+- TODO/TBD markers in patch content
+- Template variables ({{ }})
+- Missing ---OLD--- or ---NEW--- sections
+- Files that don't exist at specified paths
+
+Then STOP and output:
+```
+AMBIGUOUS PATCH BATCH DETECTED
+Cannot proceed without explicit, complete patches.
+Blocking for Supervisor regeneration.
+```
 
 Begin implementation now.
 """
@@ -7637,6 +7848,25 @@ Examples:
                 # Force specific issue type
                 issue = engine.jira.get_issue(issue_key)
                 if issue:
+                    actual_type = issue['fields']['issuetype']['name'].lower()
+                    forced_type = args.type.lower()
+
+                    # GOVERNANCE: Warn about cross-role forced routing
+                    # This is allowed but logged for audit purposes
+                    cross_role_map = {
+                        ('epic', 'story'): ('SUPERVISOR', 'IMPLEMENTER'),
+                        ('epic', 'bug'): ('SUPERVISOR', 'IMPLEMENTER'),
+                        ('story', 'epic'): ('IMPLEMENTER', 'SUPERVISOR'),
+                        ('bug', 'epic'): ('IMPLEMENTER', 'SUPERVISOR'),
+                        ('idea', 'story'): ('UEP', 'IMPLEMENTER'),
+                        ('idea', 'epic'): ('UEP', 'SUPERVISOR'),
+                    }
+                    cross_key = (actual_type, forced_type)
+                    if cross_key in cross_role_map:
+                        actual_role, forced_role = cross_role_map[cross_key]
+                        engine.log("GOVERNANCE", f"Cross-role forced routing: {issue_key} actual={actual_type}({actual_role}) -> forced={forced_type}({forced_role})")
+                        engine.log("GOVERNANCE", "WARNING: Forcing type may bypass role contracts. Ensure this is intentional.")
+
                     # Override issue type
                     issue['fields']['issuetype']['name'] = args.type.title()
                     if args.type == 'idea':
